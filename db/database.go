@@ -2,6 +2,8 @@ package db
 
 import (
 	"database/sql"
+	"downloader_gochat/configs"
+
 	_ "github.com/lib/pq"
 )
 
@@ -13,8 +15,7 @@ type Database struct {
 }
 
 func NewDatabase() (*Database, error) {
-	//todo : use env for db url
-	db, err := sql.Open("postgres", "postgres://root:mysecretpassword@localhost:5432/go-chat?sslmode=disable")
+	db, err := sql.Open("postgres", configs.DbUrl)
 	if err != nil {
 		return nil, err
 	}

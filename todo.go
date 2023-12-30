@@ -5,6 +5,7 @@ package main
 
 //todo : merge/sync db and auth with main server
 
+//todo : track system growth, number of messages per day
 //todo : write benchmarks
 
 //todo : send notification on new message
@@ -19,6 +20,13 @@ package main
 
 //todo : handle file sharing
 
-//todo : handle channel
-//todo : handle group chat
 //todo : handle users chat
+
+//todo : share lists, collections
+//todo : share movie
+//todo : security
+//todo : notifications
+//todo : read recipes
+//todo : media uploads
+//todo : online status
+//todo : real-time messaging

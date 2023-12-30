@@ -8,6 +8,10 @@ import (
 
 var r *gin.Engine
 
+//todo : add api : check new message
+//todo : add api : get messages
+//todo : add api : set message as read
+
 func InitApi(userHandler *user.Handler, wsHandler *ws.Handler) {
 	r = gin.Default()
 

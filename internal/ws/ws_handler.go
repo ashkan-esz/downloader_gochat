@@ -1,9 +1,10 @@
 package ws
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/gorilla/websocket"
-	"net/http"
 )
 
 type Handler struct {
@@ -72,9 +73,9 @@ func (h *Handler) JoinRoom(c *gin.Context) {
 		RoomId:   roomId,
 	}
 
-	//Register a new client through the register channel
+	// Register a new client through the register channel
 	h.hube.Register <- cl
-	//Broadcast that message
+	// Broadcast that message
 	h.hube.Broadcast <- m
 
 	go cl.WriteMessage()

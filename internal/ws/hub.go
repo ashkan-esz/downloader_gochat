@@ -23,7 +23,7 @@ func NewHub() *Hube {
 }
 
 func (h *Hube) Run() {
-	//run in separate goroutine
+	// run in separate goroutine
 	for {
 		select {
 		case cl := <-h.Register:
@@ -36,7 +36,7 @@ func (h *Hube) Run() {
 		case cl := <-h.UnRegister:
 			if _, ok := h.Rooms[cl.RoomId]; ok {
 				if _, ok := h.Rooms[cl.RoomId].Clients[cl.ID]; ok {
-					//Broadcast a message saying that the client left the room
+					// Broadcast a message saying that the client left the room
 					if len(h.Rooms[cl.RoomId].Clients) != 0 {
 						h.Broadcast <- &Message{
 							Content:  "user left the chat",
