@@ -2,6 +2,7 @@ package main
 
 import (
 	"downloader_gochat/api"
+	"downloader_gochat/configs"
 	"downloader_gochat/db"
 	"downloader_gochat/internal/user"
 	"downloader_gochat/internal/ws"
@@ -9,6 +10,7 @@ import (
 )
 
 func main() {
+	configs.LoadEnvVariables()
 	dbConn, err := db.NewDatabase()
 	if err != nil {
 		log.Fatalf("could not initialize database connection: %s", err)

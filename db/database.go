@@ -15,7 +15,7 @@ type Database struct {
 }
 
 func NewDatabase() (*Database, error) {
-	db, err := sql.Open("postgres", configs.DbUrl)
+	db, err := sql.Open("postgres", configs.GetConfigs().DbUrl)
 	if err != nil {
 		return nil, err
 	}

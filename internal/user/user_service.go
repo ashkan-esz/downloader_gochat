@@ -4,9 +4,10 @@ import (
 	"context"
 	"downloader_gochat/configs"
 	"downloader_gochat/util"
-	"github.com/golang-jwt/jwt/v5"
 	"strconv"
 	"time"
+
+	"github.com/golang-jwt/jwt/v5"
 )
 
 type service struct {
@@ -79,7 +80,7 @@ func (s *service) Login(c context.Context, req *LoginUserReq) (*LoginUserRes, er
 		},
 	})
 
-	ss, err := token.SignedString([]byte(configs.SigningSecretKey))
+	ss, err := token.SignedString([]byte(configs.GetConfigs().SigningSecretKey))
 	if err != nil {
 		return &LoginUserRes{}, err
 	}
