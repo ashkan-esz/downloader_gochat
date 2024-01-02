@@ -15,10 +15,6 @@ type IUserService interface {
 	DeleteUser(id int) error
 }
 
-// todo : add/handle
-//	_, cancel := context.WithTimeout(c, s.timeout)
-//	defer cancel()
-
 type UserService struct {
 	userRepo repository.IUserRepository
 	timeout  time.Duration

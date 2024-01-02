@@ -9,10 +9,10 @@ import (
 
 type IUserRepository interface {
 	CreateUser(user *model.User) (*model.User, error)
-	GetDetailUser(int) (*model.User, error)
-	GetDetailUserByEmail(email string) (*model.User, error)
-	GetUserByUsernameEmail(username string, email string) (*model.User, error)
-	GetAllUser() ([]model.User, error)
+	GetDetailUser(int) (*model.UserDataModel, error)
+	GetDetailUserByEmail(email string) (*model.UserDataModel, error)
+	GetUserByUsernameEmail(username string, email string) (*model.UserDataModel, error)
+	GetAllUser() ([]model.UserDataModel, error)
 	UpdateUser(*model.User) (*model.User, error)
 	DeleteUser(int) error
 }
@@ -27,8 +27,6 @@ func NewUserRepository(db *gorm.DB) *UserRepository {
 
 //------------------------------------------
 
-// todo : handle field projection
-
 func (r *UserRepository) CreateUser(user *model.User) (*model.User, error) {
 	err := r.db.Create(&user).Error
 	if err != nil {
@@ -37,29 +35,29 @@ func (r *UserRepository) CreateUser(user *model.User) (*model.User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) GetDetailUser(id int) (*model.User, error) {
-	var user model.User
-	err := r.db.Where("id = ?", id).Take(&user).Error
+func (r *UserRepository) GetDetailUser(id int) (*model.UserDataModel, error) {
+	var userDataModel model.UserDataModel
+	err := r.db.Where("id = ?", id).Model(&model.User{}).Limit(1).Find(&userDataModel).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return &user, nil
+	return &userDataModel, nil
 }
 
-func (r *UserRepository) GetDetailUserByEmail(email string) (*model.User, error) {
-	var user model.User
-	err := r.db.Where("email = ?", email).Take(&user).Error
+func (r *UserRepository) GetDetailUserByEmail(email string) (*model.UserDataModel, error) {
+	var userDataModel model.UserDataModel
+	err := r.db.Where("email = ?", email).Model(&model.User{}).Limit(1).Find(&userDataModel).Error
 	if err != nil {
 		return nil, err
 	}
 
-	return &user, nil
+	return &userDataModel, nil
 }
 
-func (r *UserRepository) GetUserByUsernameEmail(username string, email string) (*model.User, error) {
-	var user model.User
-	err := r.db.Where("username = ? OR email = ?", username, email).Take(&user).Error
+func (r *UserRepository) GetUserByUsernameEmail(username string, email string) (*model.UserDataModel, error) {
+	var userDataModel model.UserDataModel
+	err := r.db.Where("username = ? OR email = ?", username, email).Model(&model.User{}).Limit(1).Find(&userDataModel).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, nil
@@ -67,12 +65,12 @@ func (r *UserRepository) GetUserByUsernameEmail(username string, email string) (
 		return nil, err
 	}
 
-	return &user, nil
+	return &userDataModel, nil
 }
 
-func (r *UserRepository) GetAllUser() ([]model.User, error) {
-	var users []model.User
-	err := r.db.Order("id desc").Find(&users).Error
+func (r *UserRepository) GetAllUser() ([]model.UserDataModel, error) {
+	var users []model.UserDataModel
+	err := r.db.Order("id desc").Model(&model.User{}).Limit(100).Find(&users).Error
 	if err != nil {
 		return nil, err
 	}

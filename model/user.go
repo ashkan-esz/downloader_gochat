@@ -34,6 +34,15 @@ type LoginViewModel struct {
 
 //----------------------------------------
 
+type UserDataModel struct {
+	ID       int64
+	Username string
+	Email    string
+	Password string
+}
+
+//----------------------------------------
+
 func (u *User) EncryptPassword(password string) (string, error) {
 	hashPassword, err := util.HashPassword(password)
 	if err != nil {
