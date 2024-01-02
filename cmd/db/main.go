@@ -8,8 +8,9 @@ import (
 
 func main() {
 	configs.LoadEnvVariables()
-	_, err := db.NewDatabase()
+	dbConn, err := db.NewDatabase()
 	if err != nil {
 		log.Fatalf("could not initialize database connection: %s", err)
 	}
+	dbConn.AutoMigrate()
 }

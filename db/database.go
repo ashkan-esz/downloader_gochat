@@ -1,31 +1,55 @@
 package db
 
 import (
-	"database/sql"
 	"downloader_gochat/configs"
+	"downloader_gochat/model"
+	"log"
 
-	_ "github.com/lib/pq"
+	"gorm.io/driver/postgres"
+	"gorm.io/gorm"
 )
 
-//todo : handle errors
-//todo : check sqlc, Bun
-
 type Database struct {
-	db *sql.DB
+	db *gorm.DB
 }
 
 func NewDatabase() (*Database, error) {
-	db, err := sql.Open("postgres", configs.GetConfigs().DbUrl)
+	db, err := gorm.Open(
+		postgres.Open(configs.GetConfigs().DbUrl),
+		&gorm.Config{SkipDefaultTransaction: true, PrepareStmt: true},
+	)
 	if err != nil {
 		return nil, err
 	}
+
+	sqlDB, err := db.DB()
+	if err != nil {
+		return nil, err
+	}
+	// SetMaxIdleConns sets the maximum number of connections in the idle connection pool.
+	sqlDB.SetMaxIdleConns(10)
+	// SetMaxOpenConns sets the maximum number of open connections to the database.
+	sqlDB.SetMaxOpenConns(100)
+
 	return &Database{db: db}, nil
 }
 
-func (d *Database) Close() {
-	d.db.Close()
+func (d *Database) AutoMigrate() {
+	err := d.db.AutoMigrate(&model.User{})
+	if err != nil {
+		log.Println("error on AutoMigrate: User")
+	}
 }
 
-func (d *Database) GetDB() *sql.DB {
+func (d *Database) Close() {
+	// try not to use it due to gorm connection pooling
+	sqlDB, err := d.db.DB()
+	if err != nil {
+		log.Fatalln(err)
+	}
+	sqlDB.Close()
+}
+
+func (d *Database) GetDB() *gorm.DB {
 	return d.db
 }

@@ -3,6 +3,8 @@ package main
 //todo : docker
 //todo : connect to main server
 
+//todo : error handling
+
 //todo : merge/sync db and auth with main server
 
 //todo : track system growth, number of messages per day
@@ -15,8 +17,6 @@ package main
 //todo : handle multiple device connection
 
 //todo : handle messages when user is offline
-
-//todo : handle forwarding
 
 //todo : handle file sharing
 

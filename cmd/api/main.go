@@ -4,7 +4,9 @@ import (
 	"downloader_gochat/api"
 	"downloader_gochat/configs"
 	"downloader_gochat/db"
-	"downloader_gochat/internal/user"
+	"downloader_gochat/internal/handler"
+	"downloader_gochat/internal/repository"
+	"downloader_gochat/internal/service"
 	"downloader_gochat/internal/ws"
 	"log"
 )
@@ -15,15 +17,16 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not initialize database connection: %s", err)
 	}
+	dbConn.AutoMigrate()
 
-	userRep := user.NewRepository(dbConn.GetDB())
-	userSvc := user.NewService(userRep)
-	userHandler := user.NewHandler(userSvc)
+	userRep := repository.NewUserRepository(dbConn.GetDB())
+	userSvc := service.NewUserService(userRep)
+	userHandler := handler.NewUserHandler(userSvc)
 
 	hub := ws.NewHub()
 	wsHandler := ws.NewHandler(hub)
 	go hub.Run()
 
-	api.InitApi(userHandler, wsHandler)
+	api.InitRouter(userHandler, wsHandler)
 	api.Start("0.0.0.0:8080")
 }
