@@ -9,6 +9,10 @@ import (
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/compress"
+	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/monitor"
+	"github.com/gofiber/fiber/v2/middleware/recover"
 )
 
 var router *fiber.App
@@ -20,7 +24,11 @@ var router *fiber.App
 func InitRouter(userHandler *handler.UserHandler, wsHandler *ws.Handler) {
 	router = fiber.New()
 
+	router.Use(helmet.New())
 	router.Use(timeoutMiddleware(time.Second * 2))
+	router.Use(recover.New())
+	//router.Use(logger.New())
+	router.Use(compress.New())
 
 	userRoutes := router.Group("v1/user")
 	{
@@ -35,6 +43,8 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *ws.Handler) {
 	router.Get("/ws/joinRoom/:roomId", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.JoinRoom)
 	router.Get("/ws/getRooms", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetRooms)
 	router.Get("/ws/getClients/:roomId", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetClients)
+
+	router.Get("/metrics", monitor.New())
 }
 
 func Start(addr string) error {
