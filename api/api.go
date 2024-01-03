@@ -26,15 +26,15 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *ws.Handler) {
 	{
 		userRoutes.Post("/signup", middleware.CORSMiddleware, userHandler.RegisterUser)
 		userRoutes.Post("/login", middleware.CORSMiddleware, userHandler.Login)
-		userRoutes.Get("/logout", middleware.AuthMiddleware, middleware.CORSMiddleware, userHandler.LogOut)
-		userRoutes.Get("/", middleware.AuthMiddleware, middleware.CORSMiddleware, userHandler.GetAllUser)
-		userRoutes.Get("/:user_id", middleware.AuthMiddleware, middleware.CORSMiddleware, userHandler.GetDetailUser)
+		userRoutes.Get("/logout", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.LogOut)
+		userRoutes.Get("/", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetAllUser)
+		userRoutes.Get("/:user_id", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetDetailUser)
 	}
 
-	router.Post("/ws/createRoom", middleware.AuthMiddleware, middleware.CORSMiddleware, wsHandler.CreateRoom)
-	router.Get("/ws/joinRoom/:roomId", middleware.AuthMiddleware, middleware.CORSMiddleware, wsHandler.JoinRoom)
-	router.Get("/ws/getRooms", middleware.AuthMiddleware, middleware.CORSMiddleware, wsHandler.GetRooms)
-	router.Get("/ws/getClients/:roomId", middleware.AuthMiddleware, middleware.CORSMiddleware, wsHandler.GetClients)
+	router.Post("/ws/createRoom", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.CreateRoom)
+	router.Get("/ws/joinRoom/:roomId", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.JoinRoom)
+	router.Get("/ws/getRooms", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetRooms)
+	router.Get("/ws/getClients/:roomId", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetClients)
 }
 
 func Start(addr string) error {

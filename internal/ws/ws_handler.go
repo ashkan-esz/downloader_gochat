@@ -48,11 +48,11 @@ var upgrader = websocket.FastHTTPUpgrader{
 }
 
 func (h *Handler) JoinRoom(c *fiber.Ctx) error {
-	err := upgrader.Upgrade(c.Context(), func(conn *websocket.Conn) {
-		roomId := c.Params("roomId")
-		clientId := c.Query("userId")
-		username := c.Query("username")
+	roomId := c.Params("roomId")
+	clientId := c.Query("userId")
+	username := c.Query("username")
 
+	err := upgrader.Upgrade(c.Context(), func(conn *websocket.Conn) {
 		cl := &Client{
 			Conn:     conn,
 			Message:  make(chan *Message, 10),
