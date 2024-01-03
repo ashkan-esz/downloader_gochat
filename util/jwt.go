@@ -3,11 +3,11 @@ package util
 import (
 	"downloader_gochat/configs"
 	"fmt"
-	"net/http"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -40,8 +40,8 @@ func CreateJwtToken(id int64, username string) (*TokenDetail, error) {
 	return &TokenDetail{AccessToken: ss, ExpireAt: ExpireAt.Unix()}, nil
 }
 
-func TokenValid(r *http.Request) error {
-	token, err := VerifyToken(r)
+func TokenValid(c *fiber.Ctx) error {
+	token, err := VerifyToken(c)
 	if err != nil {
 		return err
 	}
@@ -53,8 +53,8 @@ func TokenValid(r *http.Request) error {
 	return nil
 }
 
-func ExtractTokenMetadata(r *http.Request) (*MyJwtClaims, error) {
-	token, err := VerifyToken(r)
+func ExtractTokenMetadata(c *fiber.Ctx) (*MyJwtClaims, error) {
+	token, err := VerifyToken(c)
 	if err != nil {
 		return nil, err
 	}
@@ -80,8 +80,8 @@ func ExtractTokenMetadata(r *http.Request) (*MyJwtClaims, error) {
 	return nil, err
 }
 
-func VerifyToken(r *http.Request) (*jwt.Token, error) {
-	tokenString := ExtractToken(r)
+func VerifyToken(c *fiber.Ctx) (*jwt.Token, error) {
+	tokenString := ExtractToken(c)
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("wrong signature method")
@@ -96,8 +96,8 @@ func VerifyToken(r *http.Request) (*jwt.Token, error) {
 	return token, nil
 }
 
-func ExtractToken(r *http.Request) string {
-	token := r.Header.Get("Authorization")
+func ExtractToken(c *fiber.Ctx) string {
+	token := c.Get("Authorization", "")
 	strArr := strings.Split(token, " ")
 	if len(strArr) == 2 {
 		return strArr[1]

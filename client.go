@@ -1,7 +1,7 @@
 package main
 
 import (
-	"github.com/gorilla/websocket"
+	"github.com/fasthttp/websocket"
 )
 
 type client struct {

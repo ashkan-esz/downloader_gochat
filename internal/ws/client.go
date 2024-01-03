@@ -3,7 +3,7 @@ package ws
 import (
 	"log"
 
-	"github.com/gorilla/websocket"
+	"github.com/fasthttp/websocket"
 )
 
 type Client struct {

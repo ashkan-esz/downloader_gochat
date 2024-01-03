@@ -5,18 +5,18 @@ import (
 	"downloader_gochat/model"
 	"downloader_gochat/pkg/response"
 	"downloader_gochat/util"
-	"net/http"
 	"strconv"
+	"time"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
 type IUserHandler interface {
-	RegisterUser(c *gin.Context)
-	Login(c *gin.Context)
-	LogOut(c *gin.Context)
-	GetAllUser(c *gin.Context)
-	GetDetailUser(c *gin.Context)
+	RegisterUser(c *fiber.Ctx) error
+	Login(c *fiber.Ctx) error
+	LogOut(c *fiber.Ctx) error
+	GetAllUser(c *fiber.Ctx) error
+	GetDetailUser(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -31,52 +31,44 @@ func NewUserHandler(userService service.IUserService) *UserHandler {
 
 //------------------------------------------
 
-//todo : replace gin with fiber
-
-func (h *UserHandler) RegisterUser(c *gin.Context) {
+func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	var registerVM model.RegisterViewModel
-	err := c.ShouldBindJSON(&registerVM)
+	err := c.BodyParser(&registerVM)
 	if err != nil {
-		response.ResponseError(c, err.Error(), http.StatusInternalServerError)
-		return
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 
 	registerUserError := registerVM.Validate()
 	if len(registerUserError) > 0 {
-		response.ResponseCustomError(c, registerUserError, http.StatusBadRequest)
-		return
+		return response.ResponseCustomError(c, registerUserError, fiber.StatusBadRequest)
 	}
 
 	result, err := h.userService.CreateUser(&registerVM)
 	if err != nil {
-		response.ResponseError(c, err.Error(), http.StatusInternalServerError)
-		return
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 
 	if result.ID == 0 {
 		if result.Username == registerVM.Username {
-			response.ResponseCustomError(c, "username already exist", http.StatusConflict)
+			return response.ResponseCustomError(c, "username already exist", fiber.StatusConflict)
 		} else {
-			response.ResponseCustomError(c, "email already exist", http.StatusConflict)
+			return response.ResponseCustomError(c, "email already exist", fiber.StatusConflict)
 		}
-		return
 	}
 
-	response.ResponseCreated(c, result)
+	return response.ResponseCreated(c, result)
 }
 
-func (h *UserHandler) Login(c *gin.Context) {
+func (h *UserHandler) Login(c *fiber.Ctx) error {
 	var loginVM model.LoginViewModel
-	err := c.ShouldBindJSON(&loginVM)
+	err := c.BodyParser(&loginVM)
 	if err != nil {
-		response.ResponseError(c, err.Error(), http.StatusUnprocessableEntity)
-		return
+		return response.ResponseError(c, err.Error(), fiber.StatusUnprocessableEntity)
 	}
 
 	validateUser, err := h.userService.LoginUser(&loginVM)
 	if err != nil {
-		response.ResponseError(c, err.Error(), http.StatusInternalServerError)
-		return
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 
 	if validateUser == nil {
@@ -86,11 +78,21 @@ func (h *UserHandler) Login(c *gin.Context) {
 	// Generete JWT
 	token, err := util.CreateJwtToken(validateUser.ID, validateUser.Username)
 	if err != nil {
-		response.ResponseError(c, err.Error(), http.StatusInternalServerError)
-		return
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 
-	c.SetCookie("jwt", token.AccessToken, 3600, "/", "localhost", false, true)
+	c.Cookie(&fiber.Cookie{
+		Name:        "jwt",
+		Value:       token.AccessToken,
+		Path:        "/",
+		Domain:      "localhost",
+		MaxAge:      3600,
+		Expires:     time.Time{},
+		Secure:      false,
+		HTTPOnly:    true,
+		SameSite:    "",
+		SessionOnly: false,
+	})
 
 	userData := map[string]interface{}{
 		"access_token": token.AccessToken,
@@ -99,44 +101,52 @@ func (h *UserHandler) Login(c *gin.Context) {
 		"username":     validateUser.Username,
 	}
 
-	response.ResponseOKWithData(c, userData)
+	return response.ResponseOKWithData(c, userData)
 }
 
-func (h *UserHandler) LogOut(c *gin.Context) {
-	c.SetCookie("jwt", "", -1, "", "", false, true)
-	c.JSON(http.StatusOK, gin.H{"message": "logout successful"})
+func (h *UserHandler) LogOut(c *fiber.Ctx) error {
+	c.Cookie(&fiber.Cookie{
+		Name:        "jwt",
+		Value:       "",
+		Path:        "",
+		Domain:      "",
+		MaxAge:      -1,
+		Expires:     time.Time{},
+		Secure:      false,
+		HTTPOnly:    true,
+		SameSite:    "",
+		SessionOnly: false,
+	})
+	return c.Status(fiber.StatusOK).JSON(map[string]string{"message": "logout successful"})
 }
 
-func (h *UserHandler) GetAllUser(c *gin.Context) {
+func (h *UserHandler) GetAllUser(c *fiber.Ctx) error {
 	result, err := h.userService.GetListUser()
 	if err != nil {
-		response.ResponseError(c, err.Error(), http.StatusInternalServerError)
-		return
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 
 	if result == nil {
 		result = &[]model.UserViewModel{}
 	}
 
-	response.ResponseOKWithData(c, result)
+	return response.ResponseOKWithData(c, result)
 }
 
-func (h *UserHandler) GetDetailUser(c *gin.Context) {
-	userId, err := strconv.Atoi(c.Param("user_id"))
+func (h *UserHandler) GetDetailUser(c *fiber.Ctx) error {
+	userId, err := strconv.Atoi(c.Params("user_id"))
 	if err != nil {
-		response.ResponseError(c, err.Error(), http.StatusBadRequest)
-		return
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
 
 	result, err := h.userService.GetDetailUser(userId)
 	if err != nil {
-		response.ResponseError(c, err.Error(), http.StatusInternalServerError)
-		return
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 
 	if result == nil {
 		result = &model.UserViewModel{}
 	}
 
-	response.ResponseOKWithData(c, result)
+	return response.ResponseOKWithData(c, result)
 }

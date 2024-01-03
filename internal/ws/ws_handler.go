@@ -1,10 +1,9 @@
 package ws
 
 import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
-	"github.com/gorilla/websocket"
+	"github.com/fasthttp/websocket"
+	"github.com/gofiber/fiber/v2"
+	"github.com/valyala/fasthttp"
 )
 
 type Handler struct {
@@ -22,11 +21,10 @@ type CreateRoomReq struct {
 	Name string `json:"name"`
 }
 
-func (h *Handler) CreateRoom(c *gin.Context) {
+func (h *Handler) CreateRoom(c *fiber.Ctx) error {
 	var req CreateRoomReq
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+	if err := c.BodyParser(&req); err != nil {
+		return c.Status(fiber.StatusBadRequest).JSON(map[string]string{"error": err.Error()})
 	}
 
 	h.hube.Rooms[req.ID] = &Room{
@@ -35,51 +33,53 @@ func (h *Handler) CreateRoom(c *gin.Context) {
 		Clients: make(map[string]*Client),
 	}
 
-	c.JSON(http.StatusOK, req)
+	return c.Status(fiber.StatusOK).JSON(req)
 }
 
-var upgrader = websocket.Upgrader{
+var upgrader = websocket.FastHTTPUpgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	CheckOrigin: func(r *http.Request) bool {
+	//todo :
+	CheckOrigin: func(r *fasthttp.RequestCtx) bool {
 		//origin := r.Header.Get("Origin")
 		//return origin == "http://localhost:3000"
 		return true
 	},
 }
 
-func (h *Handler) JoinRoom(c *gin.Context) {
-	conn, err := upgrader.Upgrade(c.Writer, c.Request, nil)
+func (h *Handler) JoinRoom(c *fiber.Ctx) error {
+	err := upgrader.Upgrade(c.Context(), func(conn *websocket.Conn) {
+		roomId := c.Params("roomId")
+		clientId := c.Query("userId")
+		username := c.Query("username")
+
+		cl := &Client{
+			Conn:     conn,
+			Message:  make(chan *Message, 10),
+			ID:       clientId,
+			RoomId:   roomId,
+			Username: username,
+		}
+
+		m := &Message{
+			Content:  "A new user has joined the room",
+			Username: username,
+			RoomId:   roomId,
+		}
+
+		// Register a new client through the register channel
+		h.hube.Register <- cl
+		// Broadcast that message
+		h.hube.Broadcast <- m
+
+		go cl.WriteMessage()
+		cl.ReadMessage(h.hube)
+	})
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
-		return
+		return c.Status(fiber.StatusBadRequest).JSON(map[string]string{"error": err.Error()})
 	}
 
-	roomId := c.Param("roomId")
-	clientId := c.Query("userId")
-	username := c.Query("username")
-
-	cl := &Client{
-		Conn:     conn,
-		Message:  make(chan *Message, 10),
-		ID:       clientId,
-		RoomId:   roomId,
-		Username: username,
-	}
-
-	m := &Message{
-		Content:  "A new user has joined the room",
-		Username: username,
-		RoomId:   roomId,
-	}
-
-	// Register a new client through the register channel
-	h.hube.Register <- cl
-	// Broadcast that message
-	h.hube.Broadcast <- m
-
-	go cl.WriteMessage()
-	cl.ReadMessage(h.hube)
+	return err
 }
 
 type RoomRes struct {
@@ -87,14 +87,14 @@ type RoomRes struct {
 	Name string `json:"name"`
 }
 
-func (h *Handler) GetRooms(c *gin.Context) {
+func (h *Handler) GetRooms(c *fiber.Ctx) error {
 	rooms := make([]RoomRes, 0)
 
 	for _, r := range h.hube.Rooms {
 		rooms = append(rooms, RoomRes{ID: r.ID, Name: r.Name})
 	}
 
-	c.JSON(http.StatusOK, rooms)
+	return c.Status(fiber.StatusOK).JSON(rooms)
 }
 
 type ClientRes struct {
@@ -102,19 +102,18 @@ type ClientRes struct {
 	Username string `json:"username"`
 }
 
-func (h *Handler) GetClients(c *gin.Context) {
+func (h *Handler) GetClients(c *fiber.Ctx) error {
 	var clients []ClientRes
-	roomId := c.Param("roomId")
+	roomId := c.Params("roomId")
 
 	if _, ok := h.hube.Rooms[roomId]; !ok {
 		clients = make([]ClientRes, 0)
-		c.JSON(http.StatusOK, clients)
-		return
+		return c.Status(fiber.StatusOK).JSON(clients)
 	}
 
 	for _, cl := range h.hube.Rooms[roomId].Clients {
 		clients = append(clients, ClientRes{ID: cl.ID, Username: cl.Username})
 	}
 
-	c.JSON(http.StatusOK, clients)
+	return c.Status(fiber.StatusOK).JSON(clients)
 }

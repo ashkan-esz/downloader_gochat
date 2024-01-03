@@ -1,9 +1,7 @@
 package response
 
 import (
-	"net/http"
-
-	"github.com/gin-gonic/gin"
+	"github.com/gofiber/fiber/v2"
 )
 
 type ResponseOKWithDataModel struct {
@@ -27,49 +25,49 @@ type ResponseErrorCustomModel struct {
 	Message interface{} `json:"message"`
 }
 
-func ResponseOKWithData(c *gin.Context, data interface{}) {
+func ResponseOKWithData(c *fiber.Ctx, data interface{}) error {
 	response := ResponseOKWithDataModel{
 		Code:    200,
 		Data:    data,
 		Message: "OK",
 	}
 
-	c.JSON(http.StatusOK, response)
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-func ResponseCreated(c *gin.Context, data interface{}) {
+func ResponseCreated(c *fiber.Ctx, data interface{}) error {
 	response := ResponseOKWithDataModel{
 		Code:    201,
 		Data:    data,
 		Message: "Created",
 	}
 
-	c.JSON(http.StatusCreated, response)
+	return c.Status(fiber.StatusCreated).JSON(response)
 }
 
-func ResponseOK(c *gin.Context, message string) {
+func ResponseOK(c *fiber.Ctx, message string) error {
 	response := ResponseOKModel{
 		Code:    200,
 		Message: message,
 	}
 
-	c.JSON(http.StatusOK, response)
+	return c.Status(fiber.StatusOK).JSON(response)
 }
 
-func ResponseError(c *gin.Context, err string, code int) {
+func ResponseError(c *fiber.Ctx, err string, code int) error {
 	response := ResponseErrorModel{
 		Code:    99,
 		Message: err,
 	}
 
-	c.JSON(code, response)
+	return c.Status(code).JSON(response)
 }
 
-func ResponseCustomError(c *gin.Context, err interface{}, code int) {
+func ResponseCustomError(c *fiber.Ctx, err interface{}, code int) error {
 	response := ResponseErrorCustomModel{
 		Code:    code,
 		Message: err,
 	}
 
-	c.JSON(code, response)
+	return c.Status(code).JSON(response)
 }
