@@ -73,7 +73,7 @@ func (s *UserService) CreateUser(userVM *model.RegisterViewModel) (*model.UserVi
 }
 
 func (s *UserService) LoginUser(loginVM *model.LoginViewModel) (*model.UserViewModel, error) {
-	u, err := s.userRepo.GetDetailUserByEmail(loginVM.Email)
+	u, err := s.userRepo.GetUserByUsernameEmail(loginVM.Email, loginVM.Email)
 	if err != nil {
 		return &model.UserViewModel{}, err
 	}

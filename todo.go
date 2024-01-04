@@ -30,3 +30,7 @@ package main
 //todo : media uploads
 //todo : online status
 //todo : real-time messaging
+
+//todo : add api : check new message
+//todo : add api : get messages
+//todo : add api : set message as read

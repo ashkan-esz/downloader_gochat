@@ -31,6 +31,15 @@ func NewUserHandler(userService service.IUserService) *UserHandler {
 
 //------------------------------------------
 
+// RegisterUser godoc
+//
+//	@Summary		Register a new user
+//	@Description	Register a new user with the provided credentials
+//	@Tags			User
+//	@Param			user	body		model.RegisterViewModel	true	"User object"
+//	@Success		201		{object}	model.UserViewModel
+//	@Failure		400		{object}	response.ResponseErrorModel
+//	@Router			/v1/user/signup [post]
 func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	var registerVM model.RegisterViewModel
 	err := c.BodyParser(&registerVM)
@@ -40,7 +49,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 
 	registerUserError := registerVM.Validate()
 	if len(registerUserError) > 0 {
-		return response.ResponseCustomError(c, registerUserError, fiber.StatusBadRequest)
+		return response.ResponseError(c, registerUserError, fiber.StatusBadRequest)
 	}
 
 	result, err := h.userService.CreateUser(&registerVM)
@@ -50,15 +59,24 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 
 	if result.ID == 0 {
 		if result.Username == registerVM.Username {
-			return response.ResponseCustomError(c, "username already exist", fiber.StatusConflict)
+			return response.ResponseError(c, "username already exist", fiber.StatusConflict)
 		} else {
-			return response.ResponseCustomError(c, "email already exist", fiber.StatusConflict)
+			return response.ResponseError(c, "email already exist", fiber.StatusConflict)
 		}
 	}
 
 	return response.ResponseCreated(c, result)
 }
 
+// Login godoc
+//
+//	@Summary		Login user
+//	@Description	Login with provided credentials
+//	@Tags			User
+//	@Param			user	body		model.LoginViewModel	true	"User object"
+//	@Success		200		{object}	model.UserViewModel
+//	@Failure		400		{object}	response.ResponseErrorModel
+//	@Router			/v1/user/login [post]
 func (h *UserHandler) Login(c *fiber.Ctx) error {
 	var loginVM model.LoginViewModel
 	err := c.BodyParser(&loginVM)
@@ -104,6 +122,15 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	return response.ResponseOKWithData(c, userData)
 }
 
+// LogOut godoc
+//
+//	@Summary		Logout
+//	@Description	Logout the currently logged in user
+//	@Tags			User
+//	@Success		200	{object}	model.UserViewModel
+//	@Failure		401	{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/logout [get]
 func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 	c.Cookie(&fiber.Cookie{
 		Name:        "jwt",
@@ -120,6 +147,15 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 	return c.Status(fiber.StatusOK).JSON(map[string]string{"message": "logout successful"})
 }
 
+// GetAllUser godoc
+//
+//	@Summary		Get all users
+//	@Description	Get a list of all users
+//	@Tags			User
+//	@Success		200	{object}	model.UserViewModel
+//	@Failure		401	{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/ [get]
 func (h *UserHandler) GetAllUser(c *fiber.Ctx) error {
 	result, err := h.userService.GetListUser()
 	if err != nil {
@@ -133,6 +169,16 @@ func (h *UserHandler) GetAllUser(c *fiber.Ctx) error {
 	return response.ResponseOKWithData(c, result)
 }
 
+// GetDetailUser godoc
+//
+//	@Summary				Get user details
+//	@Description			Get details of a specific user
+//	@Tags					User
+//	@Security				BearerAuth
+//	@Param					user_id			path		string	true	"User ID"
+//	@Success				200				{object}	[]model.UserViewModel
+//	@Failure				400,401,403		{object}	response.ResponseErrorModel
+//	@Router					/v1/user/{user_id} [get]
 func (h *UserHandler) GetDetailUser(c *fiber.Ctx) error {
 	userId, err := strconv.Atoi(c.Params("user_id"))
 	if err != nil {

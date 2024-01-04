@@ -101,6 +101,8 @@ func ExtractToken(c *fiber.Ctx) string {
 	strArr := strings.Split(token, " ")
 	if len(strArr) == 2 {
 		return strArr[1]
+	} else if len(strArr) == 1 && len(token) > 30 {
+		return token
 	}
 	return ""
 }

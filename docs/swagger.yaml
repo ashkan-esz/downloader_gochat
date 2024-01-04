@@ -1,0 +1,179 @@
+basePath: /
+definitions:
+  model.LoginViewModel:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+    type: object
+  model.RegisterViewModel:
+    properties:
+      email:
+        type: string
+      password:
+        type: string
+      username:
+        type: string
+    type: object
+  model.UserViewModel:
+    properties:
+      email:
+        type: string
+      id:
+        type: integer
+      username:
+        type: string
+    type: object
+  response.ResponseErrorModel:
+    properties:
+      code:
+        type: integer
+      message: {}
+    type: object
+host: localhost:8080
+info:
+  contact:
+    email: support@swagger.io
+    name: API Support
+    url: http://www.swagger.io/support
+  description: This is a sample server server.
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Fiber Swagger Example API
+  version: "2.0"
+paths:
+  /:
+    get:
+      description: get the status of server.
+      responses:
+        "200":
+          description: OK
+          schema:
+            additionalProperties: true
+            type: object
+      summary: Show the status of server.
+      tags:
+      - root
+  /v1/user/:
+    get:
+      description: Get a list of all users
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserViewModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Get all users
+      tags:
+      - User
+  /v1/user/{user_id}:
+    get:
+      description: Get details of a specific user
+      parameters:
+      - description: User ID
+        in: path
+        name: user_id
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.UserViewModel'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Get user details
+      tags:
+      - User
+  /v1/user/login:
+    post:
+      description: Login with provided credentials
+      parameters:
+      - description: User object
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.LoginViewModel'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserViewModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Login user
+      tags:
+      - User
+  /v1/user/logout:
+    get:
+      description: Logout the currently logged in user
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserViewModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Logout
+      tags:
+      - User
+  /v1/user/signup:
+    post:
+      description: Register a new user with the provided credentials
+      parameters:
+      - description: User object
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.RegisterViewModel'
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/model.UserViewModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Register a new user
+      tags:
+      - User
+schemes:
+- http
+securityDefinitions:
+  BearerAuth:
+    description: Type "Bearer" followed by a space and JWT token.
+    in: header
+    name: Authorization
+    type: apiKey
+swagger: "2.0"

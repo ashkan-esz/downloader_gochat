@@ -13,4 +13,7 @@ migrate_up_db_dev:
 migrate_down_db_dev:
 	migrate -path db/migrations -database "postgres://root:mysecretpassword@localhost:5432/go-chat?sslmode=disable" -verbose down
 
-.PHONY: db_dev create_db_dev drop_db_dev migrate_up_db_dev migrate_down_db_dev
+update_swagger:
+	swag init -g cmd/api/main.go --output docs
+
+.PHONY: db_dev create_db_dev drop_db_dev migrate_up_db_dev migrate_down_db_dev update_swagger
