@@ -10,6 +10,7 @@ import (
 type ConfigStruct struct {
 	DbUrl            string
 	SigningSecretKey string
+	MigrateOnStart   bool
 }
 
 var configs = ConfigStruct{}
@@ -25,4 +26,5 @@ func LoadEnvVariables() {
 
 	configs.DbUrl = os.Getenv("DB_URL")
 	configs.SigningSecretKey = os.Getenv("SIGNING_SECRET_KEY")
+	configs.MigrateOnStart = os.Getenv("MIGRATE_ON_START") == "true"
 }

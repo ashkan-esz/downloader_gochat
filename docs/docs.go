@@ -181,7 +181,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "type": "string",
-                        "description": "User ID",
+                        "description": "User UserId",
                         "name": "user_id",
                         "in": "path",
                         "required": true
@@ -248,11 +248,11 @@ const docTemplate = `{
         "model.UserViewModel": {
             "type": "object",
             "properties": {
+                "UserId": {
+                    "type": "integer"
+                },
                 "email": {
                     "type": "string"
-                },
-                "id": {
-                    "type": "integer"
                 },
                 "username": {
                     "type": "string"

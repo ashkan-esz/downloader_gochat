@@ -12,7 +12,7 @@ import (
 )
 
 type MyJwtClaims struct {
-	ID       string `json:"id"`
+	UserId   string `json:"id"`
 	Username string `json:"username"`
 	jwt.RegisteredClaims
 }
@@ -25,7 +25,7 @@ type TokenDetail struct {
 func CreateJwtToken(id int64, username string) (*TokenDetail, error) {
 	ExpireAt := jwt.NewNumericDate(time.Now().Add(24 * time.Hour))
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, MyJwtClaims{
-		ID:       strconv.FormatInt(id, 10),
+		UserId:   strconv.FormatInt(id, 10),
 		Username: username,
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    strconv.FormatInt(id, 10),
@@ -72,7 +72,7 @@ func ExtractTokenMetadata(c *fiber.Ctx) (*MyJwtClaims, error) {
 		}
 
 		return &MyJwtClaims{
-			ID:       id,
+			UserId:   id,
 			Username: username,
 		}, nil
 	}

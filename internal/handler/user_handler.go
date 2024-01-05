@@ -57,7 +57,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 
-	if result.ID == 0 {
+	if result.UserId == 0 {
 		if result.Username == registerVM.Username {
 			return response.ResponseError(c, "username already exist", fiber.StatusConflict)
 		} else {
@@ -94,7 +94,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	}
 
 	// Generete JWT
-	token, err := util.CreateJwtToken(validateUser.ID, validateUser.Username)
+	token, err := util.CreateJwtToken(validateUser.UserId, validateUser.Username)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
@@ -115,7 +115,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	userData := map[string]interface{}{
 		"access_token": token.AccessToken,
 		"expired":      token.ExpireAt,
-		"id":           validateUser.ID,
+		"userid":       validateUser.UserId,
 		"username":     validateUser.Username,
 	}
 
@@ -175,7 +175,7 @@ func (h *UserHandler) GetAllUser(c *fiber.Ctx) error {
 //	@Description			Get details of a specific user
 //	@Tags					User
 //	@Security				BearerAuth
-//	@Param					user_id			path		string	true	"User ID"
+//	@Param					user_id			path		string	true	"User UserId"
 //	@Success				200				{object}	[]model.UserViewModel
 //	@Failure				400,401,403		{object}	response.ResponseErrorModel
 //	@Router					/v1/user/{user_id} [get]

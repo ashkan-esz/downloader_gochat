@@ -18,10 +18,10 @@ definitions:
     type: object
   model.UserViewModel:
     properties:
+      UserId:
+        type: integer
       email:
         type: string
-      id:
-        type: integer
       username:
         type: string
     type: object
@@ -78,7 +78,7 @@ paths:
     get:
       description: Get details of a specific user
       parameters:
-      - description: User ID
+      - description: User UserId
         in: path
         name: user_id
         required: true

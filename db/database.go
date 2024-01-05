@@ -4,6 +4,7 @@ import (
 	"downloader_gochat/configs"
 	"downloader_gochat/model"
 	"log"
+	"strings"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -35,9 +36,59 @@ func NewDatabase() (*Database, error) {
 }
 
 func (d *Database) AutoMigrate() {
-	err := d.db.AutoMigrate(&model.User{})
+	if !configs.GetConfigs().MigrateOnStart {
+		return
+	}
+
+	////err := d.db.Exec("DROP TYPE IF EXISTS \"titleRelation\"").Error
+	err := d.db.Exec("create type \"titleRelation\" as enum ('prequel', 'sequel', 'spin_off', 'side_story', 'full_story', 'summary', 'parent_story', 'other', 'alternative_setting', 'alternative_version');").Error
+	if err != nil && !strings.Contains(err.Error(), "already exists") {
+		log.Printf("error on AutoMigrate: %v\n", err)
+	}
+
+	////err = d.db.Exec("DROP TYPE IF EXISTS \"userRole\"").Error
+	err = d.db.Exec("create type \"userRole\" as enum ('test_user', 'user', 'dev', 'admin');").Error
+	if err != nil && !strings.Contains(err.Error(), "already exists") {
+		log.Printf("error on AutoMigrate: %v\n", err)
+	}
+
+	////err = d.db.Exec("DROP TYPE IF EXISTS \"likeDislike\"").Error
+	//err = d.db.Exec("create type \"likeDislike\" as enum ('like', 'dislike');").Error
+	if err != nil && !strings.Contains(err.Error(), "already exists") {
+		log.Printf("error on AutoMigrate: %v\n", err)
+	}
+
+	////err = d.db.Exec("DROP TYPE IF EXISTS \"MbtiType\"").Error
+	err = d.db.Exec("create type \"MbtiType\" as enum ('ISTJ', 'ISFJ', 'INFJ', 'INTJ', 'ISTP', 'ISFP', 'INFP', 'INTP', 'ESTP', 'ESFP', 'ENFP', 'ENTP', 'ESTJ', 'ESFJ', 'ENFJ', 'ENTJ');\n").Error
+	if err != nil && !strings.Contains(err.Error(), "already exists") {
+		log.Printf("error on AutoMigrate: %v\n", err)
+	}
+
+	d.db.Exec("DROP TABLE IF EXISTS \"ProfileImage\"")
+	d.db.Exec("DROP TABLE IF EXISTS \"ActiveSession\"")
+	d.db.Exec("DROP TABLE IF EXISTS \"ComputedFavoriteGenres\"")
+	d.db.Exec("DROP TABLE IF EXISTS \"MovieSettings\"")
+	d.db.Exec("DROP TABLE IF EXISTS \"NotificationSettings\"")
+	d.db.Exec("DROP TABLE IF EXISTS \"CastImage\"")
+	d.db.Exec("DROP TABLE IF EXISTS \"Credit\"")
+	err = d.db.AutoMigrate(
+		&model.User{},
+		&model.Movie{}, &model.RelatedMovie{},
+		&model.Follow{},
+		&model.ProfileImage{},
+		&model.ActiveSession{},
+		&model.ComputedFavoriteGenres{},
+		&model.DownloadLinksSettings{}, &model.MovieSettings{}, &model.NotificationSettings{},
+		&model.Staff{}, &model.Character{},
+		&model.Credit{},
+		&model.FavoriteCharacter{}, &model.LikeDislikeCharacter{},
+		&model.FollowStaff{}, &model.LikeDislikeStaff{}, &model.CastImage{},
+		&model.FollowMovie{}, &model.LikeDislikeMovie{}, &model.WatchedMovie{},
+		&model.WatchListGroup{}, &model.WatchListMovie{},
+		&model.UserCollection{}, &model.UserCollectionMovie{},
+	)
 	if err != nil {
-		log.Println("error on AutoMigrate: User")
+		log.Printf("error on AutoMigrate: %v\n", err)
 	}
 }
 

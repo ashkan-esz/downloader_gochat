@@ -41,7 +41,7 @@ func (s *UserService) CreateUser(userVM *model.RegisterViewModel) (*model.UserVi
 	}
 	if searchResult != nil {
 		return &model.UserViewModel{
-			ID:       0,
+			UserId:   0,
 			Username: searchResult.Username,
 			Email:    searchResult.Email,
 		}, nil
@@ -63,7 +63,7 @@ func (s *UserService) CreateUser(userVM *model.RegisterViewModel) (*model.UserVi
 
 	if result != nil {
 		afterRegVM = model.UserViewModel{
-			ID:       result.ID,
+			UserId:   result.UserId,
 			Username: result.Username,
 			Email:    result.Email,
 		}
@@ -83,7 +83,7 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel) (*model.UserViewM
 		return &model.UserViewModel{}, err
 	}
 
-	return &model.UserViewModel{Username: u.Username, ID: u.ID}, nil
+	return &model.UserViewModel{Username: u.Username, UserId: u.UserId}, nil
 }
 
 func (s *UserService) GetListUser() (*[]model.UserViewModel, error) {
@@ -94,7 +94,7 @@ func (s *UserService) GetListUser() (*[]model.UserViewModel, error) {
 
 	var users []model.UserViewModel
 	for _, item := range result {
-		user := model.UserViewModel{ID: item.ID, Username: item.Email, Email: item.Email}
+		user := model.UserViewModel{UserId: item.UserId, Username: item.Email, Email: item.Email}
 		users = append(users, user)
 	}
 
@@ -111,7 +111,7 @@ func (s *UserService) GetDetailUser(id int) (*model.UserViewModel, error) {
 
 	if result != nil {
 		viewModel = model.UserViewModel{
-			ID:       result.ID,
+			UserId:   result.UserId,
 			Username: result.Username,
 			Email:    result.Email,
 		}
@@ -134,7 +134,7 @@ func (s *UserService) UpdateUser(userVM *model.User) (*model.UserViewModel, erro
 	}
 
 	userAfterUpdate := model.UserViewModel{
-		ID:       result.ID,
+		UserId:   result.UserId,
 		Username: result.Username,
 		Email:    result.Email,
 	}
