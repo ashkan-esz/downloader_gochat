@@ -5,7 +5,6 @@ import (
 	"downloader_gochat/internal/service"
 	"downloader_gochat/model"
 	"downloader_gochat/pkg/response"
-	"strconv"
 	"strings"
 	"time"
 
@@ -16,8 +15,6 @@ type IUserHandler interface {
 	RegisterUser(c *fiber.Ctx) error
 	Login(c *fiber.Ctx) error
 	LogOut(c *fiber.Ctx) error
-	GetAllUser(c *fiber.Ctx) error
-	GetDetailUser(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -168,54 +165,4 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 		SessionOnly: false,
 	})
 	return c.Status(fiber.StatusOK).JSON(map[string]string{"message": "logout successful"})
-}
-
-// GetAllUser godoc
-//
-//	@Summary		Get all users
-//	@Description	Get a list of all users
-//	@Tags			User
-//	@Success		200	{object}	model.UserViewModel
-//	@Failure		401	{object}	response.ResponseErrorModel
-//	@Security		BearerAuth
-//	@Router			/v1/user/ [get]
-func (h *UserHandler) GetAllUser(c *fiber.Ctx) error {
-	result, err := h.userService.GetListUser()
-	if err != nil {
-		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
-	}
-
-	if result == nil {
-		result = &[]model.UserViewModel{}
-	}
-
-	return response.ResponseOKWithData(c, result)
-}
-
-// GetDetailUser godoc
-//
-//	@Summary		Get user details
-//	@Description	Get details of a specific user
-//	@Tags			User
-//	@Security		BearerAuth
-//	@Param			user_id		path		string	true	"User UserId"
-//	@Success		200			{object}	[]model.UserViewModel
-//	@Failure		400,401,403	{object}	response.ResponseErrorModel
-//	@Router			/v1/user/{user_id} [get]
-func (h *UserHandler) GetDetailUser(c *fiber.Ctx) error {
-	userId, err := strconv.Atoi(c.Params("user_id"))
-	if err != nil {
-		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
-	}
-
-	result, err := h.userService.GetDetailUser(userId)
-	if err != nil {
-		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
-	}
-
-	if result == nil {
-		result = &model.UserViewModel{}
-	}
-
-	return response.ResponseOKWithData(c, result)
 }

@@ -35,8 +35,6 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *ws.Handler) {
 		userRoutes.Post("/signup", middleware.CORSMiddleware, userHandler.RegisterUser)
 		userRoutes.Post("/login", middleware.CORSMiddleware, userHandler.Login)
 		userRoutes.Get("/logout", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.LogOut)
-		userRoutes.Get("/", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetAllUser)
-		userRoutes.Get("/:user_id", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetDetailUser)
 	}
 
 	router.Post("/ws/createRoom", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.CreateRoom)

@@ -15,10 +15,6 @@ import (
 type IUserService interface {
 	SignUp(registerVM *model.RegisterViewModel) (*model.UserViewModel, error)
 	LoginUser(loginVM *model.LoginViewModel) (*model.UserViewModel, error)
-	GetListUser() (*[]model.UserViewModel, error)
-	GetDetailUser(id int) (*model.UserViewModel, error)
-	UpdateUser(userVM *model.User) (*model.UserViewModel, error)
-	DeleteUser(id int) error
 }
 
 type UserService struct {
@@ -158,67 +154,4 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel) (*model.UserViewM
 	}
 
 	return &userVM, nil
-}
-
-func (s *UserService) GetListUser() (*[]model.UserViewModel, error) {
-	result, err := s.userRepo.GetAllUser()
-	if err != nil {
-		return nil, err
-	}
-
-	var users []model.UserViewModel
-	for _, item := range result {
-		user := model.UserViewModel{UserId: item.UserId, Username: item.Email, Email: item.Email}
-		users = append(users, user)
-	}
-
-	return &users, nil
-}
-
-func (s *UserService) GetDetailUser(id int) (*model.UserViewModel, error) {
-	var viewModel model.UserViewModel
-
-	result, err := s.userRepo.GetDetailUser(id)
-	if err != nil {
-		return nil, err
-	}
-
-	if result != nil {
-		viewModel = model.UserViewModel{
-			UserId:   result.UserId,
-			Username: result.Username,
-			Email:    result.Email,
-		}
-	}
-
-	return &viewModel, nil
-}
-
-func (s *UserService) UpdateUser(userVM *model.User) (*model.UserViewModel, error) {
-	err := userVM.EncryptPassword(userVM.Password)
-	if err != nil {
-		return nil, err
-	}
-
-	result, err := s.userRepo.UpdateUser(userVM)
-	if err != nil {
-		return nil, err
-	}
-
-	userAfterUpdate := model.UserViewModel{
-		UserId:   result.UserId,
-		Username: result.Username,
-		Email:    result.Email,
-	}
-
-	return &userAfterUpdate, err
-}
-
-func (s *UserService) DeleteUser(id int) error {
-	err := s.userRepo.DeleteUser(id)
-	if err != nil {
-		return err
-	}
-
-	return nil
 }

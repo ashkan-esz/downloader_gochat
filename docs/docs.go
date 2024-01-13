@@ -42,34 +42,6 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/user/": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get a list of all users",
-                "tags": [
-                    "User"
-                ],
-                "summary": "Get all users",
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.UserViewModel"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.ResponseErrorModel"
-                        }
-                    }
-                }
-            }
-        },
         "/v1/user/login": {
             "post": {
                 "description": "Login with provided credentials",
@@ -173,58 +145,6 @@ const docTemplate = `{
                     },
                     "400": {
                         "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.ResponseErrorModel"
-                        }
-                    }
-                }
-            }
-        },
-        "/v1/user/{user_id}": {
-            "get": {
-                "security": [
-                    {
-                        "BearerAuth": []
-                    }
-                ],
-                "description": "Get details of a specific user",
-                "tags": [
-                    "User"
-                ],
-                "summary": "Get user details",
-                "parameters": [
-                    {
-                        "type": "string",
-                        "description": "User UserId",
-                        "name": "user_id",
-                        "in": "path",
-                        "required": true
-                    }
-                ],
-                "responses": {
-                    "200": {
-                        "description": "OK",
-                        "schema": {
-                            "type": "array",
-                            "items": {
-                                "$ref": "#/definitions/model.UserViewModel"
-                            }
-                        }
-                    },
-                    "400": {
-                        "description": "Bad Request",
-                        "schema": {
-                            "$ref": "#/definitions/response.ResponseErrorModel"
-                        }
-                    },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.ResponseErrorModel"
-                        }
-                    },
-                    "403": {
-                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
