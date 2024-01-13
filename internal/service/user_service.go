@@ -134,8 +134,12 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel) (*model.UserViewM
 			return nil, err
 		}
 		if len(activeSessions) > configs.GetConfigs().ActiveSessionsLimit {
-			lastUsedSession := activeSessions[len(activeSessions)-1]
-			err := s.userRepo.RemoveSession(searchResult.UserId, lastUsedSession.RefreshToken)
+			lastUsedSessions := activeSessions[5:]
+			tokens := make([]string, len(lastUsedSessions))
+			for i, session := range lastUsedSessions {
+				tokens[i] = session.RefreshToken
+			}
+			err := s.userRepo.RemoveSessions(searchResult.UserId, tokens)
 			if err != nil {
 				return nil, err
 			}

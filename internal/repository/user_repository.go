@@ -20,6 +20,7 @@ type IUserRepository interface {
 	UpdateSession(sessionVM *model.DeviceInfo, deviceId string, userId int64, refreshToken string) (bool, error)
 	GetUserActiveSessions(userId int64) ([]model.ActiveSession, error)
 	RemoveSession(userId int64, prevRefreshToken string) error
+	RemoveSessions(userId int64, prevRefreshTokens []string) error
 }
 
 type UserRepository struct {
@@ -164,7 +165,7 @@ func (r *UserRepository) UpdateSession(device *model.DeviceInfo, deviceId string
 	if err != nil {
 		return false, err
 	}
-	isNewDevice := newDevice.LoginDate.UnixMilli()-now.UnixMilli() < 100
+	isNewDevice := newDevice.LoginDate.UnixMilli()-now.UnixMilli() < 3000
 	return isNewDevice, nil
 }
 
@@ -179,6 +180,17 @@ func (r *UserRepository) GetUserActiveSessions(userId int64) ([]model.ActiveSess
 
 func (r *UserRepository) RemoveSession(userId int64, prevRefreshToken string) error {
 	err := r.db.Where("\"userId\" = ? AND \"refreshToken\" = ?", userId, prevRefreshToken).Delete(&model.ActiveSession{}).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return err
+	}
+	return nil
+}
+
+func (r *UserRepository) RemoveSessions(userId int64, prevRefreshTokens []string) error {
+	err := r.db.Where("\"userId\" = ? AND \"refreshToken\" IN ?", userId, prevRefreshTokens).Delete(&model.ActiveSession{}).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil
