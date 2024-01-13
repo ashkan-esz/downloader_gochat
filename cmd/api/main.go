@@ -4,6 +4,7 @@ import (
 	"downloader_gochat/api"
 	"downloader_gochat/configs"
 	"downloader_gochat/db"
+	"downloader_gochat/db/redis"
 	"downloader_gochat/internal/handler"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/internal/service"
@@ -37,6 +38,8 @@ func main() {
 		log.Fatalf("could not initialize database connection: %s", err)
 	}
 	dbConn.AutoMigrate()
+
+	go redis.ConnectRedis()
 
 	userRep := repository.NewUserRepository(dbConn.GetDB())
 	userSvc := service.NewUserService(userRep)

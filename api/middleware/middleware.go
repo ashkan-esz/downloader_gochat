@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"downloader_gochat/db/redis"
 	"downloader_gochat/pkg/response"
 	"downloader_gochat/util"
 
@@ -31,6 +32,11 @@ func IsAuthRefreshToken(c *fiber.Ctx) error {
 		return response.ResponseError(c, "Unauthorized, refreshToken not provided", fiber.StatusUnauthorized)
 	}
 
+	result, err := redis.GetRedis(c.Context(), "jwtKey:"+refreshToken)
+	if result != nil && result != "" && err != nil && err.Error() != "redis: nil" {
+		return response.ResponseError(c, "Unauthorized, refreshToken is in blacklist", fiber.StatusUnauthorized)
+	}
+
 	token, claims, err := util.VerifyRefreshToken(refreshToken)
 	if err != nil {
 		return response.ResponseError(c, "Unauthorized, Invalid refreshToken", fiber.StatusUnauthorized)
@@ -38,8 +44,6 @@ func IsAuthRefreshToken(c *fiber.Ctx) error {
 	if token == nil || claims == nil {
 		return response.ResponseError(c, "Unauthorized, Invalid refreshToken metaData", fiber.StatusUnauthorized)
 	}
-
-	//todo : check redis blacklist
 
 	c.Locals("refreshToken", refreshToken)
 	c.Locals("jwtUserData", claims)

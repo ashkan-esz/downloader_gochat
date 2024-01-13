@@ -17,6 +17,8 @@ type ConfigStruct struct {
 	AccessTokenExpireHour int
 	RefreshTokenExpireDay int
 	ActiveSessionsLimit   int
+	RedisUrl              string
+	RedisPassword         string
 }
 
 var configs = ConfigStruct{}
@@ -35,6 +37,8 @@ func LoadEnvVariables() {
 	configs.RefreshTokenSecret = os.Getenv("REFRESH_TOKEN_SECRET")
 	configs.MigrateOnStart = os.Getenv("MIGRATE_ON_START") == "true"
 	configs.DefaultProfileImage = os.Getenv("DEFAULT_PROFILE_IMAGE")
+	configs.RedisUrl = os.Getenv("REDIS_URL")
+	configs.RedisPassword = os.Getenv("REDIS_PASSWORD")
 	sessionLimit, err := strconv.Atoi(os.Getenv("ACTIVE_SESSIONS_LIMIT"))
 	if err != nil || sessionLimit == 0 {
 		configs.ActiveSessionsLimit = 5
