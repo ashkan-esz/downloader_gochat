@@ -68,7 +68,8 @@ func CreateJwtToken(id int64, username string, role string) (*TokenDetail, error
 }
 
 func TokenValid(c *fiber.Ctx) error {
-	token, err := VerifyToken(c)
+	tokenString := ExtractToken(c)
+	token, err := VerifyToken(tokenString)
 	if err != nil {
 		return err
 	}
@@ -81,7 +82,8 @@ func TokenValid(c *fiber.Ctx) error {
 }
 
 func ExtractTokenMetadata(c *fiber.Ctx) (*MyJwtClaims, error) {
-	token, err := VerifyToken(c)
+	tokenString := ExtractToken(c)
+	token, err := VerifyToken(tokenString)
 	if err != nil {
 		return nil, err
 	}
@@ -112,8 +114,7 @@ func ExtractTokenMetadata(c *fiber.Ctx) (*MyJwtClaims, error) {
 	return nil, err
 }
 
-func VerifyToken(c *fiber.Ctx) (*jwt.Token, error) {
-	tokenString := ExtractToken(c)
+func VerifyToken(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("wrong signature method")
@@ -126,6 +127,23 @@ func VerifyToken(c *fiber.Ctx) (*jwt.Token, error) {
 	}
 
 	return token, nil
+}
+
+func VerifyRefreshToken(tokenString string) (*jwt.Token, *MyJwtClaims, error) {
+	claims := MyJwtClaims{}
+	token, err := jwt.ParseWithClaims(tokenString, &claims, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("wrong signature method")
+		}
+		return []byte(configs.GetConfigs().RefreshTokenSecret), nil
+	})
+
+	if err != nil {
+		fmt.Println(err)
+		return nil, nil, err
+	}
+
+	return token, &claims, nil
 }
 
 func ExtractToken(c *fiber.Ctx) string {

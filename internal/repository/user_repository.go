@@ -13,11 +13,12 @@ import (
 
 type IUserRepository interface {
 	AddUser(user *model.User) (*model.User, error)
-	GetDetailUser(int) (*model.UserDataModel, error)
+	GetDetailUser(int64) (*model.UserWithImageDataModel, error)
 	GetUserByUsernameEmail(username string, email string) (*model.UserDataModel, error)
 	UpdateUser(*model.User) (*model.User, error)
-	AddSession(sessionVM *model.DeviceInfo, deviceId string, userId int64, refreshToken string) error
-	UpdateSession(sessionVM *model.DeviceInfo, deviceId string, userId int64, refreshToken string) (bool, error)
+	AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string) error
+	UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string) (bool, error)
+	UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string) (*model.ActiveSession, error)
 	GetUserActiveSessions(userId int64) ([]model.ActiveSession, error)
 	RemoveSession(userId int64, prevRefreshToken string) error
 	RemoveSessions(userId int64, prevRefreshTokens []string) error
@@ -87,9 +88,16 @@ func (r *UserRepository) AddUser(user *model.User) (*model.User, error) {
 	return user, nil
 }
 
-func (r *UserRepository) GetDetailUser(id int) (*model.UserDataModel, error) {
-	var userDataModel model.UserDataModel
-	err := r.db.Where("id = ?", id).Model(&model.User{}).Limit(1).Find(&userDataModel).Error
+func (r *UserRepository) GetDetailUser(id int64) (*model.UserWithImageDataModel, error) {
+	var userDataModel model.UserWithImageDataModel
+	err := r.db.Where("\"userId\" = ?", id).
+		Model(&model.User{}).
+		Limit(1).
+		Preload("ProfileImages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("\"addDate\" DESC")
+		}).
+		Find(&userDataModel).
+		Error
 	if err != nil {
 		return nil, err
 	}
@@ -167,6 +175,32 @@ func (r *UserRepository) UpdateSession(device *model.DeviceInfo, deviceId string
 	}
 	isNewDevice := newDevice.LoginDate.UnixMilli()-now.UnixMilli() < 3000
 	return isNewDevice, nil
+}
+
+func (r *UserRepository) UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string) (*model.ActiveSession, error) {
+	activeSession := model.ActiveSession{}
+	result := r.db.Model(&activeSession).Clauses(clause.Returning{}).Where("\"userId\" = ? AND \"refreshToken\" = ?", userId, prevRefreshToken).Updates(map[string]interface{}{
+		"refreshToken": refreshToken,
+		"appName":      device.AppName,
+		"appVersion":   device.AppVersion,
+		"deviceModel":  device.DeviceModel,
+		"deviceOs":     device.Os,
+		"ipLocation":   "",
+		"lastUseDate":  time.Now().UTC(),
+	})
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+
+	return &activeSession, nil
 }
 
 func (r *UserRepository) GetUserActiveSessions(userId int64) ([]model.ActiveSession, error) {

@@ -18,6 +18,34 @@ func AuthMiddleware(c *fiber.Ctx) error {
 	return c.Next()
 }
 
+func IsAuthRefreshToken(c *fiber.Ctx) error {
+	refreshToken := c.Cookies("refreshToken", "")
+	if refreshToken == "" {
+		refreshToken = c.Get("refreshtoken", "")
+		if refreshToken == "" {
+			refreshToken = c.Get("refreshToken", "")
+		}
+	}
+
+	if refreshToken == "" {
+		return response.ResponseError(c, "Unauthorized, refreshToken not provided", fiber.StatusUnauthorized)
+	}
+
+	token, claims, err := util.VerifyRefreshToken(refreshToken)
+	if err != nil {
+		return response.ResponseError(c, "Unauthorized, Invalid refreshToken", fiber.StatusUnauthorized)
+	}
+	if token == nil || claims == nil {
+		return response.ResponseError(c, "Unauthorized, Invalid refreshToken metaData", fiber.StatusUnauthorized)
+	}
+
+	//todo : check redis blacklist
+
+	c.Locals("refreshToken", refreshToken)
+	c.Locals("jwtUserData", claims)
+	return c.Next()
+}
+
 func CORSMiddleware(c *fiber.Ctx) error {
 	c.Set("Access-Control-Allow-Origin", "*")
 	c.Set("Access-Control-Allow-Credentials", "true")

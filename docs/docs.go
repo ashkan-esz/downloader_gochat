@@ -42,6 +42,65 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/user/getToken": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Get new Tokens, also return ` + "`" + `refreshToken` + "`" + `",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Get Token",
+                "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "return refreshToken in response body instead of saving in cookie",
+                        "name": "noCookie",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "also return profile images, slower response",
+                        "name": "profileImages",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "description": "Device Info",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.DeviceInfo"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UserViewModel"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/login": {
             "post": {
                 "description": "Login with provided credentials",
@@ -188,6 +247,29 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ProfileImage": {
+            "type": "object",
+            "properties": {
+                "addDate": {
+                    "type": "string"
+                },
+                "originalSize": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "thumbnail": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.RegisterViewModel": {
             "type": "object",
             "properties": {
@@ -227,6 +309,12 @@ const docTemplate = `{
             "properties": {
                 "email": {
                     "type": "string"
+                },
+                "profileImages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ProfileImage"
+                    }
                 },
                 "token": {
                     "$ref": "#/definitions/model.TokenViewModel"

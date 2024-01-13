@@ -15,6 +15,7 @@ import (
 type IUserService interface {
 	SignUp(registerVM *model.RegisterViewModel) (*model.UserViewModel, error)
 	LoginUser(loginVM *model.LoginViewModel) (*model.UserViewModel, error)
+	GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool) (*model.UserViewModel, *util.TokenDetail, error)
 }
 
 type UserService struct {
@@ -158,4 +159,42 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel) (*model.UserViewM
 	}
 
 	return &userVM, nil
+}
+
+func (s *UserService) GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool) (*model.UserViewModel, *util.TokenDetail, error) {
+	token, err := util.CreateJwtToken(jwtUserData.UserId, jwtUserData.Username, "user")
+	if err != nil {
+		return nil, nil, err
+	}
+
+	sessionData, err := s.userRepo.UpdateSessionRefreshToken(deviceVM, jwtUserData.UserId, token.RefreshToken, prevRefreshToken)
+	if err != nil {
+		return nil, nil, err
+	}
+	if sessionData == nil {
+		return nil, nil, nil
+	}
+
+	userVM := model.UserViewModel{
+		UserId: jwtUserData.UserId,
+		Token: model.TokenViewModel{
+			AccessToken:       token.AccessToken,
+			AccessTokenExpire: token.ExpiresAt,
+			RefreshToken:      token.RefreshToken,
+		},
+	}
+
+	if addProfileImages {
+		userData, err := s.userRepo.GetDetailUser(jwtUserData.UserId)
+		if err != nil {
+			return nil, token, err
+		}
+		if sessionData == nil {
+			return nil, token, nil
+		}
+		userVM.ProfileImages = userData.ProfileImages
+		userVM.Username = userData.Username
+	}
+
+	return &userVM, token, nil
 }

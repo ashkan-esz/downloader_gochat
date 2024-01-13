@@ -5,6 +5,7 @@ import (
 	"downloader_gochat/internal/service"
 	"downloader_gochat/model"
 	"downloader_gochat/pkg/response"
+	"downloader_gochat/util"
 	"strings"
 	"time"
 
@@ -14,6 +15,7 @@ import (
 type IUserHandler interface {
 	RegisterUser(c *fiber.Ctx) error
 	Login(c *fiber.Ctx) error
+	GetToken(c *fiber.Ctx) error
 	LogOut(c *fiber.Ctx) error
 }
 
@@ -137,6 +139,66 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 			SessionOnly: false,
 		})
 		result.Token.RefreshToken = ""
+	}
+
+	return response.ResponseOKWithData(c, result)
+}
+
+// GetToken godoc
+//
+//	@Summary		Get Token
+//	@Description	Get new Tokens, also return `refreshToken`
+//	@Tags			User
+//	@Param			noCookie	query		bool					true	"return refreshToken in response body instead of saving in cookie"
+//	@Param			profileImages	query		bool					true	"also return profile images, slower response"
+//	@Param			user	body		model.DeviceInfo	true	"Device Info"
+//	@Success		200		{object}	model.UserViewModel
+//	@Failure		400,401		{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/getToken [put]
+func (h *UserHandler) GetToken(c *fiber.Ctx) error {
+	var deviceInfo model.DeviceInfo
+	err := c.BodyParser(&deviceInfo)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	noCookie := c.QueryBool("noCookie", false)
+	addProfileImages := c.QueryBool("profileImages", false)
+
+	deviceInfoError := deviceInfo.Validate()
+	if len(deviceInfoError) > 0 {
+		return response.ResponseError(c, strings.Join(deviceInfoError, ", "), fiber.StatusBadRequest)
+	}
+	deviceInfo.Normalize()
+
+	// ip := c.IP()
+	// u, err := url.Parse(ip)
+
+	refreshToken := c.Locals("refreshToken").(string)
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	result, token, err := h.userService.GetToken(&deviceInfo, refreshToken, jwtUserData, addProfileImages)
+
+	if !noCookie && token != nil {
+		c.Cookie(&fiber.Cookie{
+			Name:        "refreshToken",
+			Value:       token.RefreshToken,
+			Path:        "/",
+			Expires:     time.Now().Add(time.Duration(configs.GetConfigs().RefreshTokenExpireDay) * 24 * time.Hour),
+			Secure:      true,
+			HTTPOnly:    true,
+			SameSite:    "none",
+			SessionOnly: false,
+		})
+		if result != nil {
+			result.Token.RefreshToken = ""
+		}
+	}
+
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	if result == nil {
+		return response.ResponseError(c, "Cannot find device", fiber.StatusNotFound)
 	}
 
 	return response.ResponseOKWithData(c, result)

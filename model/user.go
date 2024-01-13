@@ -61,10 +61,11 @@ func (User) TableName() string {
 //---------------------------------------
 
 type UserViewModel struct {
-	UserId   int64          `json:"userId"`
-	Username string         `json:"username"`
-	Email    string         `json:"email"`
-	Token    TokenViewModel `json:"token"`
+	UserId        int64          `json:"userId"`
+	Username      string         `json:"username"`
+	Email         string         `json:"email,omitempty"`
+	Token         TokenViewModel `json:"token"`
+	ProfileImages []ProfileImage `json:"profileImages,omitempty"`
 }
 
 type TokenViewModel struct {
@@ -103,6 +104,14 @@ type UserDataModel struct {
 	Username string `db:"username" gorm:"column:username" json:"username"`
 	Email    string `db:"email" gorm:"column:email" json:"email"`
 	Password string `db:"password" gorm:"column:password" json:"password"`
+}
+
+type UserWithImageDataModel struct {
+	UserId        int64          `db:"userId" gorm:"column:userId" json:"userId"`
+	Username      string         `db:"username" gorm:"column:username" json:"username"`
+	Email         string         `db:"email" gorm:"column:email" json:"email"`
+	Password      string         `db:"password" gorm:"column:password" json:"password"`
+	ProfileImages []ProfileImage `db:"profileImages" gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"profileImages"`
 }
 
 //---------------------------------------

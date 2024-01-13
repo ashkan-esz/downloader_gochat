@@ -22,6 +22,21 @@ definitions:
       username_email:
         type: string
     type: object
+  model.ProfileImage:
+    properties:
+      addDate:
+        type: string
+      originalSize:
+        type: integer
+      size:
+        type: integer
+      thumbnail:
+        type: string
+      url:
+        type: string
+      userId:
+        type: integer
+    type: object
   model.RegisterViewModel:
     properties:
       confirmPassword:
@@ -48,6 +63,10 @@ definitions:
     properties:
       email:
         type: string
+      profileImages:
+        items:
+          $ref: '#/definitions/model.ProfileImage'
+        type: array
       token:
         $ref: '#/definitions/model.TokenViewModel'
       userId:
@@ -87,6 +106,44 @@ paths:
       summary: Show the status of server.
       tags:
       - root
+  /v1/user/getToken:
+    put:
+      description: Get new Tokens, also return `refreshToken`
+      parameters:
+      - description: return refreshToken in response body instead of saving in cookie
+        in: query
+        name: noCookie
+        required: true
+        type: boolean
+      - description: also return profile images, slower response
+        in: query
+        name: profileImages
+        required: true
+        type: boolean
+      - description: Device Info
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.DeviceInfo'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserViewModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Get Token
+      tags:
+      - User
   /v1/user/login:
     post:
       description: Login with provided credentials

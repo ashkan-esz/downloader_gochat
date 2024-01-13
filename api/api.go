@@ -34,6 +34,7 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *ws.Handler) {
 	{
 		userRoutes.Post("/signup", middleware.CORSMiddleware, userHandler.RegisterUser)
 		userRoutes.Post("/login", middleware.CORSMiddleware, userHandler.Login)
+		userRoutes.Put("/getToken", middleware.CORSMiddleware, middleware.IsAuthRefreshToken, userHandler.GetToken)
 		userRoutes.Get("/logout", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.LogOut)
 	}
 
