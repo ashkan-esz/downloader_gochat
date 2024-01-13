@@ -5,26 +5,26 @@ import (
 )
 
 type ResponseOKWithDataModel struct {
-	Code    int         `json:"code"`
-	Data    interface{} `json:"data"`
-	Message string      `json:"message"`
+	Code         int         `json:"code"`
+	Data         interface{} `json:"data"`
+	ErrorMessage string      `json:"errorMessage"`
 }
 
 type ResponseOKModel struct {
-	Code    int    `json:"code"`
-	Message string `json:"message"`
+	Code         int    `json:"code"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 type ResponseErrorModel struct {
-	Code    int         `json:"code"`
-	Message interface{} `json:"message"`
+	Code         int         `json:"code"`
+	ErrorMessage interface{} `json:"errorMessage"`
 }
 
 func ResponseOKWithData(c *fiber.Ctx, data interface{}) error {
 	response := ResponseOKWithDataModel{
-		Code:    200,
-		Data:    data,
-		Message: "OK",
+		Code:         200,
+		Data:         data,
+		ErrorMessage: "",
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response)
@@ -32,8 +32,8 @@ func ResponseOKWithData(c *fiber.Ctx, data interface{}) error {
 
 func ResponseOK(c *fiber.Ctx, message string) error {
 	response := ResponseOKModel{
-		Code:    200,
-		Message: message,
+		Code:         200,
+		ErrorMessage: message,
 	}
 
 	return c.Status(fiber.StatusOK).JSON(response)
@@ -41,9 +41,9 @@ func ResponseOK(c *fiber.Ctx, message string) error {
 
 func ResponseCreated(c *fiber.Ctx, data interface{}) error {
 	response := ResponseOKWithDataModel{
-		Code:    201,
-		Data:    data,
-		Message: "Created",
+		Code:         201,
+		Data:         data,
+		ErrorMessage: "",
 	}
 
 	return c.Status(fiber.StatusCreated).JSON(response)
@@ -51,8 +51,8 @@ func ResponseCreated(c *fiber.Ctx, data interface{}) error {
 
 func ResponseError(c *fiber.Ctx, err interface{}, code int) error {
 	response := ResponseErrorModel{
-		Code:    code,
-		Message: err,
+		Code:         code,
+		ErrorMessage: err,
 	}
 
 	return c.Status(code).JSON(response)

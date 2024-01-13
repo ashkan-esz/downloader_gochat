@@ -12,32 +12,59 @@ import (
 )
 
 type MyJwtClaims struct {
-	UserId   string `json:"id"`
-	Username string `json:"username"`
+	UserId      int64  `json:"userId"`
+	Username    string `json:"username"`
+	Role        string `json:"role"`
+	GeneratedAt int64  `json:"generatedAt"`
+	ExpiresAt   int64  `json:"expiresAt"`
 	jwt.RegisteredClaims
 }
 
 type TokenDetail struct {
-	AccessToken string
-	ExpireAt    int64
+	AccessToken  string
+	RefreshToken string
+	ExpiresAt    int64
 }
 
-func CreateJwtToken(id int64, username string) (*TokenDetail, error) {
-	ExpireAt := jwt.NewNumericDate(time.Now().Add(24 * time.Hour))
+func CreateJwtToken(id int64, username string, role string) (*TokenDetail, error) {
+	myConfigs := configs.GetConfigs()
+	accessExpire := jwt.NewNumericDate(time.Now().Add(time.Duration(myConfigs.AccessTokenExpireHour) * time.Hour))
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, MyJwtClaims{
-		UserId:   strconv.FormatInt(id, 10),
-		Username: username,
+		UserId:      id,
+		Username:    username,
+		Role:        role,
+		GeneratedAt: time.Now().UnixMilli(),
+		ExpiresAt:   accessExpire.UnixMilli(),
 		RegisteredClaims: jwt.RegisteredClaims{
 			Issuer:    strconv.FormatInt(id, 10),
-			ExpiresAt: ExpireAt,
+			ExpiresAt: accessExpire,
+			ID:        strconv.FormatInt(time.Now().UnixNano(), 10),
 		},
 	})
 
-	ss, err := token.SignedString([]byte(configs.GetConfigs().SigningSecretKey))
+	refreshExpire := jwt.NewNumericDate(time.Now().Add(time.Duration(myConfigs.RefreshTokenExpireDay) * 24 * time.Hour))
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, MyJwtClaims{
+		UserId:      id,
+		Username:    username,
+		Role:        role,
+		GeneratedAt: time.Now().UnixMilli(),
+		ExpiresAt:   refreshExpire.UnixMilli(),
+		RegisteredClaims: jwt.RegisteredClaims{
+			Issuer:    strconv.FormatInt(id, 10),
+			ExpiresAt: refreshExpire,
+			ID:        strconv.FormatInt(time.Now().UnixNano(), 10),
+		},
+	})
+
+	accToken, err := token.SignedString([]byte(myConfigs.AccessTokenSecret))
 	if err != nil {
 		return nil, err
 	}
-	return &TokenDetail{AccessToken: ss, ExpireAt: ExpireAt.Unix()}, nil
+	refToken, err := refreshToken.SignedString([]byte(myConfigs.RefreshTokenSecret))
+	if err != nil {
+		return nil, err
+	}
+	return &TokenDetail{AccessToken: accToken, ExpiresAt: accessExpire.UnixMilli(), RefreshToken: refToken}, nil
 }
 
 func TokenValid(c *fiber.Ctx) error {
@@ -71,8 +98,13 @@ func ExtractTokenMetadata(c *fiber.Ctx) (*MyJwtClaims, error) {
 			return nil, err
 		}
 
+		uid, err := strconv.ParseInt(id, 10, 64)
+		if err != nil {
+			return nil, err
+		}
+
 		return &MyJwtClaims{
-			UserId:   id,
+			UserId:   uid,
 			Username: username,
 		}, nil
 	}
@@ -86,7 +118,7 @@ func VerifyToken(c *fiber.Ctx) (*jwt.Token, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("wrong signature method")
 		}
-		return []byte(configs.GetConfigs().SigningSecretKey), nil
+		return []byte(configs.GetConfigs().AccessTokenSecret), nil
 	})
 
 	if err != nil {

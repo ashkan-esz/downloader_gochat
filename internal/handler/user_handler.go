@@ -1,11 +1,12 @@
 package handler
 
 import (
+	"downloader_gochat/configs"
 	"downloader_gochat/internal/service"
 	"downloader_gochat/model"
 	"downloader_gochat/pkg/response"
-	"downloader_gochat/util"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -30,15 +31,20 @@ func NewUserHandler(userService service.IUserService) *UserHandler {
 }
 
 //------------------------------------------
+//------------------------------------------
 
 // RegisterUser godoc
 //
 //	@Summary		Register a new user
 //	@Description	Register a new user with the provided credentials
+//	@Description	Unlike the main server, this one doesn't handle ip detection and ip location
+//	@Description	Also detect multiple login on same device as new device login, can be handled on client side with adding 'deviceInfo.fingerprint'
+//	@Description	Also doesn't handle and send emails
 //	@Tags			User
-//	@Param			user	body		model.RegisterViewModel	true	"User object"
-//	@Success		201		{object}	model.UserViewModel
-//	@Failure		400		{object}	response.ResponseErrorModel
+//	@Param			noCookie	query		bool					true	"return refreshToken in response body instead of saving in cookie"
+//	@Param			user		body		model.RegisterViewModel	true	"User object"
+//	@Success		200			{object}	model.UserViewModel
+//	@Failure		400			{object}	response.ResponseErrorModel
 //	@Router			/v1/user/signup [post]
 func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	var registerVM model.RegisterViewModel
@@ -46,13 +52,18 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
+	noCookie := c.QueryBool("noCookie", false)
 
 	registerUserError := registerVM.Validate()
 	if len(registerUserError) > 0 {
-		return response.ResponseError(c, registerUserError, fiber.StatusBadRequest)
+		return response.ResponseError(c, strings.Join(registerUserError, ", "), fiber.StatusBadRequest)
 	}
+	registerVM.Normalize()
 
-	result, err := h.userService.CreateUser(&registerVM)
+	// ip := c.IP()
+	// u, err := url.Parse(ip)
+
+	result, err := h.userService.SignUp(&registerVM)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
@@ -65,6 +76,20 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 		}
 	}
 
+	if !noCookie {
+		c.Cookie(&fiber.Cookie{
+			Name:        "refreshToken",
+			Value:       result.Token.RefreshToken,
+			Path:        "/",
+			Expires:     time.Now().Add(time.Duration(configs.GetConfigs().RefreshTokenExpireDay) * 24 * time.Hour),
+			Secure:      true,
+			HTTPOnly:    true,
+			SameSite:    "none",
+			SessionOnly: false,
+		})
+		result.Token.RefreshToken = ""
+	}
+
 	return response.ResponseCreated(c, result)
 }
 
@@ -73,6 +98,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 //	@Summary		Login user
 //	@Description	Login with provided credentials
 //	@Tags			User
+//	@Param			noCookie	query		bool					true	"return refreshToken in response body instead of saving in cookie"
 //	@Param			user	body		model.LoginViewModel	true	"User object"
 //	@Success		200		{object}	model.UserViewModel
 //	@Failure		400		{object}	response.ResponseErrorModel
@@ -81,45 +107,42 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	var loginVM model.LoginViewModel
 	err := c.BodyParser(&loginVM)
 	if err != nil {
-		return response.ResponseError(c, err.Error(), fiber.StatusUnprocessableEntity)
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
+	noCookie := c.QueryBool("noCookie", false)
 
-	validateUser, err := h.userService.LoginUser(&loginVM)
+	loginUserError := loginVM.Validate()
+	if len(loginUserError) > 0 {
+		return response.ResponseError(c, strings.Join(loginUserError, ", "), fiber.StatusBadRequest)
+	}
+	loginVM.Normalize()
+
+	// ip := c.IP()
+	// u, err := url.Parse(ip)
+
+	result, err := h.userService.LoginUser(&loginVM)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
-
-	if validateUser == nil {
-		validateUser = &model.UserViewModel{}
+	if result == nil {
+		return response.ResponseError(c, "Cannot find user", fiber.StatusNotFound)
 	}
 
-	// Generete JWT
-	token, err := util.CreateJwtToken(validateUser.UserId, validateUser.Username)
-	if err != nil {
-		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	if !noCookie {
+		c.Cookie(&fiber.Cookie{
+			Name:        "refreshToken",
+			Value:       result.Token.RefreshToken,
+			Path:        "/",
+			Expires:     time.Now().Add(time.Duration(configs.GetConfigs().RefreshTokenExpireDay) * 24 * time.Hour),
+			Secure:      true,
+			HTTPOnly:    true,
+			SameSite:    "none",
+			SessionOnly: false,
+		})
+		result.Token.RefreshToken = ""
 	}
 
-	c.Cookie(&fiber.Cookie{
-		Name:        "jwt",
-		Value:       token.AccessToken,
-		Path:        "/",
-		Domain:      "localhost",
-		MaxAge:      3600,
-		Expires:     time.Time{},
-		Secure:      false,
-		HTTPOnly:    true,
-		SameSite:    "",
-		SessionOnly: false,
-	})
-
-	userData := map[string]interface{}{
-		"access_token": token.AccessToken,
-		"expired":      token.ExpireAt,
-		"userid":       validateUser.UserId,
-		"username":     validateUser.Username,
-	}
-
-	return response.ResponseOKWithData(c, userData)
+	return response.ResponseOKWithData(c, result)
 }
 
 // LogOut godoc
@@ -171,14 +194,14 @@ func (h *UserHandler) GetAllUser(c *fiber.Ctx) error {
 
 // GetDetailUser godoc
 //
-//	@Summary				Get user details
-//	@Description			Get details of a specific user
-//	@Tags					User
-//	@Security				BearerAuth
-//	@Param					user_id			path		string	true	"User UserId"
-//	@Success				200				{object}	[]model.UserViewModel
-//	@Failure				400,401,403		{object}	response.ResponseErrorModel
-//	@Router					/v1/user/{user_id} [get]
+//	@Summary		Get user details
+//	@Description	Get details of a specific user
+//	@Tags			User
+//	@Security		BearerAuth
+//	@Param			user_id		path		string	true	"User UserId"
+//	@Success		200			{object}	[]model.UserViewModel
+//	@Failure		400,401,403	{object}	response.ResponseErrorModel
+//	@Router			/v1/user/{user_id} [get]
 func (h *UserHandler) GetDetailUser(c *fiber.Ctx) error {
 	userId, err := strconv.Atoi(c.Params("user_id"))
 	if err != nil {

@@ -17,7 +17,10 @@ type Database struct {
 func NewDatabase() (*Database, error) {
 	db, err := gorm.Open(
 		postgres.Open(configs.GetConfigs().DbUrl),
-		&gorm.Config{SkipDefaultTransaction: true, PrepareStmt: true},
+		&gorm.Config{
+			SkipDefaultTransaction: true,
+			PrepareStmt:            true,
+		},
 	)
 	if err != nil {
 		return nil, err

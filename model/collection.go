@@ -36,7 +36,7 @@ type UserCollection struct {
 	UserId         int64     `gorm:"column:userId;type:integer;not null;primaryKey;"`
 	CollectionName string    `gorm:"column:collection_name;type:text;not null;primaryKey;"`
 	Date           time.Time `gorm:"column:date;type:timestamp(3);not null;"`
-	Public         bool      `gorm:"column:public;type:boolean;default:true;not null;"`
+	Public         bool      `gorm:"column:public;type:boolean;not null;"`
 	Description    string    `gorm:"column:description;type:text;default:\"\";not null;"`
 	//---------------------------------------
 	UserCollectionMovie []UserCollectionMovie `gorm:"foreignKey:UserId,CollectionName;references:UserId,CollectionName;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`

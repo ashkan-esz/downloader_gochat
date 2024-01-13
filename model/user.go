@@ -2,6 +2,8 @@ package model
 
 import (
 	"downloader_gochat/util"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/badoux/checkmail"
@@ -59,42 +61,71 @@ func (User) TableName() string {
 //---------------------------------------
 
 type UserViewModel struct {
-	UserId   int64  `json:"UserId" db:"UserId"`
-	Username string `json:"username" db:"username"`
-	Email    string `json:"email" db:"email"`
+	UserId   int64          `json:"userId"`
+	Username string         `json:"username"`
+	Email    string         `json:"email"`
+	Token    TokenViewModel `json:"token"`
+}
+
+type TokenViewModel struct {
+	AccessToken       string `json:"accessToken"`
+	AccessTokenExpire int64  `json:"accessToken_expire"`
+	RefreshToken      string `json:"refreshToken,omitempty"`
 }
 
 type RegisterViewModel struct {
-	Username string `json:"username" db:"username"`
-	Email    string `json:"email" db:"email"`
-	Password string `json:"password" db:"password"`
+	Username        string     `json:"username"`
+	Email           string     `json:"email"`
+	Password        string     `json:"password"`
+	ConfirmPassword string     `json:"confirmPassword"`
+	DeviceInfo      DeviceInfo `json:"deviceInfo"`
 }
 
 type LoginViewModel struct {
-	Email    string `json:"email" db:"email"`
-	Password string `json:"password" db:"password"`
+	Email      string     `json:"username_email"`
+	Password   string     `json:"password"`
+	DeviceInfo DeviceInfo `json:"deviceInfo"`
+}
+
+type DeviceInfo struct {
+	AppName     string `json:"appName"`
+	AppVersion  string `json:"appVersion"`
+	Os          string `json:"os"`
+	DeviceModel string `json:"deviceModel"`
+	Fingerprint string `json:"fingerprint"`
 }
 
 //---------------------------------------
 //---------------------------------------
 
 type UserDataModel struct {
-	UserId   int64
-	Username string
-	Email    string
-	Password string
+	UserId   int64  `db:"userId" gorm:"column:userId" json:"userId"`
+	Username string `db:"username" gorm:"column:username" json:"username"`
+	Email    string `db:"email" gorm:"column:email" json:"email"`
+	Password string `db:"password" gorm:"column:password" json:"password"`
 }
 
 //---------------------------------------
 //---------------------------------------
 
-func (u *User) EncryptPassword(password string) (string, error) {
+func (u *User) EncryptPassword(password string) error {
 	hashPassword, err := util.HashPassword(password)
 	if err != nil {
-		return "", err
+		return err
 	}
+	u.Password = hashPassword
 
-	return hashPassword, nil
+	return nil
+}
+
+func (u *User) EncryptEmailToken(token string) error {
+	hashToken, err := util.HashPassword(token)
+	if err != nil {
+		return err
+	}
+	u.EmailVerifyToken = strings.ReplaceAll(hashToken, "/", "")
+
+	return nil
 }
 
 func (u *LoginViewModel) CheckPassword(password string, hashedPassword string) error {
@@ -106,65 +137,146 @@ func (u *LoginViewModel) CheckPassword(password string, hashedPassword string) e
 	return nil
 }
 
-func (u *User) Validate() map[string]string {
-	var errorMessages = make(map[string]string)
-	var err error
+//---------------------------------------
+//---------------------------------------
 
-	if u.Email == "" {
-		errorMessages["email_required"] = "email required"
-	}
-	if u.Email != "" {
-		if err = checkmail.ValidateFormat(u.Email); err != nil {
-			errorMessages["invalid_email"] = "email email"
-		}
-	}
-
-	return errorMessages
-}
-
-func (u *LoginViewModel) Validate() map[string]string {
-	var errorMessages = make(map[string]string)
-	var err error
-
-	if u.Password == "" {
-		errorMessages["password_required"] = "password is required"
-	}
-	if u.Email == "" {
-		errorMessages["email_required"] = "email is required"
-	}
-	if u.Email != "" {
-		if err = checkmail.ValidateFormat(u.Email); err != nil {
-			errorMessages["invalid_email"] = "please provide a valid email"
-		}
-	}
-
-	return errorMessages
-}
-
-func (u *RegisterViewModel) Validate() map[string]string {
-	var errorMessages = make(map[string]string)
-	var err error
+func (u *RegisterViewModel) Validate() []string {
+	errors := make([]string, 0)
 
 	if u.Username == "" {
-		errorMessages["username_required"] = "username is required"
-	}
-	if u.Username != "" && len(u.Username) < 4 {
-		errorMessages["username_password"] = "username should be at least 4 characters"
-	}
-	if u.Password == "" {
-		errorMessages["password_required"] = "password is required"
-	}
-	if u.Password != "" && len(u.Password) < 6 {
-		errorMessages["invalid_password"] = "password should be at least 6 characters"
-	}
-	if u.Email == "" {
-		errorMessages["email_required"] = "email is required"
-	}
-	if u.Email != "" {
-		if err = checkmail.ValidateFormat(u.Email); err != nil {
-			errorMessages["invalid_email"] = "please provide a valid email"
+		errors = append(errors, "Username Is Empty")
+	} else {
+		if len(u.Username) < 6 {
+			errors = append(errors, "Username Length Must Be More Than 6")
+		} else if len(u.Username) > 50 {
+			errors = append(errors, "Username Length Must Be Less Than 50")
+		}
+		if matched, _ := regexp.MatchString("(?i)^[a-z|\\d_-]+$", u.Username); !matched {
+			errors = append(errors, "Only a-z, 0-9, and underscores are allowed")
 		}
 	}
 
-	return errorMessages
+	if u.Password == "" {
+		errors = append(errors, "Password Is Empty")
+	} else {
+		if len(u.Password) < 8 {
+			errors = append(errors, "Password Length Must Be More Than 8")
+		} else if len(u.Password) > 50 {
+			errors = append(errors, "Password Length Must Be Less Than 50")
+		}
+		if matched, _ := regexp.MatchString("[0-9]", u.Password); !matched {
+			errors = append(errors, "Password Must Contain A Number")
+		}
+		if matched, _ := regexp.MatchString("[A-Z]", u.Password); !matched {
+			errors = append(errors, "Password Must Contain An Uppercase")
+		}
+		if strings.Contains(u.Password, " ") {
+			errors = append(errors, "Password Cannot Have Space")
+		}
+		if u.Username == u.Password {
+			errors = append(errors, "Password Is Equal With Username")
+		}
+		if u.Password != u.ConfirmPassword {
+			errors = append(errors, "Passwords Don't Match")
+		}
+	}
+
+	if u.Email == "" {
+		errors = append(errors, "Email Is Empty")
+	} else {
+		if err := checkmail.ValidateFormat(u.Email); err != nil {
+			errors = append(errors, "Email Is in Wrong Format")
+		}
+	}
+
+	deviceInfoError := u.DeviceInfo.Validate()
+	errors = append(errors, deviceInfoError...)
+
+	return errors
+}
+
+func (u *RegisterViewModel) Normalize() *RegisterViewModel {
+	u.Username = strings.TrimSpace(u.Username)
+	u.Password = strings.TrimSpace(u.Password)
+	u.Email = strings.TrimSpace(u.Email)
+	u.ConfirmPassword = strings.TrimSpace(u.ConfirmPassword)
+	u.DeviceInfo.Normalize()
+
+	return u
+}
+
+//---------------------------------------
+//---------------------------------------
+
+func (u *LoginViewModel) Validate() []string {
+	errors := make([]string, 0)
+
+	if u.Email == "" {
+		errors = append(errors, "Username Is Empty")
+	} else {
+		if len(u.Email) < 6 {
+			errors = append(errors, "Username Length Must Be More Than 6")
+		} else if len(u.Email) > 50 {
+			errors = append(errors, "Username Length Must Be Less Than 50")
+		}
+	}
+
+	if u.Password == "" {
+		errors = append(errors, "Password Is Empty")
+	} else {
+		if len(u.Password) < 8 {
+			errors = append(errors, "Password Length Must Be More Than 8")
+		} else if len(u.Password) > 50 {
+			errors = append(errors, "Password Length Must Be Less Than 50")
+		}
+		if u.Email == u.Password {
+			errors = append(errors, "Password Is Equal With Username")
+		}
+	}
+
+	deviceInfoError := u.DeviceInfo.Validate()
+	errors = append(errors, deviceInfoError...)
+
+	return errors
+}
+
+func (u *LoginViewModel) Normalize() *LoginViewModel {
+	u.Password = strings.TrimSpace(u.Password)
+	u.Email = strings.TrimSpace(u.Email)
+	u.DeviceInfo.Normalize()
+
+	return u
+}
+
+//---------------------------------------
+//---------------------------------------
+
+func (d *DeviceInfo) Validate() []string {
+	errors := make([]string, 0)
+
+	if d.AppName == "" {
+		errors = append(errors, "Missed parameter deviceInfo.appName")
+	}
+	if d.AppVersion == "" {
+		errors = append(errors, "Missed parameter deviceInfo.appVersion")
+	} else if matched, _ := regexp.MatchString("^\\d\\d?\\.\\d\\d?\\.\\d\\d?$", d.AppVersion); !matched {
+		errors = append(errors, "Invalid parameter deviceInfo.appVersion")
+	}
+	if d.Os == "" {
+		errors = append(errors, "Missed parameter deviceInfo.os")
+	}
+	if d.DeviceModel == "" {
+		errors = append(errors, "Missed parameter deviceInfo.deviceModel")
+	}
+
+	return errors
+}
+
+func (d *DeviceInfo) Normalize() *DeviceInfo {
+	d.AppName = strings.TrimSpace(d.AppName)
+	d.AppVersion = strings.TrimSpace(d.AppVersion)
+	d.Os = strings.TrimSpace(d.Os)
+	d.DeviceModel = strings.TrimSpace(d.DeviceModel)
+
+	return d
 }

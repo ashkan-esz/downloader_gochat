@@ -1,13 +1,19 @@
 package service
 
 import (
+	"downloader_gochat/configs"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
+	"downloader_gochat/util"
+	"strconv"
+	"strings"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type IUserService interface {
-	CreateUser(registerVM *model.RegisterViewModel) (*model.UserViewModel, error)
+	SignUp(registerVM *model.RegisterViewModel) (*model.UserViewModel, error)
 	LoginUser(loginVM *model.LoginViewModel) (*model.UserViewModel, error)
 	GetListUser() (*[]model.UserViewModel, error)
 	GetDetailUser(id int) (*model.UserViewModel, error)
@@ -29,13 +35,8 @@ func NewUserService(userRepo repository.IUserRepository) *UserService {
 
 //------------------------------------------
 
-func (s *UserService) CreateUser(userVM *model.RegisterViewModel) (*model.UserViewModel, error) {
-	var user = model.User{
-		Username: userVM.Username,
-		Email:    userVM.Email,
-	}
-
-	searchResult, err := s.userRepo.GetUserByUsernameEmail(userVM.Username, userVM.Email)
+func (s *UserService) SignUp(registerVM *model.RegisterViewModel) (*model.UserViewModel, error) {
+	searchResult, err := s.userRepo.GetUserByUsernameEmail(registerVM.Username, registerVM.Email)
 	if err != nil {
 		return nil, err
 	}
@@ -47,43 +48,116 @@ func (s *UserService) CreateUser(userVM *model.RegisterViewModel) (*model.UserVi
 		}, nil
 	}
 
-	password, err := user.EncryptPassword(userVM.Password)
+	var user = model.User{
+		Username:               strings.ToLower(registerVM.Username),
+		RawUsername:            registerVM.Username,
+		PublicName:             registerVM.Username,
+		Email:                  strings.ToLower(registerVM.Email),
+		EmailVerified:          false,
+		EmailVerifyTokenExpire: time.Now().Add(6 * time.Hour).UnixMilli(),
+		Role:                   model.USER,
+		MbtiType:               model.ENTJ,
+		DefaultProfile:         configs.GetConfigs().DefaultProfileImage,
+	}
+
+	err = user.EncryptPassword(registerVM.Password)
+	if err != nil {
+		return nil, err
+	}
+	err = user.EncryptEmailToken(uuid.NewString())
 	if err != nil {
 		return nil, err
 	}
 
-	user.Password = password
-
-	result, err := s.userRepo.CreateUser(&user)
+	result, err := s.userRepo.AddUser(&user)
 	if err != nil {
 		return nil, err
 	}
 
-	var afterRegVM model.UserViewModel
-
-	if result != nil {
-		afterRegVM = model.UserViewModel{
-			UserId:   result.UserId,
-			Username: result.Username,
-			Email:    result.Email,
-		}
+	token, err := util.CreateJwtToken(result.UserId, result.Username, "user")
+	if err != nil {
+		return nil, err
 	}
 
-	return &afterRegVM, nil
+	deviceId := registerVM.DeviceInfo.Fingerprint
+	if deviceId == "" {
+		deviceId = uuid.NewString()
+	}
+	err = s.userRepo.AddSession(&registerVM.DeviceInfo, deviceId, result.UserId, token.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	userVM := model.UserViewModel{
+		UserId:   result.UserId,
+		Username: result.Username,
+		Email:    result.Email,
+		Token: model.TokenViewModel{
+			AccessToken:       token.AccessToken,
+			AccessTokenExpire: token.ExpiresAt,
+			RefreshToken:      token.RefreshToken,
+		},
+	}
+
+	return &userVM, nil
 }
 
 func (s *UserService) LoginUser(loginVM *model.LoginViewModel) (*model.UserViewModel, error) {
-	u, err := s.userRepo.GetUserByUsernameEmail(loginVM.Email, loginVM.Email)
+	searchResult, err := s.userRepo.GetUserByUsernameEmail(loginVM.Email, loginVM.Email)
 	if err != nil {
-		return &model.UserViewModel{}, err
+		return nil, err
+	}
+	if searchResult == nil {
+		return nil, nil
 	}
 
-	err = loginVM.CheckPassword(loginVM.Password, u.Password)
+	err = loginVM.CheckPassword(loginVM.Password, searchResult.Password)
 	if err != nil {
-		return &model.UserViewModel{}, err
+		return nil, err
 	}
 
-	return &model.UserViewModel{Username: u.Username, UserId: u.UserId}, nil
+	token, err := util.CreateJwtToken(searchResult.UserId, searchResult.Username, "user")
+	if err != nil {
+		return nil, err
+	}
+
+	deviceId := loginVM.DeviceInfo.Fingerprint
+	if deviceId == "" {
+		deviceId = uuid.NewString() + "-" + strconv.FormatInt(time.Now().UnixMilli(), 10)
+	}
+
+	isNewDevice, err := s.userRepo.UpdateSession(&loginVM.DeviceInfo, deviceId, searchResult.UserId, token.RefreshToken)
+	if err != nil {
+		return nil, err
+	}
+
+	if isNewDevice {
+		activeSessions, err := s.userRepo.GetUserActiveSessions(searchResult.UserId)
+		if err != nil {
+			err := s.userRepo.RemoveSession(searchResult.UserId, token.RefreshToken)
+			return nil, err
+		}
+		if len(activeSessions) > configs.GetConfigs().ActiveSessionsLimit {
+			lastUsedSession := activeSessions[len(activeSessions)-1]
+			err := s.userRepo.RemoveSession(searchResult.UserId, lastUsedSession.RefreshToken)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	userVM := model.UserViewModel{
+		UserId:   searchResult.UserId,
+		Username: searchResult.Username,
+		Email:    searchResult.Email,
+		Token: model.TokenViewModel{
+			AccessToken:       token.AccessToken,
+			AccessTokenExpire: token.ExpiresAt,
+			RefreshToken:      token.RefreshToken,
+		},
+	}
+
+	return &userVM, nil
 }
 
 func (s *UserService) GetListUser() (*[]model.UserViewModel, error) {
@@ -121,12 +195,10 @@ func (s *UserService) GetDetailUser(id int) (*model.UserViewModel, error) {
 }
 
 func (s *UserService) UpdateUser(userVM *model.User) (*model.UserViewModel, error) {
-	password, err := userVM.EncryptPassword(userVM.Password)
+	err := userVM.EncryptPassword(userVM.Password)
 	if err != nil {
 		return nil, err
 	}
-
-	userVM.Password = password
 
 	result, err := s.userRepo.UpdateUser(userVM)
 	if err != nil {

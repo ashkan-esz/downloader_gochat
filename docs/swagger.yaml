@@ -1,14 +1,33 @@
 basePath: /
 definitions:
+  model.DeviceInfo:
+    properties:
+      appName:
+        type: string
+      appVersion:
+        type: string
+      deviceModel:
+        type: string
+      fingerprint:
+        type: string
+      os:
+        type: string
+    type: object
   model.LoginViewModel:
     properties:
-      email:
-        type: string
+      deviceInfo:
+        $ref: '#/definitions/model.DeviceInfo'
       password:
+        type: string
+      username_email:
         type: string
     type: object
   model.RegisterViewModel:
     properties:
+      confirmPassword:
+        type: string
+      deviceInfo:
+        $ref: '#/definitions/model.DeviceInfo'
       email:
         type: string
       password:
@@ -16,12 +35,23 @@ definitions:
       username:
         type: string
     type: object
+  model.TokenViewModel:
+    properties:
+      accessToken:
+        type: string
+      accessToken_expire:
+        type: integer
+      refreshToken:
+        type: string
+    type: object
   model.UserViewModel:
     properties:
-      UserId:
-        type: integer
       email:
         type: string
+      token:
+        $ref: '#/definitions/model.TokenViewModel'
+      userId:
+        type: integer
       username:
         type: string
     type: object
@@ -29,7 +59,7 @@ definitions:
     properties:
       code:
         type: integer
-      message: {}
+      errorMessage: {}
     type: object
 host: localhost:8080
 info:
@@ -111,6 +141,11 @@ paths:
     post:
       description: Login with provided credentials
       parameters:
+      - description: return refreshToken in response body instead of saving in cookie
+        in: query
+        name: noCookie
+        required: true
+        type: boolean
       - description: User object
         in: body
         name: user
@@ -148,8 +183,17 @@ paths:
       - User
   /v1/user/signup:
     post:
-      description: Register a new user with the provided credentials
+      description: |-
+        Register a new user with the provided credentials
+        Unlike the main server, this one doesn't handle ip detection and ip location
+        Also detect multiple login on same device as new device login, can be handled on client side with adding 'deviceInfo.fingerprint'
+        Also doesn't handle and send emails
       parameters:
+      - description: return refreshToken in response body instead of saving in cookie
+        in: query
+        name: noCookie
+        required: true
+        type: boolean
       - description: User object
         in: body
         name: user
@@ -157,8 +201,8 @@ paths:
         schema:
           $ref: '#/definitions/model.RegisterViewModel'
       responses:
-        "201":
-          description: Created
+        "200":
+          description: OK
           schema:
             $ref: '#/definitions/model.UserViewModel'
         "400":

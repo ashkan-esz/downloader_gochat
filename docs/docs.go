@@ -79,6 +79,13 @@ const docTemplate = `{
                 "summary": "Login user",
                 "parameters": [
                     {
+                        "type": "boolean",
+                        "description": "return refreshToken in response body instead of saving in cookie",
+                        "name": "noCookie",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
                         "description": "User object",
                         "name": "user",
                         "in": "body",
@@ -134,12 +141,19 @@ const docTemplate = `{
         },
         "/v1/user/signup": {
             "post": {
-                "description": "Register a new user with the provided credentials",
+                "description": "Register a new user with the provided credentials\nUnlike the main server, this one doesn't handle ip detection and ip location\nAlso detect multiple login on same device as new device login, can be handled on client side with adding 'deviceInfo.fingerprint'\nAlso doesn't handle and send emails",
                 "tags": [
                     "User"
                 ],
                 "summary": "Register a new user",
                 "parameters": [
+                    {
+                        "type": "boolean",
+                        "description": "return refreshToken in response body instead of saving in cookie",
+                        "name": "noCookie",
+                        "in": "query",
+                        "required": true
+                    },
                     {
                         "description": "User object",
                         "name": "user",
@@ -151,8 +165,8 @@ const docTemplate = `{
                     }
                 ],
                 "responses": {
-                    "201": {
-                        "description": "Created",
+                    "200": {
+                        "description": "OK",
                         "schema": {
                             "$ref": "#/definitions/model.UserViewModel"
                         }
@@ -220,13 +234,36 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "model.DeviceInfo": {
+            "type": "object",
+            "properties": {
+                "appName": {
+                    "type": "string"
+                },
+                "appVersion": {
+                    "type": "string"
+                },
+                "deviceModel": {
+                    "type": "string"
+                },
+                "fingerprint": {
+                    "type": "string"
+                },
+                "os": {
+                    "type": "string"
+                }
+            }
+        },
         "model.LoginViewModel": {
             "type": "object",
             "properties": {
-                "email": {
-                    "type": "string"
+                "deviceInfo": {
+                    "$ref": "#/definitions/model.DeviceInfo"
                 },
                 "password": {
+                    "type": "string"
+                },
+                "username_email": {
                     "type": "string"
                 }
             }
@@ -234,6 +271,12 @@ const docTemplate = `{
         "model.RegisterViewModel": {
             "type": "object",
             "properties": {
+                "confirmPassword": {
+                    "type": "string"
+                },
+                "deviceInfo": {
+                    "$ref": "#/definitions/model.DeviceInfo"
+                },
                 "email": {
                     "type": "string"
                 },
@@ -245,14 +288,31 @@ const docTemplate = `{
                 }
             }
         },
+        "model.TokenViewModel": {
+            "type": "object",
+            "properties": {
+                "accessToken": {
+                    "type": "string"
+                },
+                "accessToken_expire": {
+                    "type": "integer"
+                },
+                "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
         "model.UserViewModel": {
             "type": "object",
             "properties": {
-                "UserId": {
-                    "type": "integer"
-                },
                 "email": {
                     "type": "string"
+                },
+                "token": {
+                    "$ref": "#/definitions/model.TokenViewModel"
+                },
+                "userId": {
+                    "type": "integer"
                 },
                 "username": {
                     "type": "string"
@@ -265,7 +325,7 @@ const docTemplate = `{
                 "code": {
                     "type": "integer"
                 },
-                "message": {}
+                "errorMessage": {}
             }
         }
     },

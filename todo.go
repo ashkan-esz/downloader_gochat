@@ -10,6 +10,10 @@ package main
 //todo : track system growth, number of messages per day
 //todo : write benchmarks
 
+//todo : handle ip and location on auth apis
+//todo : handle device fingerprint on auth apis
+//todo : handle email sending on auth apis
+
 //todo : send notification on new message
 
 //todo : save messages
@@ -34,3 +38,8 @@ package main
 //todo : add api : check new message
 //todo : add api : get messages
 //todo : add api : set message as read
+
+//todo : sync auth section
+//todo : sync db section of auth apis
+//todo : add validation for auth api params
+//todo : add getToken api

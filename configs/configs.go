@@ -3,14 +3,20 @@ package configs
 import (
 	"log"
 	"os"
+	"strconv"
 
 	"github.com/joho/godotenv"
 )
 
 type ConfigStruct struct {
-	DbUrl            string
-	SigningSecretKey string
-	MigrateOnStart   bool
+	DbUrl                 string
+	AccessTokenSecret     string
+	RefreshTokenSecret    string
+	MigrateOnStart        bool
+	DefaultProfileImage   string
+	AccessTokenExpireHour int
+	RefreshTokenExpireDay int
+	ActiveSessionsLimit   int
 }
 
 var configs = ConfigStruct{}
@@ -25,6 +31,16 @@ func LoadEnvVariables() {
 	}
 
 	configs.DbUrl = os.Getenv("DB_URL")
-	configs.SigningSecretKey = os.Getenv("SIGNING_SECRET_KEY")
+	configs.AccessTokenSecret = os.Getenv("ACCESS_TOKEN_SECRET")
+	configs.RefreshTokenSecret = os.Getenv("REFRESH_TOKEN_SECRET")
 	configs.MigrateOnStart = os.Getenv("MIGRATE_ON_START") == "true"
+	configs.DefaultProfileImage = os.Getenv("DEFAULT_PROFILE_IMAGE")
+	sessionLimit, err := strconv.Atoi(os.Getenv("ACTIVE_SESSIONS_LIMIT"))
+	if err != nil || sessionLimit == 0 {
+		configs.ActiveSessionsLimit = 5
+	} else {
+		configs.ActiveSessionsLimit = sessionLimit
+	}
+	configs.AccessTokenExpireHour = 1
+	configs.RefreshTokenExpireDay = 180
 }
