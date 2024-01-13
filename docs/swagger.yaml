@@ -172,15 +172,19 @@ paths:
       tags:
       - User
   /v1/user/logout:
-    get:
-      description: Logout the currently logged in user
+    put:
+      description: |-
+        Logout user, return accessToken as empty string and also reset/remove refreshToken cookie if use in browser
+        .in other environments reset refreshToken from client after successful logout.
       responses:
         "200":
           description: OK
-          schema:
-            $ref: '#/definitions/model.UserViewModel'
         "401":
           description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "403":
+          description: Forbidden
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
       security:

@@ -140,26 +140,29 @@
             }
         },
         "/v1/user/logout": {
-            "get": {
+            "put": {
                 "security": [
                     {
                         "BearerAuth": []
                     }
                 ],
-                "description": "Logout the currently logged in user",
+                "description": "Logout user, return accessToken as empty string and also reset/remove refreshToken cookie if use in browser\n.in other environments reset refreshToken from client after successful logout.",
                 "tags": [
                     "User"
                 ],
                 "summary": "Logout",
                 "responses": {
                     "200": {
-                        "description": "OK",
-                        "schema": {
-                            "$ref": "#/definitions/model.UserViewModel"
-                        }
+                        "description": "OK"
                     },
                     "401": {
                         "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
                         "schema": {
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }

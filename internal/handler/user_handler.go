@@ -6,10 +6,12 @@ import (
 	"downloader_gochat/model"
 	"downloader_gochat/pkg/response"
 	"downloader_gochat/util"
+	"errors"
 	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
+	"gorm.io/gorm"
 )
 
 type IUserHandler interface {
@@ -98,9 +100,9 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 //	@Description	Login with provided credentials
 //	@Tags			User
 //	@Param			noCookie	query		bool					true	"return refreshToken in response body instead of saving in cookie"
-//	@Param			user	body		model.LoginViewModel	true	"User object"
-//	@Success		200		{object}	model.UserViewModel
-//	@Failure		400		{object}	response.ResponseErrorModel
+//	@Param			user		body		model.LoginViewModel	true	"User object"
+//	@Success		200			{object}	model.UserViewModel
+//	@Failure		400			{object}	response.ResponseErrorModel
 //	@Router			/v1/user/login [post]
 func (h *UserHandler) Login(c *fiber.Ctx) error {
 	var loginVM model.LoginViewModel
@@ -149,11 +151,11 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 //	@Summary		Get Token
 //	@Description	Get new Tokens, also return `refreshToken`
 //	@Tags			User
-//	@Param			noCookie	query		bool					true	"return refreshToken in response body instead of saving in cookie"
-//	@Param			profileImages	query		bool					true	"also return profile images, slower response"
-//	@Param			user	body		model.DeviceInfo	true	"Device Info"
-//	@Success		200		{object}	model.UserViewModel
-//	@Failure		400,401		{object}	response.ResponseErrorModel
+//	@Param			noCookie		query		bool				true	"return refreshToken in response body instead of saving in cookie"
+//	@Param			profileImages	query		bool				true	"also return profile images, slower response"
+//	@Param			user			body		model.DeviceInfo	true	"Device Info"
+//	@Success		200				{object}	model.UserViewModel
+//	@Failure		400,401			{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
 //	@Router			/v1/user/getToken [put]
 func (h *UserHandler) GetToken(c *fiber.Ctx) error {
@@ -207,24 +209,36 @@ func (h *UserHandler) GetToken(c *fiber.Ctx) error {
 // LogOut godoc
 //
 //	@Summary		Logout
-//	@Description	Logout the currently logged in user
+//	@Description	Logout user, return accessToken as empty string and also reset/remove refreshToken cookie if use in browser
+//	@Description	.in other environments reset refreshToken from client after successful logout.
 //	@Tags			User
-//	@Success		200	{object}	model.UserViewModel
-//	@Failure		401	{object}	response.ResponseErrorModel
+//	@Success		200
+//	@Failure		401,403	{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
-//	@Router			/v1/user/logout [get]
+//	@Router			/v1/user/logout [put]
 func (h *UserHandler) LogOut(c *fiber.Ctx) error {
+	refreshToken := c.Locals("refreshToken").(string)
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err := h.userService.LogOut(c, jwtUserData, refreshToken)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, "Cannot find device", fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
 	c.Cookie(&fiber.Cookie{
-		Name:        "jwt",
+		Name:        "refreshToken",
 		Value:       "",
-		Path:        "",
-		Domain:      "",
+		Path:        "/",
 		MaxAge:      -1,
-		Expires:     time.Time{},
-		Secure:      false,
+		Expires:     time.Now(),
+		Secure:      true,
 		HTTPOnly:    true,
-		SameSite:    "",
+		SameSite:    "none",
 		SessionOnly: false,
 	})
-	return c.Status(fiber.StatusOK).JSON(map[string]string{"message": "logout successful"})
+
+	return response.ResponseOK(c, "")
 }

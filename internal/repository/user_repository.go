@@ -214,13 +214,7 @@ func (r *UserRepository) GetUserActiveSessions(userId int64) ([]model.ActiveSess
 
 func (r *UserRepository) RemoveSession(userId int64, prevRefreshToken string) error {
 	err := r.db.Where("\"userId\" = ? AND \"refreshToken\" = ?", userId, prevRefreshToken).Delete(&model.ActiveSession{}).Error
-	if err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil
-		}
-		return err
-	}
-	return nil
+	return err
 }
 
 func (r *UserRepository) RemoveSessions(userId int64, prevRefreshTokens []string) error {

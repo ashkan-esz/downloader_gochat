@@ -2,6 +2,7 @@ package service
 
 import (
 	"downloader_gochat/configs"
+	"downloader_gochat/db/redis"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
 	"downloader_gochat/util"
@@ -9,6 +10,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 )
 
@@ -16,6 +18,7 @@ type IUserService interface {
 	SignUp(registerVM *model.RegisterViewModel) (*model.UserViewModel, error)
 	LoginUser(loginVM *model.LoginViewModel) (*model.UserViewModel, error)
 	GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool) (*model.UserViewModel, *util.TokenDetail, error)
+	LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRefreshToken string) error
 }
 
 type UserService struct {
@@ -197,4 +200,19 @@ func (s *UserService) GetToken(deviceVM *model.DeviceInfo, prevRefreshToken stri
 	}
 
 	return &userVM, token, nil
+}
+
+func (s *UserService) LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRefreshToken string) error {
+	err := s.userRepo.RemoveSession(jwtUserData.UserId, prevRefreshToken)
+	if err != nil {
+		return err
+	}
+
+	remainingTime := jwtUserData.ExpiresAt - time.Now().UnixMilli()
+	err = redis.SetRedis(c.Context(), "jwtKey:"+prevRefreshToken, "logout", time.Duration(remainingTime)*time.Millisecond)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
