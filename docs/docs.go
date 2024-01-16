@@ -175,7 +175,7 @@ const docTemplate = `{
         },
         "/v1/user/signup": {
             "post": {
-                "description": "Register a new user with the provided credentials\nUnlike the main server, this one doesn't handle ip detection and ip location\nAlso detect multiple login on same device as new device login, can be handled on client side with adding 'deviceInfo.fingerprint'\nAlso doesn't handle and send emails",
+                "description": "Register a new user with the provided credentials\nUnlike the main server, this one doesn't handle ip detection and ip location\nDevice detection can be improved on client side with adding 'deviceInfo.fingerprint'\nAlso doesn't handle and send emails",
                 "tags": [
                     "User"
                 ],

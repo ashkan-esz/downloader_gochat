@@ -16,9 +16,9 @@ type IUserRepository interface {
 	GetDetailUser(int64) (*model.UserWithImageDataModel, error)
 	GetUserByUsernameEmail(username string, email string) (*model.UserDataModel, error)
 	UpdateUser(*model.User) (*model.User, error)
-	AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string) error
-	UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string) (bool, error)
-	UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string) (*model.ActiveSession, error)
+	AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) error
+	UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) (bool, error)
+	UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string, ipLocation string) (*model.ActiveSession, error)
 	GetUserActiveSessions(userId int64) ([]model.ActiveSession, error)
 	RemoveSession(userId int64, prevRefreshToken string) error
 	RemoveSessions(userId int64, prevRefreshTokens []string) error
@@ -132,7 +132,7 @@ func (r *UserRepository) UpdateUser(user *model.User) (*model.User, error) {
 //------------------------------------------
 //------------------------------------------
 
-func (r *UserRepository) AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string) error {
+func (r *UserRepository) AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) error {
 	newDevice := model.ActiveSession{
 		UserId:       userId,
 		RefreshToken: refreshToken,
@@ -141,7 +141,7 @@ func (r *UserRepository) AddSession(device *model.DeviceInfo, deviceId string, u
 		AppVersion:   device.AppVersion,
 		DeviceModel:  device.DeviceModel,
 		DeviceOs:     device.Os,
-		IpLocation:   "",
+		IpLocation:   ipLocation,
 	}
 	err := r.db.Create(&newDevice).Error
 	if err != nil {
@@ -150,7 +150,7 @@ func (r *UserRepository) AddSession(device *model.DeviceInfo, deviceId string, u
 	return nil
 }
 
-func (r *UserRepository) UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string) (bool, error) {
+func (r *UserRepository) UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) (bool, error) {
 	now := time.Now().UTC()
 	newDevice := model.ActiveSession{
 		UserId:       userId,
@@ -160,7 +160,7 @@ func (r *UserRepository) UpdateSession(device *model.DeviceInfo, deviceId string
 		AppVersion:   device.AppVersion,
 		DeviceModel:  device.DeviceModel,
 		DeviceOs:     device.Os,
-		IpLocation:   "",
+		IpLocation:   ipLocation,
 		LoginDate:    now,
 	}
 
@@ -177,7 +177,7 @@ func (r *UserRepository) UpdateSession(device *model.DeviceInfo, deviceId string
 	return isNewDevice, nil
 }
 
-func (r *UserRepository) UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string) (*model.ActiveSession, error) {
+func (r *UserRepository) UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string, ipLocation string) (*model.ActiveSession, error) {
 	activeSession := model.ActiveSession{}
 	result := r.db.Model(&activeSession).Clauses(clause.Returning{}).Where("\"userId\" = ? AND \"refreshToken\" = ?", userId, prevRefreshToken).Updates(map[string]interface{}{
 		"refreshToken": refreshToken,
@@ -185,7 +185,7 @@ func (r *UserRepository) UpdateSessionRefreshToken(device *model.DeviceInfo, use
 		"appVersion":   device.AppVersion,
 		"deviceModel":  device.DeviceModel,
 		"deviceOs":     device.Os,
-		"ipLocation":   "",
+		"ipLocation":   ipLocation,
 		"lastUseDate":  time.Now().UTC(),
 	})
 

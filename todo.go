@@ -10,7 +10,6 @@ package main
 //todo : track system growth, number of messages per day
 //todo : write benchmarks
 
-//todo : handle ip and location on auth apis
 //todo : handle device fingerprint on auth apis
 //todo : handle email sending on auth apis
 

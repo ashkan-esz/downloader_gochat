@@ -38,8 +38,7 @@ func NewUserHandler(userService service.IUserService) *UserHandler {
 //
 //	@Summary		Register a new user
 //	@Description	Register a new user with the provided credentials
-//	@Description	Unlike the main server, this one doesn't handle ip detection and ip location
-//	@Description	Also detect multiple login on same device as new device login, can be handled on client side with adding 'deviceInfo.fingerprint'
+//	@Description	Device detection can be improved on client side with adding 'deviceInfo.fingerprint'
 //	@Description	Also doesn't handle and send emails
 //	@Tags			User
 //	@Param			noCookie	query		bool					true	"return refreshToken in response body instead of saving in cookie"
@@ -61,10 +60,13 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	}
 	registerVM.Normalize()
 
-	// ip := c.IP()
-	// u, err := url.Parse(ip)
+	ip := c.IP()
+	ips := c.IPs()
+	if len(ips) > 0 {
+		ip = ips[len(ips)-1]
+	}
 
-	result, err := h.userService.SignUp(&registerVM)
+	result, err := h.userService.SignUp(&registerVM, ip)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
@@ -118,10 +120,13 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	}
 	loginVM.Normalize()
 
-	// ip := c.IP()
-	// u, err := url.Parse(ip)
+	ip := c.IP()
+	ips := c.IPs()
+	if len(ips) > 0 {
+		ip = ips[len(ips)-1]
+	}
 
-	result, err := h.userService.LoginUser(&loginVM)
+	result, err := h.userService.LoginUser(&loginVM, ip)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
@@ -173,12 +178,15 @@ func (h *UserHandler) GetToken(c *fiber.Ctx) error {
 	}
 	deviceInfo.Normalize()
 
-	// ip := c.IP()
-	// u, err := url.Parse(ip)
+	ip := c.IP()
+	ips := c.IPs()
+	if len(ips) > 0 {
+		ip = ips[len(ips)-1]
+	}
 
 	refreshToken := c.Locals("refreshToken").(string)
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
-	result, token, err := h.userService.GetToken(&deviceInfo, refreshToken, jwtUserData, addProfileImages)
+	result, token, err := h.userService.GetToken(&deviceInfo, refreshToken, jwtUserData, addProfileImages, ip)
 
 	if !noCookie && token != nil {
 		c.Cookie(&fiber.Cookie{

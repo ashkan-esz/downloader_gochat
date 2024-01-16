@@ -5,6 +5,7 @@ import (
 	"downloader_gochat/db/redis"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
+	"downloader_gochat/pkg/geoip"
 	"downloader_gochat/util"
 	"strconv"
 	"strings"
@@ -15,9 +16,9 @@ import (
 )
 
 type IUserService interface {
-	SignUp(registerVM *model.RegisterViewModel) (*model.UserViewModel, error)
-	LoginUser(loginVM *model.LoginViewModel) (*model.UserViewModel, error)
-	GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool) (*model.UserViewModel, *util.TokenDetail, error)
+	SignUp(registerVM *model.RegisterViewModel, ip string) (*model.UserViewModel, error)
+	LoginUser(loginVM *model.LoginViewModel, ip string) (*model.UserViewModel, error)
+	GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool, ip string) (*model.UserViewModel, *util.TokenDetail, error)
 	LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRefreshToken string) error
 }
 
@@ -35,7 +36,7 @@ func NewUserService(userRepo repository.IUserRepository) *UserService {
 
 //------------------------------------------
 
-func (s *UserService) SignUp(registerVM *model.RegisterViewModel) (*model.UserViewModel, error) {
+func (s *UserService) SignUp(registerVM *model.RegisterViewModel, ip string) (*model.UserViewModel, error) {
 	searchResult, err := s.userRepo.GetUserByUsernameEmail(registerVM.Username, registerVM.Email)
 	if err != nil {
 		return nil, err
@@ -83,7 +84,8 @@ func (s *UserService) SignUp(registerVM *model.RegisterViewModel) (*model.UserVi
 	if deviceId == "" {
 		deviceId = uuid.NewString()
 	}
-	err = s.userRepo.AddSession(&registerVM.DeviceInfo, deviceId, result.UserId, token.RefreshToken)
+	ipLocation := geoip.GetRequestLocation(ip)
+	err = s.userRepo.AddSession(&registerVM.DeviceInfo, deviceId, result.UserId, token.RefreshToken, ipLocation)
 	if err != nil {
 		return nil, err
 	}
@@ -102,7 +104,7 @@ func (s *UserService) SignUp(registerVM *model.RegisterViewModel) (*model.UserVi
 	return &userVM, nil
 }
 
-func (s *UserService) LoginUser(loginVM *model.LoginViewModel) (*model.UserViewModel, error) {
+func (s *UserService) LoginUser(loginVM *model.LoginViewModel, ip string) (*model.UserViewModel, error) {
 	searchResult, err := s.userRepo.GetUserByUsernameEmail(loginVM.Email, loginVM.Email)
 	if err != nil {
 		return nil, err
@@ -126,7 +128,8 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel) (*model.UserViewM
 		deviceId = uuid.NewString() + "-" + strconv.FormatInt(time.Now().UnixMilli(), 10)
 	}
 
-	isNewDevice, err := s.userRepo.UpdateSession(&loginVM.DeviceInfo, deviceId, searchResult.UserId, token.RefreshToken)
+	ipLocation := geoip.GetRequestLocation(ip)
+	isNewDevice, err := s.userRepo.UpdateSession(&loginVM.DeviceInfo, deviceId, searchResult.UserId, token.RefreshToken, ipLocation)
 	if err != nil {
 		return nil, err
 	}
@@ -164,13 +167,14 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel) (*model.UserViewM
 	return &userVM, nil
 }
 
-func (s *UserService) GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool) (*model.UserViewModel, *util.TokenDetail, error) {
+func (s *UserService) GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool, ip string) (*model.UserViewModel, *util.TokenDetail, error) {
 	token, err := util.CreateJwtToken(jwtUserData.UserId, jwtUserData.Username, "user")
 	if err != nil {
 		return nil, nil, err
 	}
 
-	sessionData, err := s.userRepo.UpdateSessionRefreshToken(deviceVM, jwtUserData.UserId, token.RefreshToken, prevRefreshToken)
+	ipLocation := geoip.GetRequestLocation(ip)
+	sessionData, err := s.userRepo.UpdateSessionRefreshToken(deviceVM, jwtUserData.UserId, token.RefreshToken, prevRefreshToken, ipLocation)
 	if err != nil {
 		return nil, nil, err
 	}

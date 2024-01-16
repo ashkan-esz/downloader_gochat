@@ -9,6 +9,7 @@ import (
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/internal/service"
 	"downloader_gochat/internal/ws"
+	"downloader_gochat/pkg/geoip"
 	"log"
 )
 
@@ -40,6 +41,7 @@ func main() {
 	dbConn.AutoMigrate()
 
 	go redis.ConnectRedis()
+	go geoip.Load()
 
 	userRep := repository.NewUserRepository(dbConn.GetDB())
 	userSvc := service.NewUserService(userRep)
