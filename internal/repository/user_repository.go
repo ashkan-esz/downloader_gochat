@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/lib/pq"
+	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
@@ -25,11 +26,12 @@ type IUserRepository interface {
 }
 
 type UserRepository struct {
-	db *gorm.DB
+	db      *gorm.DB
+	mongodb *mongo.Database
 }
 
-func NewUserRepository(db *gorm.DB) *UserRepository {
-	return &UserRepository{db: db}
+func NewUserRepository(db *gorm.DB, mongodb *mongo.Database) *UserRepository {
+	return &UserRepository{db: db, mongodb: mongodb}
 }
 
 //------------------------------------------

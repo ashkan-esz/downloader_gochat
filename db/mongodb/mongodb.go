@@ -1,0 +1,51 @@
+package mongodb
+
+import (
+	"context"
+	"downloader_gochat/configs"
+	"time"
+
+	"go.mongodb.org/mongo-driver/mongo"
+	"go.mongodb.org/mongo-driver/mongo/options"
+)
+
+type MongoDatabase struct {
+	db     *mongo.Database
+	client *mongo.Client
+}
+
+func NewDatabase() (*MongoDatabase, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	opts := options.Client().ApplyURI(configs.GetConfigs().MongodbDatabaseUrl)
+	client, err := mongo.Connect(ctx, opts)
+	if err != nil {
+		return nil, err
+	}
+	defer func() {
+		if err = client.Disconnect(ctx); err != nil {
+			panic(err)
+		}
+	}()
+	err = client.Ping(context.TODO(), nil)
+	if err != nil {
+		panic(err)
+	}
+	return &MongoDatabase{
+		client: client,
+		db:     client.Database(configs.GetConfigs().MongodbDatabaseName),
+	}, nil
+}
+
+func (d *MongoDatabase) Close() {
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := d.client.Disconnect(ctx); err != nil {
+		panic(err)
+	}
+}
+
+func (d *MongoDatabase) GetDB() *mongo.Database {
+	return d.db
+}

@@ -19,6 +19,9 @@ type ConfigStruct struct {
 	ActiveSessionsLimit   int
 	RedisUrl              string
 	RedisPassword         string
+	MongodbDatabaseUrl    string
+	MongodbDatabaseName   string
+	AgendaJobsCollection  string
 }
 
 var configs = ConfigStruct{}
@@ -39,6 +42,9 @@ func LoadEnvVariables() {
 	configs.DefaultProfileImage = os.Getenv("DEFAULT_PROFILE_IMAGE")
 	configs.RedisUrl = os.Getenv("REDIS_URL")
 	configs.RedisPassword = os.Getenv("REDIS_PASSWORD")
+	configs.MongodbDatabaseUrl = os.Getenv("MONGODB_DATABASE_URL")
+	configs.MongodbDatabaseName = os.Getenv("MONGODB_DATABASE_NAME")
+	configs.AgendaJobsCollection = os.Getenv("AGENDA_JOBS_COLLECTION")
 	sessionLimit, err := strconv.Atoi(os.Getenv("ACTIVE_SESSIONS_LIMIT"))
 	if err != nil || sessionLimit == 0 {
 		configs.ActiveSessionsLimit = 5
