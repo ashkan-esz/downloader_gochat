@@ -18,26 +18,25 @@ package main
 //todo : handle chat message change in one device
 //todo : handle multiple device connection
 
-//todo : handle messages when user is offline
-
-//todo : handle file sharing
-
-//todo : handle users chat
-
 //todo : share lists, collections
 //todo : share movie
 //todo : security
 //todo : notifications
 //todo : read recipes
 //todo : media uploads
-//todo : online status
 //todo : real-time messaging
 
-//todo : add api : check new message
-//todo : add api : get messages
-//todo : add api : set message as read
+//todo : handle follower/following
+//todo : handle auth for message apis
+//todo : check for new message
+//todo : get all chats messages
+//todo : get single chat messages
+//todo : user online/offline status
+//todo : message send/read status
+//todo : message notification
+//todo : offline message
 
-//todo : sync auth section
-//todo : sync db section of auth apis
-//todo : add validation for auth api params
-//todo : add getToken api
+//todo : save messages to db
+//todo : save rooms to db
+//todo : handle room exist or create
+//todo : one to one message
