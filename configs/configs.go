@@ -22,6 +22,7 @@ type ConfigStruct struct {
 	MongodbDatabaseUrl    string
 	MongodbDatabaseName   string
 	AgendaJobsCollection  string
+	MainServerAddress     string
 }
 
 var configs = ConfigStruct{}
@@ -45,6 +46,7 @@ func LoadEnvVariables() {
 	configs.MongodbDatabaseUrl = os.Getenv("MONGODB_DATABASE_URL")
 	configs.MongodbDatabaseName = os.Getenv("MONGODB_DATABASE_NAME")
 	configs.AgendaJobsCollection = os.Getenv("AGENDA_JOBS_COLLECTION")
+	configs.MainServerAddress = os.Getenv("MAIN_SERVER_ADDRESS")
 	sessionLimit, err := strconv.Atoi(os.Getenv("ACTIVE_SESSIONS_LIMIT"))
 	if err != nil || sessionLimit == 0 {
 		configs.ActiveSessionsLimit = 5

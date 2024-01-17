@@ -175,7 +175,7 @@ const docTemplate = `{
         },
         "/v1/user/signup": {
             "post": {
-                "description": "Register a new user with the provided credentials\nDevice detection can be improved on client side with adding 'deviceInfo.fingerprint'\nAlso doesn't handle and send emails",
+                "description": "Register a new user with the provided credentials\nDevice detection can be improved on client side with adding 'deviceInfo.fingerprint'",
                 "tags": [
                     "User"
                 ],

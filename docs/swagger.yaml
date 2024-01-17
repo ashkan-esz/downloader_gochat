@@ -197,7 +197,6 @@ paths:
       description: |-
         Register a new user with the provided credentials
         Device detection can be improved on client side with adding 'deviceInfo.fingerprint'
-        Also doesn't handle and send emails
       parameters:
       - description: return refreshToken in response body instead of saving in cookie
         in: query

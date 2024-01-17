@@ -11,7 +11,6 @@ package main
 //todo : write benchmarks
 
 //todo : handle device fingerprint on auth apis
-//todo : handle email sending on auth apis
 
 //todo : send notification on new message
 

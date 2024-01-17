@@ -5,6 +5,7 @@ import (
 	"downloader_gochat/db/redis"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
+	"downloader_gochat/pkg/email"
 	"downloader_gochat/pkg/geoip"
 	"downloader_gochat/util"
 	"strconv"
@@ -90,6 +91,8 @@ func (s *UserService) SignUp(registerVM *model.RegisterViewModel, ip string) (*m
 		return nil, err
 	}
 
+	err = email.AddRegisterEmail(registerVM.Email, user.EmailVerifyToken, user.RawUsername, 5)
+
 	userVM := model.UserViewModel{
 		UserId:   result.UserId,
 		Username: result.Username,
@@ -135,6 +138,7 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel, ip string) (*mode
 	}
 
 	if isNewDevice {
+		err = email.AddLoginEmail(loginVM.Email, &loginVM.DeviceInfo, 4)
 		activeSessions, err := s.userRepo.GetUserActiveSessions(searchResult.UserId)
 		if err != nil {
 			err := s.userRepo.RemoveSession(searchResult.UserId, token.RefreshToken)

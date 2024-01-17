@@ -39,7 +39,6 @@ func NewUserHandler(userService service.IUserService) *UserHandler {
 //	@Summary		Register a new user
 //	@Description	Register a new user with the provided credentials
 //	@Description	Device detection can be improved on client side with adding 'deviceInfo.fingerprint'
-//	@Description	Also doesn't handle and send emails
 //	@Tags			User
 //	@Param			noCookie	query		bool					true	"return refreshToken in response body instead of saving in cookie"
 //	@Param			user		body		model.RegisterViewModel	true	"User object"
