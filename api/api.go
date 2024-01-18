@@ -5,7 +5,6 @@ import (
 	"downloader_gochat/api/middleware"
 	_ "downloader_gochat/docs"
 	"downloader_gochat/internal/handler"
-	"downloader_gochat/internal/ws"
 	"errors"
 	"time"
 
@@ -20,7 +19,7 @@ import (
 
 var router *fiber.App
 
-func InitRouter(userHandler *handler.UserHandler, wsHandler *ws.Handler) {
+func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler) {
 	router = fiber.New()
 
 	router.Use(helmet.New())

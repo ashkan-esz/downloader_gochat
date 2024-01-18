@@ -9,7 +9,6 @@ import (
 	"downloader_gochat/internal/handler"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/internal/service"
-	"downloader_gochat/internal/ws"
 	"downloader_gochat/pkg/geoip"
 	"log"
 )
@@ -54,9 +53,9 @@ func main() {
 	userSvc := service.NewUserService(userRep)
 	userHandler := handler.NewUserHandler(userSvc)
 
-	hub := ws.NewHub()
-	wsHandler := ws.NewHandler(hub)
-	go hub.Run()
+	wsRep := repository.NewWsRepository(dbConn.GetDB(), mongoDB.GetDB())
+	wsSvc := service.NewWsService(wsRep)
+	wsHandler := handler.NewWsHandler(wsSvc)
 
 	api.InitRouter(userHandler, wsHandler)
 	api.Start("0.0.0.0:8080")
