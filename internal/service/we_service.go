@@ -3,6 +3,7 @@ package service
 import (
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
+	"errors"
 	"log"
 	"time"
 
@@ -11,7 +12,8 @@ import (
 )
 
 type IWsService interface {
-	CreateRoom(roomId string, roomName string) error
+	AddClient(ctx *fasthttp.RequestCtx, userId string, username string) error
+	CreateRoom(senderId string, receiverId string) (string, error)
 	JoinRoom(ctx *fasthttp.RequestCtx, roomId string, clientId string, username string) error
 	GetRooms() (*[]model.RoomRes, error)
 	GetRoomClient(roomId string) (*[]model.ClientRes, error)
@@ -20,51 +22,57 @@ type IWsService interface {
 type WsService struct {
 	wsRepo  repository.IWsRepository
 	timeout time.Duration
-	hube    *Hube
+	hub     *Hub
 }
 
 func NewWsService(WsRepo repository.IWsRepository) *WsService {
 	wsSvc := WsService{
 		wsRepo:  WsRepo,
 		timeout: time.Duration(2) * time.Second,
-		hube:    NewHub(),
+		hub:     NewHub(),
 	}
-	go wsSvc.hube.Run()
+	go wsSvc.hub.Run()
 	return &wsSvc
 }
 
-type Hube struct {
+type Hub struct {
+	Clients    map[string]*Client
 	Rooms      map[string]*Room
-	Register   chan *Client
-	UnRegister chan *Client
+	Register   chan *ChannelData
+	UnRegister chan *ChannelData
 	Broadcast  chan *Message
 }
 
 type Room struct {
 	ID      string             `json:"id"`
-	Name    string             `json:"name"`
 	Clients map[string]*Client `json:"clients"`
 }
 
 type Client struct {
 	Conn     *websocket.Conn
 	Message  chan *Message
-	ID       string `json:"id"`
-	RoomId   string `json:"roomId"`
+	UserId   string `json:"userId"`
 	Username string `json:"username"`
 }
 
 type Message struct {
 	Content  string `json:"content"`
 	RoomId   string `json:"roomId"`
+	UserId   string `json:"userId"`
 	Username string `json:"username"`
 }
 
-func NewHub() *Hube {
-	return &Hube{
+type ChannelData struct {
+	Client  *Client
+	Message *Message
+}
+
+func NewHub() *Hub {
+	return &Hub{
+		Clients:    make(map[string]*Client),
 		Rooms:      make(map[string]*Room),
-		Register:   make(chan *Client),
-		UnRegister: make(chan *Client),
+		Register:   make(chan *ChannelData),
+		UnRegister: make(chan *ChannelData),
 		Broadcast:  make(chan *Message, 5),
 	}
 }
@@ -86,13 +94,10 @@ var upgrader = websocket.FastHTTPUpgrader{
 const (
 	// Time allowed to write a message to the peer.
 	writeWait = 10 * time.Second
-
 	// Time allowed to read the next pong message from the peer.
 	pongWait = 60 * time.Second
-
 	// Send pings to peer with this period. Must be less than pongWait.
 	pingPeriod = (pongWait * 9) / 10
-
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
 )
@@ -105,36 +110,36 @@ var (
 //------------------------------------------
 //------------------------------------------
 
-func (h *Hube) Run() {
+func (h *Hub) Run() {
 	// run in separate goroutine
 	for {
 		select {
-		case cl := <-h.Register:
-			if _, ok := h.Rooms[cl.RoomId]; ok {
-				r := h.Rooms[cl.RoomId]
-				if _, ok := r.Clients[cl.ID]; !ok {
-					r.Clients[cl.ID] = cl
+		case chd := <-h.Register:
+			if room, ok := h.Rooms[chd.Message.RoomId]; ok {
+				if _, ok := room.Clients[chd.Client.UserId]; !ok {
+					room.Clients[chd.Client.UserId] = chd.Client
 				}
 			}
-		case cl := <-h.UnRegister:
-			if _, ok := h.Rooms[cl.RoomId]; ok {
-				if _, ok := h.Rooms[cl.RoomId].Clients[cl.ID]; ok {
+		case chd := <-h.UnRegister:
+			if room, ok := h.Rooms[chd.Message.RoomId]; ok {
+				if _, ok := room.Clients[chd.Client.UserId]; ok {
 					// Broadcast a message saying that the client left the room
-					if len(h.Rooms[cl.RoomId].Clients) != 0 {
+					if len(room.Clients) != 0 {
 						h.Broadcast <- &Message{
 							Content:  "user left the chat",
-							RoomId:   cl.RoomId,
-							Username: cl.Username,
+							RoomId:   chd.Message.RoomId,
+							UserId:   chd.Client.UserId,
+							Username: chd.Client.Username,
 						}
 					}
 
-					delete(h.Rooms[cl.RoomId].Clients, cl.ID)
-					close(cl.Message)
+					delete(room.Clients, chd.Client.UserId)
+					close(chd.Client.Message)
 				}
 			}
 		case m := <-h.Broadcast:
-			if _, ok := h.Rooms[m.RoomId]; ok {
-				for _, cl := range h.Rooms[m.RoomId].Clients {
+			if room, ok := h.Rooms[m.RoomId]; ok {
+				for _, cl := range room.Clients {
 					cl.Message <- m
 				}
 			}
@@ -172,10 +177,41 @@ func (c *Client) WriteMessage() {
 	}
 }
 
-func (c *Client) ReadMessage(hube *Hube) {
+func (c *Client) ReadMessage(hub *Hub) {
+	// user A wants to chat B
+	// 1. first time chatting::
+	// `1.1. client requests to create room
+	//	1.2. save room data into db
+	//	1.3. add room to hub.rooms, add receiver user to room if exist in hub.clients
+	//	1.4. send roomId to client
+	// 2. room already exist, roomId is provided in the readMessage
+	//	2.1. roomId exists in hub.rooms::
+	//		2.1.1. receiver is online, exist in hub.room.clients:
+	//			2.1.1.1. send message to user, wright in its socket
+	//			2.1.1.2. save message into db
+	//		2.1.2. receiver is offline
+	//			2.1.2.1. save message into some king of queue to send to user later
+	//			2.1.2.2. save message into db
+	//			2.1.2.3. add client to room.clients after receiver login
+	//	2.2. roomId doesn't exist in hub.rooms
+	//	2.3. load room data from db::
+	//		2.3.1. room doesn't exist, return error
+	//		2.3.2. load receiver user from db
+	//		2.3.2. add room to hub.rooms, add receiver user to room if exist in hub.clients::
+	//			2.3.2.1. receiver is online, exist in hub.room.clients::
+	//				2.3.2.1.1. send message to user, wright in its socket
+	//				2.3.2.1.2. save message into db
+	//			2.3.2.2. receiver is offline
+	//				2.3.2.1.1. save message into some king of queue to send to user later
+	//				2.3.2.1.2. save message into db
+	//				2.3.2.1.3. add client to room.clients after receiver login
 	defer func() {
-		hube.UnRegister <- c
+		//hub.UnRegister <- c  //it just offline, didnt left
 		c.Conn.Close()
+		delete(hub.Clients, c.UserId)
+		for _, room := range hub.Rooms {
+			delete(room.Clients, c.UserId)
+		}
 	}()
 	c.Conn.SetReadLimit(maxMessageSize)
 	c.Conn.SetReadDeadline(time.Now().Add(pongWait))
@@ -184,7 +220,8 @@ func (c *Client) ReadMessage(hube *Hube) {
 		return nil
 	})
 	for {
-		_, m, err := c.Conn.ReadMessage()
+		var clientMessage model.ClientMessage
+		err := c.Conn.ReadJSON(&clientMessage)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 				log.Printf("error: %v", err)
@@ -193,51 +230,83 @@ func (c *Client) ReadMessage(hube *Hube) {
 		}
 
 		msg := &Message{
-			Content:  string(m),
-			RoomId:   c.RoomId,
+			Content:  clientMessage.Content,
+			RoomId:   clientMessage.RoomId,
+			UserId:   c.UserId,
 			Username: c.Username,
 		}
 
-		hube.Broadcast <- msg
+		hub.Broadcast <- msg
 	}
 }
 
 //------------------------------------------
 //------------------------------------------
 
-func (w *WsService) CreateRoom(roomId string, roomName string) error {
-	w.hube.Rooms[roomId] = &Room{
-		ID:      roomId,
-		Name:    roomName,
-		Clients: make(map[string]*Client),
-	}
-
-	return nil
-}
-
-func (w *WsService) JoinRoom(ctx *fasthttp.RequestCtx, roomId string, clientId string, username string) error {
+func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId string, username string) error {
 	err := upgrader.Upgrade(ctx, func(conn *websocket.Conn) {
 		cl := &Client{
 			Conn:     conn,
 			Message:  make(chan *Message, 10),
-			ID:       clientId,
-			RoomId:   roomId,
+			UserId:   userId,
+			Username: username,
+		}
+
+		w.hub.Clients[userId] = cl
+
+		go cl.WriteMessage()
+		cl.ReadMessage(w.hub)
+	})
+
+	return err
+}
+
+func (w *WsService) CreateRoom(senderId string, receiverId string) (string, error) {
+	roomId, err := w.wsRepo.CreateRoom(senderId, receiverId)
+	if err != nil {
+		return "", err
+	}
+
+	room := &Room{
+		ID:      roomId,
+		Clients: make(map[string]*Client),
+	}
+	room.Clients[senderId] = w.hub.Clients[senderId]
+	if cl, ok := w.hub.Clients[receiverId]; ok {
+		room.Clients[receiverId] = cl
+	}
+	w.hub.Rooms[roomId] = room
+
+	return roomId, nil
+}
+
+func (w *WsService) JoinRoom(ctx *fasthttp.RequestCtx, roomId string, clientId string, username string) error {
+	//this func if for group/channel which is not going to implement in this time.
+	if _, ok := w.hub.Rooms[roomId]; !ok {
+		return errors.New("not found")
+	}
+	err := upgrader.Upgrade(ctx, func(conn *websocket.Conn) {
+		cl := &Client{
+			Conn:     conn,
+			Message:  make(chan *Message, 10),
+			UserId:   clientId,
 			Username: username,
 		}
 
 		m := &Message{
 			Content:  "A new user has joined the room",
+			UserId:   clientId,
 			Username: username,
 			RoomId:   roomId,
 		}
 
 		// Register a new client through the register channel
-		w.hube.Register <- cl
+		w.hub.Register <- &ChannelData{Client: cl, Message: m}
 		// Broadcast that message
-		w.hube.Broadcast <- m
+		w.hub.Broadcast <- m
 
 		go cl.WriteMessage()
-		cl.ReadMessage(w.hube)
+		cl.ReadMessage(w.hub)
 	})
 
 	return err
@@ -246,8 +315,8 @@ func (w *WsService) JoinRoom(ctx *fasthttp.RequestCtx, roomId string, clientId s
 func (w *WsService) GetRooms() (*[]model.RoomRes, error) {
 	rooms := make([]model.RoomRes, 0)
 
-	for _, r := range w.hube.Rooms {
-		rooms = append(rooms, model.RoomRes{ID: r.ID, Name: r.Name})
+	for _, r := range w.hub.Rooms {
+		rooms = append(rooms, model.RoomRes{ID: r.ID})
 	}
 
 	return &rooms, nil
@@ -255,13 +324,13 @@ func (w *WsService) GetRooms() (*[]model.RoomRes, error) {
 
 func (w *WsService) GetRoomClient(roomId string) (*[]model.ClientRes, error) {
 	var clients []model.ClientRes
-	if _, ok := w.hube.Rooms[roomId]; !ok {
+	if _, ok := w.hub.Rooms[roomId]; !ok {
 		clients = make([]model.ClientRes, 0)
 		return &clients, nil
 	}
 
-	for _, cl := range w.hube.Rooms[roomId].Clients {
-		clients = append(clients, model.ClientRes{ID: cl.ID, Username: cl.Username})
+	for _, cl := range w.hub.Rooms[roomId].Clients {
+		clients = append(clients, model.ClientRes{ID: cl.UserId, Username: cl.Username})
 	}
 
 	return &clients, nil
