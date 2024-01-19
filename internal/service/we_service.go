@@ -32,15 +32,17 @@ func NewWsService(WsRepo repository.IWsRepository) *WsService {
 		hub:     NewHub(),
 	}
 	go wsSvc.hub.Run()
+	go wsSvc.hub.SingleChatRun()
 	return &wsSvc
 }
 
 type Hub struct {
-	Clients    map[string]*Client
-	Rooms      map[string]*Room
-	Register   chan *ChannelData
-	UnRegister chan *ChannelData
-	Broadcast  chan *Message
+	Clients         map[string]*Client
+	Rooms           map[string]*Room
+	Register        chan *ChannelData
+	UnRegister      chan *ChannelData
+	Broadcast       chan *ChannelMessage
+	SingleBroadcast chan *ChannelMessage
 }
 
 type Room struct {
@@ -50,30 +52,32 @@ type Room struct {
 
 type Client struct {
 	Conn     *websocket.Conn
-	Message  chan *Message
+	Message  chan *ChannelMessage
 	UserId   string `json:"userId"`
 	Username string `json:"username"`
 }
 
-type Message struct {
-	Content  string `json:"content"`
-	RoomId   string `json:"roomId"`
-	UserId   string `json:"userId"`
-	Username string `json:"username"`
+type ChannelMessage struct {
+	Content    string `json:"content"`
+	RoomId     string `json:"roomId"`
+	ReceiverId string `json:"receiverId"`
+	UserId     string `json:"userId"`
+	Username   string `json:"username"`
 }
 
 type ChannelData struct {
 	Client  *Client
-	Message *Message
+	Message *ChannelMessage
 }
 
 func NewHub() *Hub {
 	return &Hub{
-		Clients:    make(map[string]*Client),
-		Rooms:      make(map[string]*Room),
-		Register:   make(chan *ChannelData),
-		UnRegister: make(chan *ChannelData),
-		Broadcast:  make(chan *Message, 5),
+		Clients:         make(map[string]*Client),
+		Rooms:           make(map[string]*Room),
+		Register:        make(chan *ChannelData),
+		UnRegister:      make(chan *ChannelData),
+		Broadcast:       make(chan *ChannelMessage, 5),
+		SingleBroadcast: make(chan *ChannelMessage, 10),
 	}
 }
 
@@ -125,7 +129,7 @@ func (h *Hub) Run() {
 				if _, ok := room.Clients[chd.Client.UserId]; ok {
 					// Broadcast a message saying that the client left the room
 					if len(room.Clients) != 0 {
-						h.Broadcast <- &Message{
+						h.Broadcast <- &ChannelMessage{
 							Content:  "user left the chat",
 							RoomId:   chd.Message.RoomId,
 							UserId:   chd.Client.UserId,
@@ -142,6 +146,21 @@ func (h *Hub) Run() {
 				for _, cl := range room.Clients {
 					cl.Message <- m
 				}
+			}
+		}
+	}
+}
+
+func (h *Hub) SingleChatRun() {
+	// run in separate goroutine
+	for {
+		select {
+		case m := <-h.SingleBroadcast:
+			if cl, ok := h.Clients[m.ReceiverId]; ok {
+				// receiver is online
+				cl.Message <- m
+			} else {
+				// receiver is offline
 			}
 		}
 	}
@@ -179,6 +198,16 @@ func (c *Client) WriteMessage() {
 
 func (c *Client) ReadMessage(hub *Hub) {
 	// user A wants to chat B
+	// -- without room implementation --
+	// 1. receiver is online, exist in hub.clients:
+	//		1.1. send message to user, wright in its socket
+	//		1.2. save message into db
+	// 2. load receiver user from db
+	//		2.1. if user not found, return error
+	// 3. save message into some king of queue to send to user later
+	// 4. save message into db
+
+	// -- with room implementation --
 	// 1. first time chatting::
 	// `1.1. client requests to create room
 	//	1.2. save room data into db
@@ -229,14 +258,21 @@ func (c *Client) ReadMessage(hub *Hub) {
 			break
 		}
 
-		msg := &Message{
-			Content:  clientMessage.Content,
-			RoomId:   clientMessage.RoomId,
-			UserId:   c.UserId,
-			Username: c.Username,
+		msg := &ChannelMessage{
+			Content:    clientMessage.Content,
+			RoomId:     clientMessage.RoomId,
+			ReceiverId: clientMessage.ReceiverId,
+			UserId:     c.UserId,
+			Username:   c.Username,
 		}
 
-		hub.Broadcast <- msg
+		if clientMessage.RoomId == "-1" {
+			//one to one message
+			hub.SingleBroadcast <- msg
+		} else {
+			//group/channel message
+			hub.Broadcast <- msg
+		}
 	}
 }
 
@@ -247,7 +283,7 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId string, username 
 	err := upgrader.Upgrade(ctx, func(conn *websocket.Conn) {
 		cl := &Client{
 			Conn:     conn,
-			Message:  make(chan *Message, 10),
+			Message:  make(chan *ChannelMessage, 10),
 			UserId:   userId,
 			Username: username,
 		}
@@ -288,12 +324,12 @@ func (w *WsService) JoinRoom(ctx *fasthttp.RequestCtx, roomId string, clientId s
 	err := upgrader.Upgrade(ctx, func(conn *websocket.Conn) {
 		cl := &Client{
 			Conn:     conn,
-			Message:  make(chan *Message, 10),
+			Message:  make(chan *ChannelMessage, 10),
 			UserId:   clientId,
 			Username: username,
 		}
 
-		m := &Message{
+		m := &ChannelMessage{
 			Content:  "A new user has joined the room",
 			UserId:   clientId,
 			Username: username,
