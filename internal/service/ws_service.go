@@ -98,11 +98,6 @@ const (
 	maxMessageSize = 512
 )
 
-var (
-	newline = []byte{'\n'}
-	space   = []byte{' '}
-)
-
 //------------------------------------------
 //------------------------------------------
 
@@ -152,8 +147,12 @@ func (h *Hub) SingleChatRun(wsSvc *WsService) {
 				// receiver is online
 				err := wsSvc.wsRepo.SaveMessage(m)
 				if err != nil {
-					//todo : notify sender
-
+					if sender, ok := h.Clients[m.UserId]; ok {
+						m.State = -1
+						sender.Message <- m
+					} else {
+						//maybe save error
+					}
 				} else {
 					cl.Message <- m
 				}

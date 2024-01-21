@@ -35,8 +35,3 @@ package main
 //todo : message send/read status
 //todo : message notification
 //todo : offline message
-
-//todo : save messages to db
-//todo : save rooms to db
-//todo : handle room exist or create
-//todo : one to one message
