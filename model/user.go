@@ -51,6 +51,10 @@ type User struct {
 	WatchListMovies        []WatchListMovie         `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UserCollection         []UserCollection         `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UserCollectionMovie    []UserCollectionMovie    `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	CreatedRooms           []Room                   `gorm:"foreignKey:CreatorId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ReceiverRooms          []Room                   `gorm:"foreignKey:ReceiverId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	SendedMessages         []Message                `gorm:"foreignKey:CreatorId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ReceivedMessages       []Message                `gorm:"foreignKey:ReceiverId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (User) TableName() string {

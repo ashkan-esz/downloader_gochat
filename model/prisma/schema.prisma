@@ -48,6 +48,10 @@ model User {
   WatchListGroup                  WatchListGroup[]
   UserCollectionMovie             UserCollectionMovie[]
   UserCollection                  UserCollection[]
+  createdRooms                    Room[]
+  receiverRooms                   Room[]                   @relation("receiverUser")
+  sendedMessages                  Message[]
+  receivedMessages                Message[]                @relation("receivedMessages")
 }
 
 model Follow {
@@ -73,7 +77,7 @@ model ProfileImage {
 }
 
 model ActiveSession {
-  deviceId     String   @id @unique
+  deviceId     String
   appName      String
   appVersion   String
   deviceModel  String
@@ -85,6 +89,7 @@ model ActiveSession {
   userId       Int
   user         User     @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
 
+  @@id([userId, deviceId])
   @@index([userId, refreshToken])
 }
 
@@ -405,6 +410,36 @@ model Movie {
 }
 
 // ----------------------------------------------------------------
+// ----------------------------------------------------------------
+
+model Room {
+  roomId     Int @id @default(autoincrement())
+  creatorId  Int
+  receiverId Int
+
+  creator  User      @relation(fields: [creatorId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  receiver User      @relation(fields: [receiverId], references: [userId], onDelete: Cascade, onUpdate: Cascade, name: "receiverUser")
+  messages Message[]
+
+  @@unique([creatorId, receiverId])
+}
+
+model Message {
+  id         Int      @id @default(autoincrement())
+  content    String
+  date       DateTime @default(now())
+  state      Int      @default(0)
+  roomId     Int
+  creatorId  Int
+  receiverId Int
+
+  room     Room? @relation(fields: [roomId], references: [roomId], onDelete: Cascade, onUpdate: Cascade)
+  creator  User  @relation(fields: [creatorId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  receiver User  @relation(fields: [receiverId], references: [userId], onDelete: Cascade, onUpdate: Cascade, name: "receivedMessages")
+}
+
+// ----------------------------------------------------------------
+// ----------------------------------------------------------------
 
 enum likeDislike {
   like
@@ -442,5 +477,3 @@ enum MbtiType {
   ENFJ
   ENTJ
 }
-
-

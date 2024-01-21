@@ -30,10 +30,10 @@ func NewWsHandler(wsService service.IWsService) *WsHandler {
 //------------------------------------------
 
 func (w *WsHandler) AddClient(c *fiber.Ctx) error {
-	userId := c.Query("userId")
+	userId := c.QueryInt("userId")
 	username := c.Query("username")
 
-	err := w.wsService.AddClient(c.Context(), userId, username)
+	err := w.wsService.AddClient(c.Context(), int64(userId), username)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
@@ -57,11 +57,11 @@ func (w *WsHandler) CreateRoom(c *fiber.Ctx) error {
 }
 
 func (w *WsHandler) JoinRoom(c *fiber.Ctx) error {
-	roomId := c.Params("roomId")
-	userId := c.Query("userId")
+	roomId, _ := c.ParamsInt("roomId")
+	userId := c.QueryInt("userId")
 	username := c.Query("username")
 
-	err := w.wsService.JoinRoom(c.Context(), roomId, userId, username)
+	err := w.wsService.JoinRoom(c.Context(), int64(roomId), int64(userId), username)
 	if err != nil {
 		if err.Error() == "not found" {
 			return response.ResponseError(c, err.Error(), fiber.StatusNotFound)
@@ -78,7 +78,7 @@ func (w *WsHandler) GetRooms(c *fiber.Ctx) error {
 }
 
 func (w *WsHandler) GetClients(c *fiber.Ctx) error {
-	roomId := c.Params("roomId")
-	clients, _ := w.wsService.GetRoomClient(roomId)
+	roomId, _ := c.ParamsInt("roomId")
+	clients, _ := w.wsService.GetRoomClient(int64(roomId))
 	return response.ResponseOKWithData(c, clients)
 }
