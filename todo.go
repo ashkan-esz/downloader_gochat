@@ -4,6 +4,8 @@ package main
 //todo : connect to main server
 
 //todo : error handling
+//todo : write swagger document
+//todo : add validation for request bodies and api params
 
 //todo : merge/sync db and auth with main server
 
@@ -32,6 +34,9 @@ package main
 //todo : get all chats messages
 //todo : get single chat messages
 //todo : user online/offline status
+
+//todo : handle multi client
+//todo : batch read status with use of message date
 //todo : message send/read status
 //todo : message notification
 //todo : offline message

@@ -1,5 +1,5 @@
 db_dev:
-	docker run --restart unless-stopped --name postgres16 --network=host --memory 500m -e POSTGRES_USER=root -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_DB=go-chat -d postgres:16.0-alpine3.18
+	docker run --restart unless-stopped --network=host --memory 500m -v pgdata:/var/lib/postgresql/data -e POSTGRES_USER=postgres -e POSTGRES_PASSWORD=mysecretpassword -e POSTGRES_DB=downloader postgres:16.0-alpine3.18
 
 create_db_dev:
 	docker exec -it postgres16 createdb --username=root --owner=root go=chat

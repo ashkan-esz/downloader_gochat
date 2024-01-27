@@ -5,10 +5,13 @@ import (
 	"downloader_gochat/model"
 	"errors"
 	"log"
+	"os"
+	"runtime/debug"
 	"time"
 
 	"github.com/fasthttp/websocket"
 	"github.com/valyala/fasthttp"
+	"gorm.io/gorm"
 )
 
 type IWsService interface {
@@ -32,11 +35,12 @@ func NewWsService(WsRepo repository.IWsRepository) *WsService {
 		hub:     NewHub(),
 	}
 	go wsSvc.hub.Run()
-	go wsSvc.hub.SingleChatRun(&wsSvc)
+	go wsSvc.hub.HandleSingleChatRun(&wsSvc)
 	return &wsSvc
 }
 
 type Hub struct {
+	//todo : handle concurrency sharing maps
 	Clients         map[int64]*Client
 	Rooms           map[int64]*Room
 	Register        chan *ChannelData
@@ -72,31 +76,6 @@ func NewHub() *Hub {
 		SingleBroadcast: make(chan *model.ChannelMessage, 10),
 	}
 }
-
-//------------------------------------------
-//------------------------------------------
-
-var upgrader = websocket.FastHTTPUpgrader{
-	ReadBufferSize:  1024,
-	WriteBufferSize: 1024,
-	//todo :
-	CheckOrigin: func(r *fasthttp.RequestCtx) bool {
-		//origin := r.Header.Get("Origin")
-		//return origin == "http://localhost:3000"
-		return true
-	},
-}
-
-const (
-	// Time allowed to write a message to the peer.
-	writeWait = 10 * time.Second
-	// Time allowed to read the next pong message from the peer.
-	pongWait = 60 * time.Second
-	// Send pings to peer with this period. Must be less than pongWait.
-	pingPeriod = (pongWait * 9) / 10
-	// Maximum message size allowed from peer.
-	maxMessageSize = 512
-)
 
 //------------------------------------------
 //------------------------------------------
@@ -138,26 +117,48 @@ func (h *Hub) Run() {
 	}
 }
 
+func (h *Hub) HandleSingleChatRun(wsSvc *WsService) {
+	for i := 0; i < 10; i++ {
+		go wsSvc.hub.SingleChatRun(wsSvc)
+	}
+}
+
 func (h *Hub) SingleChatRun(wsSvc *WsService) {
+	//todo : use rabbitMq
+
 	// run in separate goroutine
+	defer h.ReviveWebsocket(wsSvc)
 	for {
-		select {
-		case m := <-h.SingleBroadcast:
-			if cl, ok := h.Clients[m.ReceiverId]; ok {
-				// receiver is online
-				err := wsSvc.wsRepo.SaveMessage(m)
-				if err != nil {
-					if sender, ok := h.Clients[m.UserId]; ok {
-						m.State = -1
-						sender.Message <- m
-					} else {
-						//maybe save error
-					}
+		m := <-h.SingleBroadcast
+		err := wsSvc.wsRepo.SaveMessage(m)
+
+		if err != nil {
+			sender, ok := h.Clients[m.UserId]
+			if errors.Is(err, gorm.ErrForeignKeyViolated) {
+				// receiver user not found
+				if ok {
+					//todo : better way of notifying
+					m.State = -1
+					sender.Message <- m
 				} else {
-					cl.Message <- m
+					// maybe save error
 				}
 			} else {
-				// receiver is offline
+				if ok {
+					//todo : better way of notifying
+					m.State = -1
+					sender.Message <- m
+				} else {
+					// maybe save error
+				}
+			}
+		} else {
+			cl, ok := h.Clients[m.ReceiverId]
+			_ = wsSvc.wsRepo.UpdateUserReadMessageTime(m.ReceiverId)
+			if ok {
+				cl.Message <- m
+			} else {
+				//todo : add message to message queue
 			}
 		}
 	}
@@ -194,43 +195,6 @@ func (c *Client) WriteMessage() {
 }
 
 func (c *Client) ReadMessage(hub *Hub) {
-	// user A wants to chat B
-	// -- without room implementation --
-	// 1. receiver is online, exist in hub.clients:
-	//		1.1. send message to user, wright in its socket
-	//		1.2. save message into db
-	// 2. load receiver user from db
-	//		2.1. if user not found, return error
-	// 3. save message into some king of queue to send to user later
-	// 4. save message into db
-
-	// -- with room implementation --
-	// 1. first time chatting::
-	// `1.1. client requests to create room
-	//	1.2. save room data into db
-	//	1.3. add room to hub.rooms, add receiver user to room if exist in hub.clients
-	//	1.4. send roomId to client
-	// 2. room already exist, roomId is provided in the readMessage
-	//	2.1. roomId exists in hub.rooms::
-	//		2.1.1. receiver is online, exist in hub.room.clients:
-	//			2.1.1.1. send message to user, wright in its socket
-	//			2.1.1.2. save message into db
-	//		2.1.2. receiver is offline
-	//			2.1.2.1. save message into some king of queue to send to user later
-	//			2.1.2.2. save message into db
-	//			2.1.2.3. add client to room.clients after receiver login
-	//	2.2. roomId doesn't exist in hub.rooms
-	//	2.3. load room data from db::
-	//		2.3.1. room doesn't exist, return error
-	//		2.3.2. load receiver user from db
-	//		2.3.2. add room to hub.rooms, add receiver user to room if exist in hub.clients::
-	//			2.3.2.1. receiver is online, exist in hub.room.clients::
-	//				2.3.2.1.1. send message to user, wright in its socket
-	//				2.3.2.1.2. save message into db
-	//			2.3.2.2. receiver is offline
-	//				2.3.2.1.1. save message into some king of queue to send to user later
-	//				2.3.2.1.2. save message into db
-	//				2.3.2.1.3. add client to room.clients after receiver login
 	defer func() {
 		//hub.UnRegister <- c  //it just offline, didnt left
 		c.Conn.Close()
@@ -274,6 +238,25 @@ func (c *Client) ReadMessage(hub *Hub) {
 	}
 }
 
+func (h *Hub) ReviveWebsocket(wsSvc *WsService) {
+	//todo :
+	if err := recover(); err != nil {
+		if os.Getenv("LOG_PANIC_TRACE") == "true" {
+			log.Println(
+				"level:", "error",
+				"err: ", err,
+				"trace", string(debug.Stack()),
+			)
+		} else {
+			log.Println(
+				"level", "error",
+				"err", err,
+			)
+		}
+		go wsSvc.hub.SingleChatRun(wsSvc)
+	}
+}
+
 //------------------------------------------
 //------------------------------------------
 
@@ -287,6 +270,8 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 		}
 
 		w.hub.Clients[userId] = cl
+
+		//todo : handle unread messages
 
 		go cl.WriteMessage()
 		cl.ReadMessage(w.hub)

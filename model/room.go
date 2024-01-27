@@ -27,6 +27,16 @@ func (Message) TableName() string {
 	return "Message"
 }
 
+type UserMessageRead struct {
+	UserId              int64     `gorm:"column:userId;type:integer;not null;primaryKey;uniqueIndex:UserMessageRead_userId_key;"`
+	LastTimeRead        time.Time `gorm:"column:lastTimeRead;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
+	LastMessageReceived time.Time `gorm:"column:lastMessageReceived;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
+}
+
+func (UserMessageRead) TableName() string {
+	return "UserMessageRead"
+}
+
 //---------------------------------------
 //---------------------------------------
 
