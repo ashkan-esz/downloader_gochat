@@ -47,12 +47,14 @@ type ClientMessage struct {
 }
 
 type ChannelMessage struct {
-	Content    string `json:"content"`
-	RoomId     int64  `json:"roomId"`
-	ReceiverId int64  `json:"receiverId"`
-	State      int    `json:"state"`
-	UserId     int64  `json:"userId"`
-	Username   string `json:"username"`
+	Content      string `json:"content"`
+	RoomId       int64  `json:"roomId"`
+	ReceiverId   int64  `json:"receiverId"`
+	State        int    `json:"state"`
+	UserId       int64  `json:"userId"`
+	Username     string `json:"username"`
+	Code         int    `json:"code"`
+	ErrorMessage string `json:"errorMessage"`
 }
 
 //---------------------------------------

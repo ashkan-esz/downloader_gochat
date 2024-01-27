@@ -20,6 +20,7 @@ func NewDatabase() (*Database, error) {
 		&gorm.Config{
 			SkipDefaultTransaction: true,
 			PrepareStmt:            true,
+			TranslateError:         true,
 		},
 	)
 	if err != nil {

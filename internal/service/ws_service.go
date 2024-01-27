@@ -137,17 +137,20 @@ func (h *Hub) SingleChatRun(wsSvc *WsService) {
 			if errors.Is(err, gorm.ErrForeignKeyViolated) {
 				// receiver user not found
 				if ok {
-					//todo : better way of notifying
 					m.State = -1
+					m.Code = 404
+					m.ErrorMessage = "Receiver User Not Found"
 					sender.Message <- m
 				} else {
 					// maybe save error
 				}
 			} else {
 				if ok {
-					//todo : better way of notifying
 					m.State = -1
+					m.Code = 500
+					m.ErrorMessage = err.Error()
 					sender.Message <- m
+					// maybe save error
 				} else {
 					// maybe save error
 				}
