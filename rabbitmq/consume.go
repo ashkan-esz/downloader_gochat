@@ -8,11 +8,11 @@ import (
 
 // IConsumer is the interface for consuming messages from a queue
 type IConsumer interface {
-	Consume(ctx context.Context, config ConfigConsume, f func(*amqp.Delivery)) (err error)
+	Consume(ctx context.Context, config ConfigConsume, extraConsumerData interface{}, f func(*amqp.Delivery, interface{})) (err error)
 }
 
 // Consume starts consuming messages from a queue until the context is canceled
-func (r *rabbit) Consume(ctx context.Context, config ConfigConsume, f func(*amqp.Delivery)) (err error) {
+func (r *rabbit) Consume(ctx context.Context, config ConfigConsume, extraConsumerData interface{}, f func(*amqp.Delivery, interface{})) (err error) {
 	if r.chConsumer == nil {
 		return amqp.ErrClosed
 	}
@@ -42,11 +42,11 @@ func (r *rabbit) Consume(ctx context.Context, config ConfigConsume, f func(*amqp
 			r.wg.Add(1)
 			if config.ExecuteConcurrent {
 				go func() {
-					f(&msg)
+					f(&msg, extraConsumerData)
 					r.wg.Done()
 				}()
 			} else {
-				f(&msg)
+				f(&msg, extraConsumerData)
 				r.wg.Done()
 			}
 		case <-ctx.Done():

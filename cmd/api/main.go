@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"downloader_gochat/api"
 	"downloader_gochat/configs"
 	"downloader_gochat/db"
@@ -10,6 +11,7 @@ import (
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/internal/service"
 	"downloader_gochat/pkg/geoip"
+	"downloader_gochat/rabbitmq"
 	"log"
 )
 
@@ -49,12 +51,16 @@ func main() {
 	go redis.ConnectRedis()
 	go geoip.Load()
 
+	ctx, cancel := context.WithCancel(context.Background())
+	rabbit := rabbitmq.Start(ctx)
+	defer cancel()
+
 	userRep := repository.NewUserRepository(dbConn.GetDB(), mongoDB.GetDB())
 	userSvc := service.NewUserService(userRep)
 	userHandler := handler.NewUserHandler(userSvc)
 
 	wsRep := repository.NewWsRepository(dbConn.GetDB(), mongoDB.GetDB())
-	wsSvc := service.NewWsService(wsRep)
+	wsSvc := service.NewWsService(wsRep, rabbit)
 	wsHandler := handler.NewWsHandler(wsSvc)
 
 	api.InitRouter(userHandler, wsHandler)

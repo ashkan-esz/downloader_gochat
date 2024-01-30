@@ -2,18 +2,24 @@ package rabbitmq
 
 import (
 	"context"
+	"encoding/json"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
 // IPublish is the interface for publishing messages to an exchange
 type IPublish interface {
-	Publish(ctx context.Context, body []byte, config ConfigPublish) (err error)
+	Publish(ctx context.Context, myStruct interface{}, config ConfigPublish) (err error)
 }
 
 // Publish publishes body to exchange with routing key
-func (r *rabbit) Publish(ctx context.Context, body []byte, config ConfigPublish) (err error) {
-	//todo :
+func (r *rabbit) Publish(ctx context.Context, myStruct interface{}, config ConfigPublish) (err error) {
+	body, err := json.Marshal(myStruct)
+	if err != nil {
+		// handle error
+		return err
+	}
+
 	if r.chConsumer == nil {
 		return amqp.ErrClosed
 	}

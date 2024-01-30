@@ -11,14 +11,14 @@ type ICreateExchange interface {
 }
 
 const (
-	chatExchange     = "chatExchange"
-	chatExchangeType = "topic"
+	ChatExchange     = "ChatExchange"
+	ChatExchangeType = "topic"
 )
 
 func (r *rabbit) createExchanges() {
 	config := ConfigExchange{
-		Name:       chatExchange,
-		Type:       chatExchangeType,
+		Name:       ChatExchange,
+		Type:       ChatExchangeType,
 		Durable:    true,
 		AutoDelete: false,
 		Internal:   false,

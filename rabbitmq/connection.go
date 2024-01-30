@@ -88,7 +88,6 @@ func (r *rabbit) Connect(config ConfigConnection) (notify chan *amqp.Error, err 
 		return
 	}
 	if config.PrefetchCount > 0 {
-		//todo : check this
 		err = r.chConsumer.Qos(config.PrefetchCount, 0, false)
 		if err != nil {
 			return

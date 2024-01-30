@@ -40,7 +40,7 @@ func (r *rabbit) createQueuesAndBind() {
 
 	bindConfig := ConfigBindQueue{
 		QueueName:  SingleChatQueue,
-		Exchange:   chatExchange,
+		Exchange:   ChatExchange,
 		RoutingKey: SingleChatBindingKey,
 		NoWait:     false,
 	}
@@ -64,7 +64,7 @@ func (r *rabbit) createQueuesAndBind() {
 
 	bindConfig = ConfigBindQueue{
 		QueueName:  GroupChatQueue,
-		Exchange:   chatExchange,
+		Exchange:   ChatExchange,
 		RoutingKey: GroupChatBindingKey,
 		NoWait:     false,
 	}

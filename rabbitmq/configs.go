@@ -88,7 +88,7 @@ func NewConfigPublish(exchange, routingKey string) ConfigPublish {
 		Mandatory:       false,
 		Immediate:       false,
 		Headers:         nil,
-		ContentType:     "",
+		ContentType:     "application/json",
 		ContentEncoding: "utf-8",
 		Priority:        0,
 		CorrelationID:   "",

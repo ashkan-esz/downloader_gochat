@@ -1,8 +1,11 @@
 package service
 
 import (
+	"context"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
+	"downloader_gochat/rabbitmq"
+	"encoding/json"
 	"errors"
 	"log"
 	"os"
@@ -10,6 +13,7 @@ import (
 	"time"
 
 	"github.com/fasthttp/websocket"
+	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/valyala/fasthttp"
 	"gorm.io/gorm"
 )
@@ -23,30 +27,56 @@ type IWsService interface {
 }
 
 type WsService struct {
-	wsRepo  repository.IWsRepository
-	timeout time.Duration
-	hub     *Hub
+	wsRepo   repository.IWsRepository
+	rabbitmq rabbitmq.RabbitMQ
+	timeout  time.Duration
+	hub      *Hub
 }
 
-func NewWsService(WsRepo repository.IWsRepository) *WsService {
+func NewWsService(WsRepo repository.IWsRepository, rabbit rabbitmq.RabbitMQ) *WsService {
 	wsSvc := WsService{
-		wsRepo:  WsRepo,
-		timeout: time.Duration(2) * time.Second,
-		hub:     NewHub(),
+		wsRepo:   WsRepo,
+		rabbitmq: rabbit,
+		timeout:  time.Duration(2) * time.Second,
+		hub:      NewHub(),
 	}
-	go wsSvc.hub.Run()
-	go wsSvc.hub.HandleSingleChatRun(&wsSvc)
+
+	config := rabbitmq.NewConfigConsume(rabbitmq.SingleChatQueue, "")
+	for i := 0; i < 10; i++ {
+		ctx, _ := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(3 * time.Second)
+			if err := rabbit.Consume(ctx, config, &wsSvc, HandleSingleChatMessage); err != nil {
+				log.Printf("error consuming from queue %s: %s\n", rabbitmq.SingleChatQueue, err)
+			}
+		}()
+	}
+
+	for i := 0; i < 1; i++ {
+		go wsSvc.hub.RunGroupHandler()
+	}
+
+	groupConfig := rabbitmq.NewConfigConsume(rabbitmq.GroupChatQueue, "")
+	for i := 0; i < 1; i++ {
+		ctx, _ := context.WithCancel(context.Background())
+		go func() {
+			time.Sleep(3 * time.Second)
+			if err := rabbit.Consume(ctx, groupConfig, &wsSvc, HandleGroupChatMessage); err != nil {
+				log.Printf("error consuming from queue %s: %s\n", rabbitmq.GroupChatQueue, err)
+			}
+		}()
+	}
+
 	return &wsSvc
 }
 
 type Hub struct {
 	//todo : handle concurrency sharing maps
-	Clients         map[int64]*Client
-	Rooms           map[int64]*Room
-	Register        chan *ChannelData
-	UnRegister      chan *ChannelData
-	Broadcast       chan *model.ChannelMessage
-	SingleBroadcast chan *model.ChannelMessage
+	Clients    map[int64]*Client
+	Rooms      map[int64]*Room
+	Register   chan *ChannelData
+	UnRegister chan *ChannelData
+	Broadcast  chan *model.ChannelMessage
 }
 
 type Room struct {
@@ -66,22 +96,30 @@ type ChannelData struct {
 	Message *model.ChannelMessage
 }
 
+const (
+	avgClients    = 512
+	dbBufSize     = 64
+	flushInterval = time.Second * 5
+)
+
+//todo : need to limit parallel db operations
+
 func NewHub() *Hub {
 	return &Hub{
-		Clients:         make(map[int64]*Client),
-		Rooms:           make(map[int64]*Room),
-		Register:        make(chan *ChannelData),
-		UnRegister:      make(chan *ChannelData),
-		Broadcast:       make(chan *model.ChannelMessage, 5),
-		SingleBroadcast: make(chan *model.ChannelMessage, 10),
+		Clients:    make(map[int64]*Client, avgClients),
+		Rooms:      make(map[int64]*Room),
+		Register:   make(chan *ChannelData),
+		UnRegister: make(chan *ChannelData),
+		Broadcast:  make(chan *model.ChannelMessage, 5),
 	}
 }
 
 //------------------------------------------
 //------------------------------------------
 
-func (h *Hub) Run() {
-	// run in separate goroutine
+func (h *Hub) RunGroupHandler() {
+	//todo : use rabbitmq
+
 	for {
 		select {
 		case chd := <-h.Register:
@@ -111,59 +149,74 @@ func (h *Hub) Run() {
 			if room, ok := h.Rooms[m.RoomId]; ok {
 				for _, cl := range room.Clients {
 					cl.Message <- m
+					//conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.GroupChatBindingKey)
+					//rabbit.Publish(ctx, msg, conf)
 				}
 			}
 		}
 	}
 }
 
-func (h *Hub) HandleSingleChatRun(wsSvc *WsService) {
-	for i := 0; i < 10; i++ {
-		go wsSvc.hub.SingleChatRun(wsSvc)
-	}
+func HandleGroupChatMessage(d *amqp.Delivery, extraConsumerData interface{}) {
+	//placeholder function for handling messaging in groups
+
+	////run as rabbitmq consumer
+	//wsSvc := extraConsumerData.(*WsService)
+	//var m *model.ChannelMessage
+	//err := json.Unmarshal(d.Body, &m)
+	//if err != nil {
+	//	return
+	//}
+	//
+	//if err := d.Ack(false); err != nil {
+	//	log.Printf("error acking message: %s\n", err)
+	//}
 }
 
-func (h *Hub) SingleChatRun(wsSvc *WsService) {
-	//todo : use rabbitMq
+func HandleSingleChatMessage(d *amqp.Delivery, extraConsumerData interface{}) {
+	// run as rabbitmq consumer
+	wsSvc := extraConsumerData.(*WsService)
+	var m *model.ChannelMessage
+	err := json.Unmarshal(d.Body, &m)
+	if err != nil {
+		return
+	}
 
-	// run in separate goroutine
-	defer h.ReviveWebsocket(wsSvc)
-	for {
-		m := <-h.SingleBroadcast
-		err := wsSvc.wsRepo.SaveMessage(m)
-
-		if err != nil {
-			sender, ok := h.Clients[m.UserId]
-			if errors.Is(err, gorm.ErrForeignKeyViolated) {
-				// receiver user not found
-				if ok {
-					m.State = -1
-					m.Code = 404
-					m.ErrorMessage = "Receiver User Not Found"
-					sender.Message <- m
-				} else {
-					// maybe save error
-				}
+	err = wsSvc.wsRepo.SaveMessage(m)
+	if err != nil {
+		sender, ok := wsSvc.hub.Clients[m.UserId]
+		if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			// receiver user not found
+			if ok {
+				m.State = -1
+				m.Code = 404
+				m.ErrorMessage = "Receiver User Not Found"
+				sender.Message <- m
 			} else {
-				if ok {
-					m.State = -1
-					m.Code = 500
-					m.ErrorMessage = err.Error()
-					sender.Message <- m
-					// maybe save error
-				} else {
-					// maybe save error
-				}
+				// maybe save error
 			}
 		} else {
-			cl, ok := h.Clients[m.ReceiverId]
-			_ = wsSvc.wsRepo.UpdateUserReadMessageTime(m.ReceiverId)
 			if ok {
-				cl.Message <- m
+				m.State = -1
+				m.Code = 500
+				m.ErrorMessage = err.Error()
+				sender.Message <- m
+				// maybe save error
 			} else {
-				//todo : add message to message queue
+				// maybe save error
 			}
 		}
+	} else {
+		cl, ok := wsSvc.hub.Clients[m.ReceiverId]
+		if ok {
+			//receiver is online
+			cl.Message <- m
+		}
+		err = wsSvc.wsRepo.UpdateUserReadMessageTime(m.ReceiverId)
+	}
+
+	if err = d.Ack(false); err != nil {
+		log.Printf("error acking message: %s\n", err)
 	}
 }
 
@@ -197,7 +250,7 @@ func (c *Client) WriteMessage() {
 	}
 }
 
-func (c *Client) ReadMessage(hub *Hub) {
+func (c *Client) ReadMessage(hub *Hub, rabbit rabbitmq.RabbitMQ) {
 	defer func() {
 		//hub.UnRegister <- c  //it just offline, didnt left
 		c.Conn.Close()
@@ -231,9 +284,11 @@ func (c *Client) ReadMessage(hub *Hub) {
 			Username:   c.Username,
 		}
 
+		ctx, _ := context.WithCancel(context.Background())
 		if clientMessage.RoomId == -1 {
 			//one to one message
-			hub.SingleBroadcast <- msg
+			conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.SingleChatBindingKey)
+			rabbit.Publish(ctx, msg, conf)
 		} else {
 			//group/channel message
 			hub.Broadcast <- msg
@@ -256,7 +311,6 @@ func (h *Hub) ReviveWebsocket(wsSvc *WsService) {
 				"err", err,
 			)
 		}
-		go wsSvc.hub.SingleChatRun(wsSvc)
 	}
 }
 
@@ -277,7 +331,7 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 		//todo : handle unread messages
 
 		go cl.WriteMessage()
-		cl.ReadMessage(w.hub)
+		cl.ReadMessage(w.hub, w.rabbitmq)
 	})
 
 	return err
@@ -328,7 +382,7 @@ func (w *WsService) JoinRoom(ctx *fasthttp.RequestCtx, roomId int64, clientId in
 		w.hub.Broadcast <- m
 
 		go cl.WriteMessage()
-		cl.ReadMessage(w.hub)
+		cl.ReadMessage(w.hub, w.rabbitmq)
 	})
 
 	return err
