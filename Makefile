@@ -16,4 +16,11 @@ migrate_down_db_dev:
 update_swagger:
 	swag init -g cmd/api/main.go --output docs
 
-.PHONY: db_dev create_db_dev drop_db_dev migrate_up_db_dev migrate_down_db_dev update_swagger
+build_rabbitmq:
+	docker image build --network=host -t rabbitmq ./docker/rabbitmq
+
+run_rabbitmq:
+	#docker run -d --hostname rabbitmq --name rabbitmq -p 15672:15672 -p 5672:5672 --network rabbitnet -e RABBITMQ_DEFAULT_USER=user -e RABBITMQ_DEFAULT_PASS=password rabbitmq
+	docker run --rm --network=host --hostname rabbitmq --name rabbitmq -p 15672:15672 -p 5672:5672 -e RABBITMQ_DEFAULT_USER=user -e RABBITMQ_DEFAULT_PASS=password rabbitmq
+
+.PHONY: db_dev create_db_dev drop_db_dev migrate_up_db_dev migrate_down_db_dev update_swagger build_rabbitmq run_rabbitmq
