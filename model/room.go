@@ -82,11 +82,12 @@ type ClientRes struct {
 //---------------------------------------
 
 type GetSingleMessagesReq struct {
-	UserId     int64     `json:"userId"`
-	ReceiverId int64     `json:"receiverId"`
-	Date       time.Time `json:"date"`
-	Skip       int       `json:"skip"`
-	Limit      int       `json:"limit"`
+	UserId       int64     `json:"userId"`
+	ReceiverId   int64     `json:"receiverId"`
+	Date         time.Time `json:"date"`
+	Skip         int       `json:"skip"`
+	Limit        int       `json:"limit"`
+	ReverseOrder bool      `json:"reverseOrder,omitempty"`
 }
 
 type MessageDataModel struct {

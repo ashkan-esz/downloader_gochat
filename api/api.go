@@ -42,7 +42,7 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler) 
 	router.Get("/ws/joinRoom/:roomId", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.JoinRoom)
 	router.Get("/ws/getRooms", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetRooms)
 	router.Get("/ws/getClients/:roomId", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetClients)
-	router.Get("/ws/getSingleChatMessages", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetSingleChatMessages)
+	router.Get("/ws/singleChat/messages", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetSingleChatMessages)
 
 	router.Get("/", HealthCheck)
 	router.Get("/metrics", monitor.New())

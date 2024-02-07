@@ -7,6 +7,7 @@ import (
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
+	"gorm.io/gorm/clause"
 )
 
 type IWsRepository interface {
@@ -93,10 +94,15 @@ func (w *WsRepository) UpdateUserReadMessageTime(userId int64) error {
 
 func (w *WsRepository) GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error) {
 	var messages []model.MessageDataModel
-	err := w.db.Model(&model.Message{}).
-		Where("date > ? AND ((\"creatorId\" = ? AND \"receiverId\" = ?) OR (\"creatorId\" = ? AND \"receiverId\" = ?)) ",
-			params.Date, params.UserId, params.ReceiverId, params.ReceiverId, params.UserId).
-		Order("\"date\" asc").
+
+	query := "\"roomId\" IS NULL AND date > ? AND ((\"creatorId\" = ? AND \"receiverId\" = ?) OR (\"creatorId\" = ? AND \"receiverId\" = ?))"
+	if params.ReverseOrder {
+		query = "\"roomId\" IS NULL AND date < ? AND ((\"creatorId\" = ? AND \"receiverId\" = ?) OR (\"creatorId\" = ? AND \"receiverId\" = ?))"
+	}
+
+	err := w.db.Debug().Model(&model.Message{}).
+		Where(query, params.Date, params.UserId, params.ReceiverId, params.ReceiverId, params.UserId).
+		Order(clause.OrderByColumn{Column: clause.Column{Name: "date"}, Desc: params.ReverseOrder}).
 		Offset(params.Skip).
 		Limit(params.Limit).
 		Find(&messages).Error
