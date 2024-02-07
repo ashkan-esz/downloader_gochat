@@ -4,6 +4,7 @@ import (
 	"context"
 	"downloader_gochat/configs"
 	"log"
+	"runtime"
 	"sync"
 	"time"
 
@@ -23,10 +24,15 @@ type RabbitMQ interface {
 }
 
 type rabbit struct {
-	conn       *amqp.Connection
-	chConsumer *amqp.Channel
-	chProducer *amqp.Channel
-	wg         *sync.WaitGroup
+	consumerConn        *amqp.Connection
+	producerConn        *amqp.Connection
+	chConsumer          *amqp.Channel
+	chProducer          *amqp.Channel
+	consumerChannelPool []*amqp.Channel
+	producerChannelPool []*amqp.Channel
+	consumerPoolMux     *sync.Mutex
+	producerPoolMux     *sync.Mutex
+	wg                  *sync.WaitGroup
 }
 
 //------------------------------------
@@ -36,9 +42,13 @@ var rabbitmq *rabbit
 
 func Start(ctx context.Context) RabbitMQ {
 	rabbitmq = &rabbit{
-		wg: &sync.WaitGroup{},
+		wg:                  &sync.WaitGroup{},
+		consumerPoolMux:     &sync.Mutex{},
+		producerPoolMux:     &sync.Mutex{},
+		consumerChannelPool: make([]*amqp.Channel, 0),
+		producerChannelPool: make([]*amqp.Channel, 0),
 	}
-	conf := ConfigConnection{URI: configs.GetConfigs().RabbitMqUrl, PrefetchCount: 1}
+	conf := ConfigConnection{URI: configs.GetConfigs().RabbitMqUrl, PrefetchCount: 3, PublishChannelPoolCount: 5}
 	rabbitmq.Setup(ctx, conf)
 	return rabbitmq
 }
@@ -73,17 +83,16 @@ func (r *rabbit) Setup(ctx context.Context, config ConfigConnection) {
 // It can also notify the connection is open to other goroutines if the function NotifyOpenConnection
 // is called before connecting.
 func (r *rabbit) Connect(config ConfigConnection) (notify chan *amqp.Error, err error) {
-	//todo : how to use multi consumer goroutine
-	//todo : its ok to use only one channel
-	r.conn, err = amqp.Dial(config.URI)
+	r.producerConn, err = amqp.Dial(config.URI)
 	if err != nil {
 		return
 	}
-	r.chProducer, err = r.conn.Channel()
+	r.consumerConn, err = amqp.Dial(config.URI)
 	if err != nil {
 		return
 	}
-	r.chConsumer, err = r.conn.Channel()
+
+	r.chConsumer, err = r.consumerConn.Channel()
 	if err != nil {
 		return
 	}
@@ -93,10 +102,52 @@ func (r *rabbit) Connect(config ConfigConnection) (notify chan *amqp.Error, err 
 			return
 		}
 	}
+
+	r.chProducer, err = r.producerConn.Channel()
+	if err != nil {
+		return
+	}
+	for i := 0; i < config.PublishChannelPoolCount; i++ {
+		_, err = r.createProducerChannel()
+		if err != nil {
+			return
+		}
+	}
+
 	notifyOpenConnections()
 	notify = make(chan *amqp.Error)
-	r.conn.NotifyClose(notify)
+	r.producerConn.NotifyClose(notify)
+	r.consumerConn.NotifyClose(notify)
 	return
+}
+
+//---------------------------------------
+//---------------------------------------
+
+func (r *rabbit) createConsumerChannel(prefetchCount int) (*amqp.Channel, error) {
+	r.consumerPoolMux.Lock()
+	defer r.consumerPoolMux.Unlock()
+	consumerChan, err := r.consumerConn.Channel()
+	if err != nil {
+		return nil, err
+	}
+	err = consumerChan.Qos(prefetchCount, 0, false)
+	if err != nil {
+		return nil, err
+	}
+	r.consumerChannelPool = append(r.consumerChannelPool, consumerChan)
+	return consumerChan, nil
+}
+
+func (r *rabbit) createProducerChannel() (*amqp.Channel, error) {
+	r.producerPoolMux.Lock()
+	defer r.producerPoolMux.Unlock()
+	producerChan, err := r.producerConn.Channel()
+	if err != nil {
+		return nil, err
+	}
+	r.producerChannelPool = append(r.producerChannelPool, producerChan)
+	return producerChan, nil
 }
 
 //---------------------------------------
@@ -130,16 +181,52 @@ func closeConnections(r *rabbit) {
 			log.Printf("Error closing consumer channel: [%s]\n", err)
 		}
 	}
+	for i, consumeChan := range r.consumerChannelPool {
+		if consumeChan != nil {
+			err = consumeChan.Close()
+			if err != nil {
+				log.Printf("Error closing consumer channel %v: [%s]\n", i, err)
+			}
+		}
+	}
+
 	if r.chProducer != nil {
 		err = r.chProducer.Close()
 		if err != nil {
 			log.Printf("Error closing producer channel: [%s]\n", err)
 		}
 	}
-	if r.conn != nil {
-		err = r.conn.Close()
+	for i, produceChan := range r.producerChannelPool {
+		if produceChan != nil {
+			err = produceChan.Close()
+			if err != nil {
+				log.Printf("Error closing producer channel %v: [%s]\n", i, err)
+			}
+		}
+	}
+
+	if r.producerConn != nil {
+		err = r.producerConn.Close()
 		if err != nil {
 			log.Printf("Error closing connection: [%s]\n", err)
 		}
 	}
+	if r.consumerConn != nil {
+		err = r.consumerConn.Close()
+		if err != nil {
+			log.Printf("Error closing connection: [%s]\n", err)
+		}
+	}
+}
+
+//---------------------------------------
+//---------------------------------------
+
+func getMaxParallelism() int {
+	maxProcs := runtime.GOMAXPROCS(0)
+	numCPU := runtime.NumCPU()
+	if maxProcs < numCPU {
+		return maxProcs
+	}
+	return numCPU
 }

@@ -182,9 +182,9 @@ func HandleSingleChatMessage(d *amqp.Delivery, extraConsumerData interface{}) {
 		return
 	}
 
+	sender, ok := wsSvc.hub.Clients[m.UserId]
 	err = wsSvc.wsRepo.SaveMessage(m)
 	if err != nil {
-		sender, ok := wsSvc.hub.Clients[m.UserId]
 		if errors.Is(err, gorm.ErrForeignKeyViolated) {
 			// receiver user not found
 			if ok {
@@ -211,6 +211,8 @@ func HandleSingleChatMessage(d *amqp.Delivery, extraConsumerData interface{}) {
 		if ok {
 			//receiver is online
 			cl.Message <- m
+			m.Code = 200
+			sender.Message <- m
 		}
 		err = wsSvc.wsRepo.UpdateUserReadMessageTime(m.ReceiverId)
 	}
@@ -288,7 +290,7 @@ func (c *Client) ReadMessage(hub *Hub, rabbit rabbitmq.RabbitMQ) {
 		if clientMessage.RoomId == -1 {
 			//one to one message
 			conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.SingleChatBindingKey)
-			rabbit.Publish(ctx, msg, conf)
+			rabbit.Publish(ctx, msg, conf, c.UserId)
 		} else {
 			//group/channel message
 			hub.Broadcast <- msg

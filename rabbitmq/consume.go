@@ -18,9 +18,15 @@ func (r *rabbit) Consume(ctx context.Context, config ConfigConsume, extraConsume
 	}
 	r.wg.Add(1)
 	defer r.wg.Done()
+
+	//new consumer channel
+	consumerChannel, err := r.createConsumerChannel(3)
+	if err != nil {
+		return
+	}
+
 	var msgs <-chan amqp.Delivery
-	//todo : whats consumer string
-	msgs, err = r.chConsumer.Consume(
+	msgs, err = consumerChannel.Consume(
 		config.QueueName,
 		config.Consumer,
 		config.AutoAck,
@@ -53,7 +59,7 @@ func (r *rabbit) Consume(ctx context.Context, config ConfigConsume, extraConsume
 			if allCanceled {
 				continue
 			}
-			err = r.chConsumer.Cancel(config.Consumer, false)
+			err = consumerChannel.Cancel(config.Consumer, false)
 			allCanceled = true
 			continue
 		}

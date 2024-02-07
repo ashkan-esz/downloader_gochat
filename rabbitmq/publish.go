@@ -9,23 +9,27 @@ import (
 
 // IPublish is the interface for publishing messages to an exchange
 type IPublish interface {
-	Publish(ctx context.Context, myStruct interface{}, config ConfigPublish) (err error)
+	Publish(ctx context.Context, myStruct interface{}, config ConfigPublish, id int64) (err error)
 }
 
 // Publish publishes body to exchange with routing key
-func (r *rabbit) Publish(ctx context.Context, myStruct interface{}, config ConfigPublish) (err error) {
+func (r *rabbit) Publish(ctx context.Context, myStruct interface{}, config ConfigPublish, id int64) (err error) {
 	body, err := json.Marshal(myStruct)
 	if err != nil {
 		// handle error
 		return err
 	}
 
-	if r.chConsumer == nil {
+	if r.chProducer == nil {
 		return amqp.ErrClosed
 	}
 	r.wg.Add(1)
 	defer r.wg.Done()
-	err = r.chProducer.PublishWithContext(
+
+	//get producer channel from pool
+	producerChan := r.producerChannelPool[id%int64(len(r.producerChannelPool))]
+
+	err = producerChan.PublishWithContext(
 		ctx,
 		config.Exchange,
 		config.RoutingKey,

@@ -6,8 +6,9 @@ import (
 
 // ConfigConnection is the configuration for the connection
 type ConfigConnection struct {
-	URI           string
-	PrefetchCount int
+	URI                     string
+	PrefetchCount           int
+	PublishChannelPoolCount int
 }
 
 // ConfigQueue is the configuration for the queue
