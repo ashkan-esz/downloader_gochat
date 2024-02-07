@@ -24,6 +24,7 @@ type IWsService interface {
 	JoinRoom(ctx *fasthttp.RequestCtx, roomId int64, clientId int64, username string) error
 	GetRooms() (*[]model.RoomRes, error)
 	GetRoomClient(roomId int64) (*[]model.ClientRes, error)
+	GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error)
 }
 
 type WsService struct {
@@ -412,4 +413,17 @@ func (w *WsService) GetRoomClient(roomId int64) (*[]model.ClientRes, error) {
 	}
 
 	return &clients, nil
+}
+
+//todo : handle userMessageRead
+
+//todo : get new messages of all rooms
+
+//todo : handle :: lastRead date , message state
+
+//todo : get chat new messages
+
+func (w *WsService) GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error) {
+	messages, err := w.wsRepo.GetSingleChatMessages(params)
+	return messages, err
 }

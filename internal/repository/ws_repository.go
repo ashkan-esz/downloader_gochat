@@ -14,6 +14,7 @@ type IWsRepository interface {
 	CreateRoom(senderId int64, receiverId int64) (int64, error)
 	SaveMessage(message *model.ChannelMessage) error
 	UpdateUserReadMessageTime(userId int64) error
+	GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error)
 }
 
 type WsRepository struct {
@@ -85,4 +86,26 @@ func (w *WsRepository) UpdateUserReadMessageTime(userId int64) error {
 	}
 
 	return nil
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (w *WsRepository) GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error) {
+	var messages []model.MessageDataModel
+	err := w.db.Model(&model.Message{}).
+		Where("date > ? AND ((\"creatorId\" = ? AND \"receiverId\" = ?) OR (\"creatorId\" = ? AND \"receiverId\" = ?)) ",
+			params.Date, params.UserId, params.ReceiverId, params.ReceiverId, params.UserId).
+		Order("\"date\" asc").
+		Offset(params.Skip).
+		Limit(params.Limit).
+		Find(&messages).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			t := make([]model.MessageDataModel, 0)
+			return &t, nil
+		}
+		return nil, err
+	}
+	return &messages, nil
 }

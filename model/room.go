@@ -77,3 +77,24 @@ type ClientRes struct {
 	ID       int64  `json:"id"`
 	Username string `json:"username"`
 }
+
+//---------------------------------------
+//---------------------------------------
+
+type GetSingleMessagesReq struct {
+	UserId     int64     `json:"userId"`
+	ReceiverId int64     `json:"receiverId"`
+	Date       time.Time `json:"date"`
+	Skip       int       `json:"skip"`
+	Limit      int       `json:"limit"`
+}
+
+type MessageDataModel struct {
+	Id         int64     `gorm:"column:id" json:"id"`
+	Content    string    `gorm:"column:content" json:"content"`
+	Date       time.Time `gorm:"column:date" json:"date"`
+	State      int       `gorm:"column:state" json:"state"`
+	RoomId     *int64    `gorm:"column:roomId" json:"roomId"`
+	CreatorId  int64     `gorm:"column:creatorId" json:"creatorId"`
+	ReceiverId int64     `gorm:"column:receiverId" json:"receiverId"`
+}
