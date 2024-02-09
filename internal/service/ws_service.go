@@ -374,10 +374,19 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 
 		w.hub.Clients[userId] = cl
 
-		//todo : get messages through websocket or rest api call?
-		//todo : handle unread messages
-
 		go cl.WriteMessage()
+
+		chatsListReq := &model.GetSingleChatListReq{
+			UserId:               userId,
+			MessagePerChatLimit:  3,
+			ChatsLimit:           20,
+			MessageState:         1,
+			IncludeProfileImages: true,
+		}
+		message := model.CreateGetChatListAction(chatsListReq)
+		conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.SingleChatBindingKey)
+		w.rabbitmq.Publish(ctx, message, conf, userId)
+
 		cl.ReadMessage(w.hub, w.rabbitmq)
 	})
 
