@@ -15,7 +15,7 @@ import (
 type IWsRepository interface {
 	GetReceiverUser(userId int64) (*model.UserDataModel, error)
 	CreateRoom(senderId int64, receiverId int64) (int64, error)
-	SaveMessage(message *model.ChannelMessage) error
+	SaveMessage(message *model.ReceiveNewMessage) error
 	UpdateUserReceivedMessageTime(userId int64) error
 	UpdateUserReadMessageTime(userId int64, readTime time.Time) error
 	GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error)
@@ -60,14 +60,14 @@ func (w *WsRepository) CreateRoom(senderId int64, receiverId int64) (int64, erro
 	return 55, nil
 }
 
-func (w *WsRepository) SaveMessage(message *model.ChannelMessage) error {
+func (w *WsRepository) SaveMessage(message *model.ReceiveNewMessage) error {
 	m := model.Message{
 		CreatorId:  message.UserId,
 		ReceiverId: message.ReceiverId,
 		Content:    message.Content,
 		RoomId:     &message.RoomId,
 		Date:       time.Now().UTC(),
-		State:      1,
+		State:      message.State,
 	}
 	if *m.RoomId == -1 {
 		m.RoomId = nil

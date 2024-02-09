@@ -7,6 +7,7 @@ import (
 	"downloader_gochat/rabbitmq"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"runtime/debug"
@@ -49,7 +50,7 @@ func NewWsService(WsRepo repository.IWsRepository, rabbit rabbitmq.RabbitMQ) *Ws
 		ctx, _ := context.WithCancel(context.Background())
 		go func() {
 			time.Sleep(3 * time.Second)
-			if err := rabbit.Consume(ctx, config, &wsSvc, HandleSingleChatMessage); err != nil {
+			if err := rabbit.Consume(ctx, config, &wsSvc, UserMessageConsumer); err != nil {
 				log.Printf("error consuming from queue %s: %s\n", rabbitmq.SingleChatQueue, err)
 			}
 		}()
@@ -77,8 +78,8 @@ type Hub struct {
 	//todo : handle concurrency sharing maps
 	Clients    map[int64]*Client
 	Rooms      map[int64]*Room
-	Register   chan *ChannelData
-	UnRegister chan *ChannelData
+	Register   chan *model.ChannelMessage
+	UnRegister chan *model.ChannelMessage
 	Broadcast  chan *model.ChannelMessage
 }
 
@@ -94,19 +95,14 @@ type Client struct {
 	Username string `json:"username"`
 }
 
-type ChannelData struct {
-	Client  *Client
-	Message *model.ChannelMessage
-}
-
 //todo : need to limit parallel db operations
 
 func NewHub() *Hub {
 	return &Hub{
 		Clients:    make(map[int64]*Client, avgClients),
 		Rooms:      make(map[int64]*Room),
-		Register:   make(chan *ChannelData),
-		UnRegister: make(chan *ChannelData),
+		Register:   make(chan *model.ChannelMessage),
+		UnRegister: make(chan *model.ChannelMessage),
 		Broadcast:  make(chan *model.ChannelMessage, 5),
 	}
 }
@@ -120,32 +116,40 @@ func (h *Hub) RunGroupHandler() {
 	for {
 		select {
 		case chd := <-h.Register:
-			if room, ok := h.Rooms[chd.Message.RoomId]; ok {
-				if _, ok := room.Clients[chd.Client.UserId]; !ok {
-					room.Clients[chd.Client.UserId] = chd.Client
+			if room, ok := h.Rooms[chd.ReceiveNewMessage.RoomId]; ok {
+				if _, ok := room.Clients[chd.ReceiveNewMessage.UserId]; !ok {
+					client, _ := h.Clients[chd.ReceiveNewMessage.UserId]
+					room.Clients[chd.ReceiveNewMessage.UserId] = client
 				}
 			}
 		case chd := <-h.UnRegister:
-			if room, ok := h.Rooms[chd.Message.RoomId]; ok {
-				if _, ok := room.Clients[chd.Client.UserId]; ok {
+			if room, ok := h.Rooms[chd.ReceiveNewMessage.RoomId]; ok {
+				if _, ok := room.Clients[chd.ReceiveNewMessage.UserId]; ok {
 					// Broadcast a message saying that the client left the room
 					if len(room.Clients) != 0 {
-						h.Broadcast <- &model.ChannelMessage{
-							Content:  "user left the chat",
-							RoomId:   chd.Message.RoomId,
-							UserId:   chd.Client.UserId,
-							Username: chd.Client.Username,
+						message := &model.ReceiveNewMessage{
+							Content:    "user left the chat",
+							RoomId:     chd.ReceiveNewMessage.RoomId,
+							ReceiverId: 0,
+							State:      0,
+							UserId:     chd.ReceiveNewMessage.UserId,
+							Username:   chd.ReceiveNewMessage.Username,
 						}
+						receiveMessage := model.CreateReceiveNewMessageAction(message)
+						h.Broadcast <- receiveMessage
 					}
 
-					delete(room.Clients, chd.Client.UserId)
-					close(chd.Client.Message)
+					delete(room.Clients, chd.ReceiveNewMessage.UserId)
+					if client, ok := h.Clients[chd.ReceiveNewMessage.UserId]; ok {
+						close(client.Message)
+					}
 				}
 			}
 		case m := <-h.Broadcast:
-			if room, ok := h.Rooms[m.RoomId]; ok {
+			if room, ok := h.Rooms[m.ReceiveNewMessage.RoomId]; ok {
 				for _, cl := range room.Clients {
-					cl.Message <- m
+					receiveMessage := model.CreateReceiveNewMessageAction(m.ReceiveNewMessage)
+					cl.Message <- receiveMessage
 					//conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.GroupChatBindingKey)
 					//rabbit.Publish(ctx, msg, conf)
 				}
@@ -170,53 +174,82 @@ func HandleGroupChatMessage(d *amqp.Delivery, extraConsumerData interface{}) {
 	//}
 }
 
-func HandleSingleChatMessage(d *amqp.Delivery, extraConsumerData interface{}) {
+func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	// run as rabbitmq consumer
 	wsSvc := extraConsumerData.(*WsService)
-	var m *model.ChannelMessage
-	err := json.Unmarshal(d.Body, &m)
+	var channelMessage *model.ChannelMessage
+	err := json.Unmarshal(d.Body, &channelMessage)
 	if err != nil {
 		return
 	}
 
-	sender, ok := wsSvc.hub.Clients[m.UserId]
-	err = wsSvc.wsRepo.SaveMessage(m)
+	switch channelMessage.Action {
+	case model.ReceiveNewMessageAction:
+		err = HandleSingleChatMessage(channelMessage.ReceiveNewMessage, wsSvc)
+	case model.SingleChatMessagesAction:
+		chatMessages, err := wsSvc.wsRepo.GetSingleChatMessages(channelMessage.ChatMessagesReq)
+		if err != nil {
+			//todo : return error
+			fmt.Println(err.Error())
+		} else {
+			m := model.CreateReturnChatMessagesAction(chatMessages)
+			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatMessagesReq.UserId]; ok {
+				sender.Message <- m
+			}
+		}
+	case model.SingleChatsListAction:
+		chatMessages, err := wsSvc.GetSingleChatList(channelMessage.ChatsListReq)
+		if err != nil {
+			//todo : return error
+			fmt.Println(err.Error())
+		} else {
+			m := model.CreateReturnChatListAction(chatMessages)
+			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
+				sender.Message <- m
+			}
+		}
+		//case model.MessageReadAction:  //todo :
+	}
+
+	if err = d.Ack(false); err != nil {
+		log.Printf("error acking message: %s\n", err)
+	}
+}
+
+func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *WsService) error {
+	sender, ok := wsSvc.hub.Clients[receiveNewMessage.UserId]
+	err := wsSvc.wsRepo.SaveMessage(receiveNewMessage)
 	if err != nil {
 		if errors.Is(err, gorm.ErrForeignKeyViolated) {
 			// receiver user not found
 			if ok {
-				m.State = -1
-				m.Code = 404
-				m.ErrorMessage = "Receiver User Not Found"
-				sender.Message <- m
+				messageSendResult := model.CreateNewMessageSendResult(receiveNewMessage.RoomId, receiveNewMessage.ReceiverId, -1, 404, "Receiver User Not Found")
+				sender.Message <- messageSendResult
 			} else {
 				// maybe save error
 			}
 		} else {
 			if ok {
-				m.State = -1
-				m.Code = 500
-				m.ErrorMessage = err.Error()
-				sender.Message <- m
+				messageSendResult := model.CreateNewMessageSendResult(receiveNewMessage.RoomId, receiveNewMessage.ReceiverId, -1, 500, err.Error())
+				sender.Message <- messageSendResult
 				// maybe save error
 			} else {
 				// maybe save error
 			}
 		}
 	} else {
-		cl, ok := wsSvc.hub.Clients[m.ReceiverId]
+		cl, ok := wsSvc.hub.Clients[receiveNewMessage.ReceiverId]
 		if ok {
 			//receiver is online
-			cl.Message <- m
-			m.Code = 200
-			sender.Message <- m
+			receiveMessage := model.CreateReceiveNewMessageAction(receiveNewMessage)
+			cl.Message <- receiveMessage
+			messageSendResult := model.CreateNewMessageSendResult(receiveNewMessage.RoomId, receiveNewMessage.ReceiverId, receiveNewMessage.State, 200, "")
+			sender.Message <- messageSendResult
 		}
-		err = wsSvc.wsRepo.UpdateUserReceivedMessageTime(m.ReceiverId)
+		err = wsSvc.wsRepo.UpdateUserReceivedMessageTime(receiveNewMessage.ReceiverId)
 	}
 
-	if err = d.Ack(false); err != nil {
-		log.Printf("error acking message: %s\n", err)
-	}
+	return err
 }
 
 func (c *Client) WriteMessage() {
@@ -264,6 +297,9 @@ func (c *Client) ReadMessage(hub *Hub, rabbit rabbitmq.RabbitMQ) {
 		c.Conn.SetReadDeadline(time.Now().Add(pongWait))
 		return nil
 	})
+
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 	for {
 		var clientMessage model.ClientMessage
 		err := c.Conn.ReadJSON(&clientMessage)
@@ -274,24 +310,35 @@ func (c *Client) ReadMessage(hub *Hub, rabbit rabbitmq.RabbitMQ) {
 			break
 		}
 
-		msg := &model.ChannelMessage{
-			Content:    clientMessage.Content,
-			RoomId:     clientMessage.RoomId,
-			ReceiverId: clientMessage.ReceiverId,
-			State:      1,
-			UserId:     c.UserId,
-			Username:   c.Username,
+		conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.SingleChatBindingKey)
+		switch clientMessage.Action {
+		case model.SendNewMessageAction:
+			message := &model.ReceiveNewMessage{
+				Content:    clientMessage.NewMessage.Content,
+				RoomId:     clientMessage.NewMessage.RoomId,
+				ReceiverId: clientMessage.NewMessage.ReceiverId,
+				State:      1,
+				UserId:     c.UserId,
+				Username:   c.Username,
+			}
+			receiveMessage := model.CreateReceiveNewMessageAction(message)
+
+			if clientMessage.NewMessage.RoomId == -1 {
+				//one to one message
+				rabbit.Publish(ctx, receiveMessage, conf, c.UserId)
+			} else {
+				//group/channel message
+				hub.Broadcast <- receiveMessage
+			}
+		case model.SingleChatMessagesAction:
+			message := model.CreateGetChatMessagesAction(&clientMessage.ChatMessagesReq)
+			rabbit.Publish(ctx, message, conf, c.UserId)
+		case model.SingleChatsListAction:
+			message := model.CreateGetChatListAction(&clientMessage.ChatsListReq)
+			rabbit.Publish(ctx, message, conf, c.UserId)
+			//case model.MessageReadAction: //todo :
 		}
 
-		ctx, _ := context.WithCancel(context.Background())
-		if clientMessage.RoomId == -1 {
-			//one to one message
-			conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.SingleChatBindingKey)
-			rabbit.Publish(ctx, msg, conf, c.UserId)
-		} else {
-			//group/channel message
-			hub.Broadcast <- msg
-		}
 	}
 }
 
@@ -369,17 +416,20 @@ func (w *WsService) JoinRoom(ctx *fasthttp.RequestCtx, roomId int64, clientId in
 			Username: username,
 		}
 
-		m := &model.ChannelMessage{
-			Content:  "A new user has joined the room",
-			UserId:   clientId,
-			Username: username,
-			RoomId:   roomId,
+		message := &model.ReceiveNewMessage{
+			Content:    "A new user has joined the room",
+			RoomId:     roomId,
+			ReceiverId: 0,
+			State:      0,
+			UserId:     clientId,
+			Username:   username,
 		}
+		receiveMessage := model.CreateReceiveNewMessageAction(message)
 
 		// Register a new client through the register channel
-		w.hub.Register <- &ChannelData{Client: cl, Message: m}
+		w.hub.Register <- receiveMessage
 		// Broadcast that message
-		w.hub.Broadcast <- m
+		w.hub.Broadcast <- receiveMessage
 
 		go cl.WriteMessage()
 		cl.ReadMessage(w.hub, w.rabbitmq)
