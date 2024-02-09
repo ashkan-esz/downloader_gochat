@@ -10,6 +10,7 @@ import (
 	"log"
 	"os"
 	"runtime/debug"
+	"slices"
 	"time"
 
 	"github.com/fasthttp/websocket"
@@ -25,6 +26,7 @@ type IWsService interface {
 	GetRooms() (*[]model.RoomRes, error)
 	GetRoomClient(roomId int64) (*[]model.ClientRes, error)
 	GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error)
+	GetSingleChatList(params *model.GetSingleChatListReq) (*[]model.ChatsCompressedDataModel, error)
 }
 
 type WsService struct {
@@ -96,12 +98,6 @@ type ChannelData struct {
 	Client  *Client
 	Message *model.ChannelMessage
 }
-
-const (
-	avgClients    = 512
-	dbBufSize     = 64
-	flushInterval = time.Second * 5
-)
 
 //todo : need to limit parallel db operations
 
@@ -215,7 +211,7 @@ func HandleSingleChatMessage(d *amqp.Delivery, extraConsumerData interface{}) {
 			m.Code = 200
 			sender.Message <- m
 		}
-		err = wsSvc.wsRepo.UpdateUserReadMessageTime(m.ReceiverId)
+		err = wsSvc.wsRepo.UpdateUserReceivedMessageTime(m.ReceiverId)
 	}
 
 	if err = d.Ack(false); err != nil {
@@ -331,6 +327,7 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 
 		w.hub.Clients[userId] = cl
 
+		//todo : get messages through websocket or rest api call?
 		//todo : handle unread messages
 
 		go cl.WriteMessage()
@@ -415,15 +412,79 @@ func (w *WsService) GetRoomClient(roomId int64) (*[]model.ClientRes, error) {
 	return &clients, nil
 }
 
-//todo : handle userMessageRead
-
-//todo : get new messages of all rooms
-
-//todo : handle :: lastRead date , message state
-
-//todo : get chat new messages
-
 func (w *WsService) GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error) {
 	messages, err := w.wsRepo.GetSingleChatMessages(params)
 	return messages, err
+}
+
+func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]model.ChatsCompressedDataModel, error) {
+	readTime := time.Now().UTC()
+	chats, profileImages, err := w.wsRepo.GetSingleChatList(params)
+
+	if err != nil {
+		return nil, err
+	}
+
+	if params.MessageState != 2 {
+		err = w.wsRepo.UpdateUserReadMessageTime(params.UserId, readTime)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	compressedChats := make([]model.ChatsCompressedDataModel, 0)
+	for _, chat := range chats {
+		m := model.MessageDataModel{
+			Id:         chat.Id,
+			ReceiverId: chat.ReceiverId,
+			CreatorId:  chat.CreatorId,
+			RoomId:     chat.RoomId,
+			Date:       chat.Date,
+			State:      chat.State,
+			Content:    chat.Content,
+		}
+		exist := false
+		for i := range compressedChats {
+			if chat.UserId == compressedChats[i].UserId {
+				exist = true
+				compressedChats[i].Messages = append(compressedChats[i].Messages, m)
+				break
+			}
+		}
+		if !exist {
+			cChat := model.ChatsCompressedDataModel{
+				UserId:        chat.UserId,
+				Username:      chat.Username,
+				PublicName:    chat.PublicName,
+				Role:          chat.Role,
+				ProfileImages: filterProfileImages(profileImages, chat.UserId),
+				Messages:      []model.MessageDataModel{m},
+			}
+			compressedChats = append(compressedChats, cChat)
+		}
+	}
+
+	for i := range compressedChats {
+		slices.SortFunc(compressedChats[i].Messages, func(a, b model.MessageDataModel) int {
+			return b.Date.Compare(a.Date)
+		})
+	}
+	slices.SortFunc(compressedChats, func(a, b model.ChatsCompressedDataModel) int {
+		return b.Messages[0].Date.Compare(a.Messages[0].Date)
+	})
+
+	return &compressedChats, err
+}
+
+func filterProfileImages(profileImages []model.ProfileImageDataModel, userId int64) []model.ProfileImageDataModel {
+	var images = make([]model.ProfileImageDataModel, 0)
+	for i := range profileImages {
+		if profileImages[i].UserId == userId {
+			images = append(images, profileImages[i])
+		}
+	}
+	slices.SortFunc(images, func(a, b model.ProfileImageDataModel) int {
+		return b.AddDate.Compare(a.AddDate)
+	})
+	return images
 }

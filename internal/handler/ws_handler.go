@@ -15,6 +15,7 @@ type IWsHandler interface {
 	GetRooms(c *fiber.Ctx) error
 	GetClients(c *fiber.Ctx) error
 	GetSingleChatMessages(c *fiber.Ctx) error
+	GetSingleChatList(c *fiber.Ctx) error
 }
 
 type WsHandler struct {
@@ -92,6 +93,20 @@ func (w *WsHandler) GetSingleChatMessages(c *fiber.Ctx) error {
 	}
 
 	messages, err := w.wsService.GetSingleChatMessages(&params)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOKWithData(c, messages)
+}
+
+func (w *WsHandler) GetSingleChatList(c *fiber.Ctx) error {
+	var params model.GetSingleChatListReq
+	err := c.QueryParser(&params)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+
+	messages, err := w.wsService.GetSingleChatList(&params)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}

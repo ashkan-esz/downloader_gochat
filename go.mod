@@ -14,9 +14,11 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/lib/pq v1.10.9
 	github.com/oschwald/maxminddb-golang v1.12.0
+	github.com/rabbitmq/amqp091-go v1.9.0
 	github.com/redis/go-redis/v9 v9.4.0
 	github.com/swaggo/swag v1.16.2
 	github.com/valyala/fasthttp v1.51.0
+	go.mongodb.org/mongo-driver v1.13.1
 	golang.org/x/crypto v0.17.0
 	gorm.io/driver/postgres v1.5.4
 	gorm.io/gorm v1.25.5
@@ -45,7 +47,6 @@ require (
 	github.com/mattn/go-isatty v0.0.20 // indirect
 	github.com/mattn/go-runewidth v0.0.15 // indirect
 	github.com/montanaflynn/stats v0.0.0-20171201202039-1bf9dbcd8cbe // indirect
-	github.com/rabbitmq/amqp091-go v1.9.0 // indirect
 	github.com/rivo/uniseg v0.4.4 // indirect
 	github.com/savsgio/gotils v0.0.0-20230208104028-c358bd845dee // indirect
 	github.com/swaggo/files/v2 v2.0.0 // indirect
@@ -55,7 +56,6 @@ require (
 	github.com/xdg-go/scram v1.1.2 // indirect
 	github.com/xdg-go/stringprep v1.0.4 // indirect
 	github.com/youmark/pkcs8 v0.0.0-20181117223130-1be2e3e5546d // indirect
-	go.mongodb.org/mongo-driver v1.13.1 // indirect
 	golang.org/x/net v0.19.0 // indirect
 	golang.org/x/sync v0.5.0 // indirect
 	golang.org/x/sys v0.15.0 // indirect

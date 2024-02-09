@@ -66,3 +66,9 @@ const (
 	// Maximum message size allowed from peer.
 	maxMessageSize = 512
 )
+
+const (
+	avgClients    = 512
+	dbBufSize     = 64
+	flushInterval = time.Second * 5
+)

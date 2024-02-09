@@ -16,8 +16,8 @@ func (Room) TableName() string {
 type Message struct {
 	Id         int64     `gorm:"column:id;type:serial;autoIncrement;primaryKey;"`
 	Content    string    `gorm:"column:content;type:text;not null;"`
-	Date       time.Time `gorm:"column:date;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
-	State      int       `gorm:"column:state;type:integer;default:0;not null;"`
+	Date       time.Time `gorm:"column:date;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;uniqueIndex:Message_date_state_idx;"`
+	State      int       `gorm:"column:state;type:integer;default:0;not null;uniqueIndex:Message_date_state_idx;"`
 	RoomId     *int64    `gorm:"column:roomId;type:integer;"`
 	CreatorId  int64     `gorm:"column:creatorId;type:integer;not null;"`
 	ReceiverId int64     `gorm:"column:receiverId;type:integer;not null;"`
@@ -87,7 +87,18 @@ type GetSingleMessagesReq struct {
 	Date         time.Time `json:"date"`
 	Skip         int       `json:"skip"`
 	Limit        int       `json:"limit"`
+	MessageState int       `json:"messageState"`
 	ReverseOrder bool      `json:"reverseOrder,omitempty"`
+}
+
+type GetSingleChatListReq struct {
+	UserId               int64 `json:"userId"`
+	ChatsSkip            int   `json:"chatsSkip"`
+	ChatsLimit           int   `json:"chatsLimit"`
+	MessagePerChatSkip   int   `json:"messagePerChatSkip"`
+	MessagePerChatLimit  int   `json:"messagePerChatLimit"`
+	MessageState         int   `json:"messageState"`
+	IncludeProfileImages bool  `json:"includeProfileImages"`
 }
 
 type MessageDataModel struct {
@@ -95,7 +106,30 @@ type MessageDataModel struct {
 	Content    string    `gorm:"column:content" json:"content"`
 	Date       time.Time `gorm:"column:date" json:"date"`
 	State      int       `gorm:"column:state" json:"state"`
+	RoomId     *int64    `gorm:"column:roomId" json:"roomId,omitempty"`
+	CreatorId  int64     `gorm:"column:creatorId" json:"creatorId"`
+	ReceiverId int64     `gorm:"column:receiverId" json:"receiverId"`
+}
+
+type ChatsDataModel struct {
+	UserId     int64     `gorm:"column:userId;" json:"userId"`
+	Username   string    `gorm:"column:username;" json:"username"`
+	PublicName string    `gorm:"column:publicName;" json:"publicName"`
+	Role       string    `gorm:"column:role;" json:"role"`
+	Id         int64     `gorm:"column:id" json:"id"`
+	Content    string    `gorm:"column:content" json:"content"`
+	Date       time.Time `gorm:"column:date" json:"date"`
+	State      int       `gorm:"column:state" json:"state"`
 	RoomId     *int64    `gorm:"column:roomId" json:"roomId"`
 	CreatorId  int64     `gorm:"column:creatorId" json:"creatorId"`
 	ReceiverId int64     `gorm:"column:receiverId" json:"receiverId"`
+}
+
+type ChatsCompressedDataModel struct {
+	UserId        int64                   `json:"userId"`
+	Username      string                  `json:"username"`
+	PublicName    string                  `json:"publicName"`
+	Role          string                  `json:"role"`
+	ProfileImages []ProfileImageDataModel `json:"profileImages"`
+	Messages      []MessageDataModel      `json:"messages"`
 }
