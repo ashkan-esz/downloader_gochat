@@ -15,7 +15,9 @@ import (
 type IWsRepository interface {
 	GetReceiverUser(userId int64) (*model.UserDataModel, error)
 	CreateRoom(senderId int64, receiverId int64) (int64, error)
-	SaveMessage(message *model.ReceiveNewMessage) error
+	SaveMessage(message *model.ReceiveNewMessage) (int64, error)
+	UpdateMessageState(mid int64, creatorId int64, receiverId int64, state int) (*model.MessageDataModel, error)
+	BatchUpdateMessageState(mid int64, roomId int64, creatorId int64, receiverId int64, state int) error
 	UpdateUserReceivedMessageTime(userId int64) error
 	UpdateUserReadMessageTime(userId int64, readTime time.Time) error
 	GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error)
@@ -60,13 +62,13 @@ func (w *WsRepository) CreateRoom(senderId int64, receiverId int64) (int64, erro
 	return 55, nil
 }
 
-func (w *WsRepository) SaveMessage(message *model.ReceiveNewMessage) error {
+func (w *WsRepository) SaveMessage(message *model.ReceiveNewMessage) (int64, error) {
 	m := model.Message{
 		CreatorId:  message.UserId,
 		ReceiverId: message.ReceiverId,
 		Content:    message.Content,
 		RoomId:     &message.RoomId,
-		Date:       time.Now().UTC(),
+		Date:       message.Date,
 		State:      message.State,
 	}
 	if *m.RoomId == -1 {
@@ -74,7 +76,59 @@ func (w *WsRepository) SaveMessage(message *model.ReceiveNewMessage) error {
 	}
 	err := w.db.Create(&m).Error
 	if err != nil {
-		return err
+		return -1, err
+	}
+	return m.Id, nil
+}
+
+func (w *WsRepository) UpdateMessageState(mid int64, creatorId int64, receiverId int64, state int) (*model.MessageDataModel, error) {
+	var data model.MessageDataModel
+	result := w.db.Model(&model.Message{}).
+		Where("\"id\" = ? and \"creatorId\" = ? and \"receiverId\" = ?", mid, creatorId, receiverId).
+		UpdateColumn("\"state\"", state).
+		Select([]string{"roomId", "date"}).
+		Find(&data)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, result.Error
+	}
+	if result.RowsAffected == 0 {
+		return nil, nil
+	}
+	return &data, nil
+}
+
+func (w *WsRepository) BatchUpdateMessageState(mid int64, roomId int64, creatorId int64, receiverId int64, state int) error {
+	var result *gorm.DB
+	if roomId == -1 {
+		subQuery := w.db.Model(&model.Message{}).
+			Where("\"id\" = ? and \"roomId\" IS NULL and \"creatorId\" = ? and \"receiverId\" = ? and state < ?", mid, creatorId, receiverId, state).
+			Select("date")
+
+		result = w.db.Model(&model.Message{}).
+			Where("\"date\" <= (?) and \"roomId\" IS NULL and \"creatorId\" = ? and \"receiverId\" = ?", subQuery, creatorId, receiverId).
+			UpdateColumn("\"state\"", state)
+	} else {
+		subQuery := w.db.Model(&model.Message{}).
+			Where("\"id\" = ? and \"roomId\" = ? and \"creatorId\" = ? and \"receiverId\" = ? and state < ?", mid, roomId, creatorId, receiverId, state).
+			Select("date")
+
+		result = w.db.Model(&model.Message{}).
+			Where("\"date\" <= (?) and \"roomId\" = ? and \"creatorId\" = ? and \"receiverId\" = ?", subQuery, roomId, creatorId, receiverId).
+			UpdateColumn("\"state\"", state)
+	}
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return errors.New("notfound")
+		}
+		return result.Error
+	}
+	if result.RowsAffected == 0 {
+		return errors.New("notfound")
 	}
 	return nil
 }

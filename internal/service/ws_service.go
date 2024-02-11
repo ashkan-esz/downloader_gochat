@@ -15,6 +15,7 @@ import (
 	"time"
 
 	"github.com/fasthttp/websocket"
+	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/valyala/fasthttp"
 	"gorm.io/gorm"
@@ -49,7 +50,9 @@ func NewWsService(WsRepo repository.IWsRepository, rabbit rabbitmq.RabbitMQ) *Ws
 	for i := 0; i < 10; i++ {
 		ctx, _ := context.WithCancel(context.Background())
 		go func() {
-			time.Sleep(3 * time.Second)
+			openConChan := make(chan struct{})
+			rabbitmq.NotifySetupDone(openConChan)
+			<-openConChan
 			if err := rabbit.Consume(ctx, config, &wsSvc, UserMessageConsumer); err != nil {
 				log.Printf("error consuming from queue %s: %s\n", rabbitmq.SingleChatQueue, err)
 			}
@@ -64,9 +67,24 @@ func NewWsService(WsRepo repository.IWsRepository, rabbit rabbitmq.RabbitMQ) *Ws
 	for i := 0; i < 1; i++ {
 		ctx, _ := context.WithCancel(context.Background())
 		go func() {
-			time.Sleep(3 * time.Second)
+			openConChan := make(chan struct{})
+			rabbitmq.NotifySetupDone(openConChan)
+			<-openConChan
 			if err := rabbit.Consume(ctx, groupConfig, &wsSvc, HandleGroupChatMessage); err != nil {
 				log.Printf("error consuming from queue %s: %s\n", rabbitmq.GroupChatQueue, err)
+			}
+		}()
+	}
+
+	messageStateConfig := rabbitmq.NewConfigConsume(rabbitmq.MessageStateQueue, "")
+	for i := 0; i < 3; i++ {
+		ctx, _ := context.WithCancel(context.Background())
+		go func() {
+			openConChan := make(chan struct{})
+			rabbitmq.NotifySetupDone(openConChan)
+			<-openConChan
+			if err := rabbit.Consume(ctx, messageStateConfig, &wsSvc, MessageStateConsumer); err != nil {
+				log.Printf("error consuming from queue %s: %s\n", rabbitmq.MessageStateQueue, err)
 			}
 		}()
 	}
@@ -128,10 +146,13 @@ func (h *Hub) RunGroupHandler() {
 					// Broadcast a message saying that the client left the room
 					if len(room.Clients) != 0 {
 						message := &model.ReceiveNewMessage{
+							Id:         0,
+							Uuid:       uuid.NewString(),
 							Content:    "user left the chat",
 							RoomId:     chd.ReceiveNewMessage.RoomId,
 							ReceiverId: 0,
 							State:      0,
+							Date:       time.Now(),
 							UserId:     chd.ReceiveNewMessage.UserId,
 							Username:   chd.ReceiveNewMessage.Username,
 						}
@@ -208,7 +229,6 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				sender.Message <- m
 			}
 		}
-		//case model.MessageReadAction:  //todo :
 	}
 
 	if err = d.Ack(false); err != nil {
@@ -216,21 +236,75 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	}
 }
 
+func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
+	// run as rabbitmq consumer
+	wsSvc := extraConsumerData.(*WsService)
+	var channelMessage *model.ChannelMessage
+	err := json.Unmarshal(d.Body, &channelMessage)
+	if err != nil {
+		return
+	}
+
+	switch channelMessage.Action {
+	case model.MessageReadAction:
+		//todo : validation on provided ReceiverId
+		err := wsSvc.wsRepo.BatchUpdateMessageState(
+			channelMessage.MessageRead.Id,
+			channelMessage.MessageRead.RoomId,
+			channelMessage.MessageRead.UserId,
+			channelMessage.MessageRead.ReceiverId,
+			channelMessage.MessageRead.State)
+		if err != nil {
+			//todo : return error
+			//todo : handle message not found
+			fmt.Println(err.Error())
+		} else {
+			if messageCreator, ok := wsSvc.hub.Clients[channelMessage.MessageRead.UserId]; ok {
+				message := model.CreateMessageReadAction(
+					channelMessage.MessageRead.Id,
+					channelMessage.MessageRead.RoomId,
+					channelMessage.MessageRead.UserId,
+					channelMessage.MessageRead.ReceiverId,
+					channelMessage.MessageRead.Date,
+					channelMessage.MessageRead.State, true)
+				messageCreator.Message <- message
+			}
+		}
+		//case model.ReceiveMessageStateAction:
+	}
+
+	if err = d.Ack(false); err != nil {
+		log.Printf("error acking [messageState] message: %s\n", err)
+	}
+}
+
 func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *WsService) error {
 	sender, ok := wsSvc.hub.Clients[receiveNewMessage.UserId]
-	err := wsSvc.wsRepo.SaveMessage(receiveNewMessage)
+	mid, err := wsSvc.wsRepo.SaveMessage(receiveNewMessage)
 	if err != nil {
 		if errors.Is(err, gorm.ErrForeignKeyViolated) {
 			// receiver user not found
 			if ok {
-				messageSendResult := model.CreateNewMessageSendResult(receiveNewMessage.RoomId, receiveNewMessage.ReceiverId, -1, 404, "Receiver User Not Found")
+				messageSendResult := model.CreateNewMessageSendResult(
+					-1,
+					receiveNewMessage.Uuid,
+					receiveNewMessage.RoomId,
+					receiveNewMessage.ReceiverId,
+					receiveNewMessage.Date,
+					-1, 404, "Receiver User Not Found")
 				sender.Message <- messageSendResult
 			} else {
 				// maybe save error
 			}
 		} else {
 			if ok {
-				messageSendResult := model.CreateNewMessageSendResult(receiveNewMessage.RoomId, receiveNewMessage.ReceiverId, -1, 500, err.Error())
+				messageSendResult := model.CreateNewMessageSendResult(
+					-1,
+					receiveNewMessage.Uuid,
+					receiveNewMessage.RoomId,
+					receiveNewMessage.ReceiverId,
+					receiveNewMessage.Date,
+					-1, 500, err.Error())
 				sender.Message <- messageSendResult
 				// maybe save error
 			} else {
@@ -241,9 +315,17 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 		cl, ok := wsSvc.hub.Clients[receiveNewMessage.ReceiverId]
 		if ok {
 			//receiver is online
+			receiveNewMessage.Id = mid
 			receiveMessage := model.CreateReceiveNewMessageAction(receiveNewMessage)
 			cl.Message <- receiveMessage
-			messageSendResult := model.CreateNewMessageSendResult(receiveNewMessage.RoomId, receiveNewMessage.ReceiverId, receiveNewMessage.State, 200, "")
+			messageSendResult := model.CreateNewMessageSendResult(
+				mid,
+				receiveNewMessage.Uuid,
+				receiveNewMessage.RoomId,
+				receiveNewMessage.ReceiverId,
+				receiveNewMessage.Date,
+				receiveNewMessage.State,
+				200, "")
 			sender.Message <- messageSendResult
 		}
 		err = wsSvc.wsRepo.UpdateUserReceivedMessageTime(receiveNewMessage.ReceiverId)
@@ -314,9 +396,12 @@ func (c *Client) ReadMessage(hub *Hub, rabbit rabbitmq.RabbitMQ) {
 		switch clientMessage.Action {
 		case model.SendNewMessageAction:
 			message := &model.ReceiveNewMessage{
+				Id:         0,
+				Uuid:       clientMessage.NewMessage.Uuid,
 				Content:    clientMessage.NewMessage.Content,
 				RoomId:     clientMessage.NewMessage.RoomId,
 				ReceiverId: clientMessage.NewMessage.ReceiverId,
+				Date:       time.Now(),
 				State:      1,
 				UserId:     c.UserId,
 				Username:   c.Username,
@@ -336,7 +421,16 @@ func (c *Client) ReadMessage(hub *Hub, rabbit rabbitmq.RabbitMQ) {
 		case model.SingleChatsListAction:
 			message := model.CreateGetChatListAction(&clientMessage.ChatsListReq)
 			rabbit.Publish(ctx, message, conf, c.UserId)
-			//case model.MessageReadAction: //todo :
+		case model.MessageReadAction:
+			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
+			message := model.CreateMessageReadAction(
+				clientMessage.MessageRead.Id,
+				clientMessage.MessageRead.RoomId,
+				clientMessage.MessageRead.UserId,
+				clientMessage.MessageRead.ReceiverId,
+				clientMessage.MessageRead.Date,
+				2, false)
+			rabbit.Publish(ctx, message, readQueueConf, c.UserId)
 		}
 
 	}
@@ -380,7 +474,6 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 			UserId:               userId,
 			MessagePerChatLimit:  3,
 			ChatsLimit:           20,
-			MessageState:         1,
 			IncludeProfileImages: true,
 		}
 		message := model.CreateGetChatListAction(chatsListReq)
@@ -426,10 +519,13 @@ func (w *WsService) JoinRoom(ctx *fasthttp.RequestCtx, roomId int64, clientId in
 		}
 
 		message := &model.ReceiveNewMessage{
+			Id:         0,
+			Uuid:       uuid.NewString(),
 			Content:    "A new user has joined the room",
 			RoomId:     roomId,
 			ReceiverId: 0,
 			State:      0,
+			Date:       time.Now(),
 			UserId:     clientId,
 			Username:   username,
 		}

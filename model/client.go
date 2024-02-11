@@ -1,5 +1,9 @@
 package model
 
+import (
+	"time"
+)
+
 // from client to server
 const MessageReadAction = "message-read"
 const SendNewMessageAction = "send-new-message"
@@ -7,6 +11,7 @@ const SendNewMessageAction = "send-new-message"
 // from server to client
 const ReceiveNewMessageAction = "receive-new-message"
 const NewMessageSendResultAction = "new-message-send-result"
+const ReceiveMessageStateAction = "receive-message-state"
 
 // both way
 const SingleChatsListAction = "single-chats-list"
@@ -15,6 +20,7 @@ const SingleChatMessagesAction = "single-chat-messages"
 type ClientMessage struct {
 	Action          string               `json:"action,omitempty"`
 	NewMessage      NewMessage           `json:"newMessage,omitempty"`
+	MessageRead     *MessageRead         `json:"messageRead,omitempty"`
 	ChatMessagesReq GetSingleMessagesReq `json:"chatMessagesReq,omitempty"`
 	ChatsListReq    GetSingleChatListReq `json:"chatsListReq,omitempty"`
 }
@@ -23,6 +29,7 @@ type ChannelMessage struct {
 	Action               string                      `json:"action,omitempty"`
 	ReceiveNewMessage    *ReceiveNewMessage          `json:"receiveNewMessage,omitempty"`
 	NewMessageSendResult *NewMessageSendResult       `json:"newMessageSendResult,omitempty"`
+	MessageRead          *MessageRead                `json:"messageRead,omitempty"`
 	ChatMessagesReq      *GetSingleMessagesReq       `json:"chatMessagesReq,omitempty"`
 	ChatsListReq         *GetSingleChatListReq       `json:"chatsListReq,omitempty"`
 	ChatMessages         *[]MessageDataModel         `json:"chatMessages,omitempty"`
@@ -36,23 +43,39 @@ type NewMessage struct {
 	Content    string `json:"content"`
 	RoomId     int64  `json:"roomId"`
 	ReceiverId int64  `json:"receiverId"`
+	Uuid       string `json:"uuid"`
 }
 
 type ReceiveNewMessage struct {
-	Content    string `json:"content"`
-	RoomId     int64  `json:"roomId"`
-	ReceiverId int64  `json:"receiverId"`
-	State      int    `json:"state"`
-	UserId     int64  `json:"userId"`
-	Username   string `json:"username"`
+	Id         int64     `json:"id"`
+	Uuid       string    `json:"uuid"`
+	Content    string    `json:"content"`
+	RoomId     int64     `json:"roomId"`
+	ReceiverId int64     `json:"receiverId"`
+	State      int       `json:"state"`
+	Date       time.Time `json:"date"`
+	UserId     int64     `json:"userId"`
+	Username   string    `json:"username"`
 }
 
 type NewMessageSendResult struct {
-	RoomId       int64  `json:"roomId"`
-	ReceiverId   int64  `json:"receiverId"`
-	State        int    `json:"state"`
-	Code         int    `json:"code"`
-	ErrorMessage string `json:"errorMessage"`
+	Id           int64     `json:"id"`
+	Uuid         string    `json:"uuid"`
+	RoomId       int64     `json:"roomId"`
+	ReceiverId   int64     `json:"receiverId"`
+	State        int       `json:"state"`
+	Date         time.Time `json:"date"`
+	Code         int       `json:"code"`
+	ErrorMessage string    `json:"errorMessage"`
+}
+
+type MessageRead struct {
+	Id         int64     `json:"id"`
+	RoomId     int64     `json:"roomId"`
+	UserId     int64     `json:"userId"`
+	ReceiverId int64     `json:"receiverId"`
+	State      int       `json:"state"`
+	Date       time.Time `json:"date"`
 }
 
 //------------------------------------------
@@ -67,16 +90,19 @@ func CreateReceiveNewMessageAction(message *ReceiveNewMessage) *ChannelMessage {
 		ChatMessagesReq:      nil,
 		NewMessageSendResult: nil,
 		Chats:                nil,
+		MessageRead:          nil,
 	}
 }
 
-func CreateNewMessageSendResult(roomId int64, receiverId int64, state int, code int, err string) *ChannelMessage {
+func CreateNewMessageSendResult(id int64, uuid string, roomId int64, receiverId int64, date time.Time, state int, code int, err string) *ChannelMessage {
 	return &ChannelMessage{
 		Action: NewMessageSendResultAction,
 		NewMessageSendResult: &NewMessageSendResult{
-			//Id:       m.RoomId, //todo : need a way to understand which message failed/received on client side
+			Id:           id,
+			Uuid:         uuid,
 			RoomId:       roomId,
 			ReceiverId:   receiverId,
+			Date:         date,
 			State:        state,
 			Code:         code,
 			ErrorMessage: err,
@@ -86,6 +112,7 @@ func CreateNewMessageSendResult(roomId int64, receiverId int64, state int, code 
 		ChatMessagesReq:   nil,
 		ReceiveNewMessage: nil,
 		Chats:             nil,
+		MessageRead:       nil,
 	}
 }
 
@@ -98,6 +125,7 @@ func CreateGetChatMessagesAction(params *GetSingleMessagesReq) *ChannelMessage {
 		ReceiveNewMessage:    nil,
 		NewMessageSendResult: nil,
 		Chats:                nil,
+		MessageRead:          nil,
 	}
 }
 
@@ -110,6 +138,7 @@ func CreateReturnChatMessagesAction(messages *[]MessageDataModel) *ChannelMessag
 		ReceiveNewMessage:    nil,
 		NewMessageSendResult: nil,
 		Chats:                nil,
+		MessageRead:          nil,
 	}
 }
 
@@ -122,6 +151,7 @@ func CreateGetChatListAction(params *GetSingleChatListReq) *ChannelMessage {
 		ReceiveNewMessage:    nil,
 		NewMessageSendResult: nil,
 		Chats:                nil,
+		MessageRead:          nil,
 	}
 }
 
@@ -134,5 +164,30 @@ func CreateReturnChatListAction(messages *[]ChatsCompressedDataModel) *ChannelMe
 		ChatMessagesReq:      nil,
 		ReceiveNewMessage:    nil,
 		NewMessageSendResult: nil,
+		MessageRead:          nil,
+	}
+}
+
+func CreateMessageReadAction(id int64, roomId int64, userId int64, receiverId int64, date time.Time, state int, isServerToClientAction bool) *ChannelMessage {
+	action := MessageReadAction
+	if isServerToClientAction {
+		action = ReceiveMessageStateAction
+	}
+	return &ChannelMessage{
+		Action: action,
+		MessageRead: &MessageRead{
+			Id:         id,
+			RoomId:     roomId,
+			UserId:     userId,
+			ReceiverId: receiverId,
+			State:      state,
+			Date:       date,
+		},
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		ReceiveNewMessage:    nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
 	}
 }

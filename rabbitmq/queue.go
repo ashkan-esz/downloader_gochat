@@ -18,10 +18,12 @@ type IQueueBinder interface {
 }
 
 const (
-	SingleChatQueue      = "singleChat"
-	SingleChatBindingKey = "chat.single"
-	GroupChatQueue       = "groupChat"
-	GroupChatBindingKey  = "chat.group"
+	SingleChatQueue        = "singleChat"
+	SingleChatBindingKey   = "chat.single"
+	GroupChatQueue         = "groupChat"
+	GroupChatBindingKey    = "chat.group"
+	MessageStateQueue      = "messageState"
+	MessageStateBindingKey = "message.state"
 )
 
 func (r *rabbit) createQueuesAndBind() {
@@ -73,6 +75,29 @@ func (r *rabbit) createQueuesAndBind() {
 		log.Printf("error binding queue %s: %s\n", GroupChatQueue, err)
 	}
 
+	MessageStateConfig := ConfigQueue{
+		Name:       MessageStateQueue,
+		Durable:    true,
+		AutoDelete: false,
+		Exclusive:  false,
+		NoWait:     false,
+		Args:       nil,
+	}
+	_, err = r.CreateQueue(MessageStateConfig)
+	if err != nil {
+		log.Printf("error creating queue %s: %s\n", MessageStateQueue, err)
+	}
+
+	MessageStateBindConfig := ConfigBindQueue{
+		QueueName:  MessageStateQueue,
+		Exchange:   MessageStateExchange,
+		RoutingKey: MessageStateBindingKey,
+		NoWait:     false,
+	}
+	err = r.BindQueueExchange(MessageStateBindConfig)
+	if err != nil {
+		log.Printf("error binding queue %s: %s\n", MessageStateQueue, err)
+	}
 }
 
 // CreateQueue creates a queue

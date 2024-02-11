@@ -11,8 +11,10 @@ type ICreateExchange interface {
 }
 
 const (
-	ChatExchange     = "ChatExchange"
-	ChatExchangeType = "topic"
+	ChatExchange             = "ChatExchange"
+	ChatExchangeType         = "topic"
+	MessageStateExchange     = "MessageStateExchange"
+	MessageStateExchangeType = "direct"
 )
 
 func (r *rabbit) createExchanges() {
@@ -27,7 +29,21 @@ func (r *rabbit) createExchanges() {
 	}
 	err := r.CreateExchange(config)
 	if err != nil {
-		log.Printf("error creating queue: %s\n", err)
+		log.Printf("error creating exchange %v: %s\n", ChatExchange, err)
+	}
+
+	messageStateConfig := ConfigExchange{
+		Name:       MessageStateExchange,
+		Type:       MessageStateExchangeType,
+		Durable:    true,
+		AutoDelete: false,
+		Internal:   false,
+		NoWait:     false,
+		Args:       nil,
+	}
+	err = r.CreateExchange(messageStateConfig)
+	if err != nil {
+		log.Printf("error creating exchange %v: %s\n", MessageStateExchange, err)
 	}
 }
 
