@@ -12,6 +12,7 @@ const SendNewMessageAction = "send-new-message"
 const ReceiveNewMessageAction = "receive-new-message"
 const NewMessageSendResultAction = "new-message-send-result"
 const ReceiveMessageStateAction = "receive-message-state"
+const ErrorAction = "action-error"
 
 // both way
 const SingleChatsListAction = "single-chats-list"
@@ -34,6 +35,7 @@ type ChannelMessage struct {
 	ChatsListReq         *GetSingleChatListReq       `json:"chatsListReq,omitempty"`
 	ChatMessages         *[]MessageDataModel         `json:"chatMessages,omitempty"`
 	Chats                *[]ChatsCompressedDataModel `json:"chats,omitempty"`
+	ActionError          *ActionError                `json:"actionError,omitempty"`
 }
 
 //------------------------------------------
@@ -76,6 +78,13 @@ type MessageRead struct {
 	ReceiverId int64     `json:"receiverId"`
 	State      int       `json:"state"`
 	Date       time.Time `json:"date"`
+}
+
+type ActionError struct {
+	Action       string      `json:"action"`
+	ActionData   interface{} `json:"actionData"`
+	Code         int         `json:"code"`
+	ErrorMessage string      `json:"errorMessage"`
 }
 
 //------------------------------------------
@@ -189,5 +198,24 @@ func CreateMessageReadAction(id int64, roomId int64, userId int64, receiverId in
 		ReceiveNewMessage:    nil,
 		NewMessageSendResult: nil,
 		Chats:                nil,
+	}
+}
+
+func CreateActionError(code int, errorMessage string, action string, actionData interface{}) *ChannelMessage {
+	return &ChannelMessage{
+		Action: ErrorAction,
+		ActionError: &ActionError{
+			Action:       action,
+			ActionData:   actionData,
+			Code:         code,
+			ErrorMessage: errorMessage,
+		},
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		ReceiveNewMessage:    nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
+		MessageRead:          nil,
 	}
 }

@@ -7,7 +7,6 @@ import (
 	"downloader_gochat/rabbitmq"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"os"
 	"runtime/debug"
@@ -210,8 +209,10 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	case model.SingleChatMessagesAction:
 		chatMessages, err := wsSvc.wsRepo.GetSingleChatMessages(channelMessage.ChatMessagesReq)
 		if err != nil {
-			//todo : return error
-			fmt.Println(err.Error())
+			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatMessagesReq.UserId]; ok {
+				errorData := model.CreateActionError(500, err.Error(), model.SingleChatMessagesAction, channelMessage.ChatMessagesReq)
+				sender.Message <- errorData
+			}
 		} else {
 			m := model.CreateReturnChatMessagesAction(chatMessages)
 			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatMessagesReq.UserId]; ok {
@@ -221,8 +222,10 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	case model.SingleChatsListAction:
 		chatMessages, err := wsSvc.GetSingleChatList(channelMessage.ChatsListReq)
 		if err != nil {
-			//todo : return error
-			fmt.Println(err.Error())
+			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
+				errorData := model.CreateActionError(500, err.Error(), model.SingleChatsListAction, channelMessage.ChatsListReq)
+				sender.Message <- errorData
+			}
 		} else {
 			m := model.CreateReturnChatListAction(chatMessages)
 			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
@@ -255,9 +258,15 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			channelMessage.MessageRead.ReceiverId,
 			channelMessage.MessageRead.State)
 		if err != nil {
-			//todo : return error
-			//todo : handle message not found
-			fmt.Println(err.Error())
+			if messageReceiver, ok := wsSvc.hub.Clients[channelMessage.MessageRead.ReceiverId]; ok {
+				if err.Error() == "notfound" {
+					errorData := model.CreateActionError(404, "message not found", model.MessageReadAction, channelMessage.MessageRead)
+					messageReceiver.Message <- errorData
+				} else {
+					errorData := model.CreateActionError(500, err.Error(), model.MessageReadAction, channelMessage.MessageRead)
+					messageReceiver.Message <- errorData
+				}
+			}
 		} else {
 			if messageCreator, ok := wsSvc.hub.Clients[channelMessage.MessageRead.UserId]; ok {
 				message := model.CreateMessageReadAction(
