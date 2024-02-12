@@ -38,10 +38,6 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler) 
 	}
 
 	router.Get("/ws/addClient", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.AddClient)
-	router.Post("/ws/createRoom", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.CreateRoom)
-	router.Get("/ws/joinRoom/:roomId", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.JoinRoom)
-	router.Get("/ws/getRooms", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetRooms)
-	router.Get("/ws/getClients/:roomId", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetClients)
 	router.Get("/ws/singleChat/messages", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetSingleChatMessages)
 	router.Get("/ws/singleChat/list", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetSingleChatList)
 

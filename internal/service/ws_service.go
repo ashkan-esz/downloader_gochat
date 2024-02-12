@@ -7,6 +7,7 @@ import (
 	"downloader_gochat/rabbitmq"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log"
 	"os"
 	"runtime/debug"
@@ -21,11 +22,7 @@ import (
 )
 
 type IWsService interface {
-	AddClient(ctx *fasthttp.RequestCtx, userId int64, username string) error
-	CreateRoom(senderId int64, receiverId int64) (int64, error)
-	JoinRoom(ctx *fasthttp.RequestCtx, roomId int64, clientId int64, username string) error
-	GetRooms() (*[]model.RoomRes, error)
-	GetRoomClient(roomId int64) (*[]model.ClientRes, error)
+	AddClient(ctx *fasthttp.RequestCtx, userId int64, username string, deviceId string) error
 	GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error)
 	GetSingleChatList(params *model.GetSingleChatListReq) (*[]model.ChatsCompressedDataModel, error)
 }
@@ -106,10 +103,15 @@ type Room struct {
 }
 
 type Client struct {
+	Connections []*ClientConnection
+	Message     chan *model.ChannelMessage
+	UserId      int64  `json:"userId"`
+	Username    string `json:"username"`
+}
+
+type ClientConnection struct {
 	Conn     *websocket.Conn
-	Message  chan *model.ChannelMessage
-	UserId   int64  `json:"userId"`
-	Username string `json:"username"`
+	DeviceId string
 }
 
 //todo : need to limit parallel db operations
@@ -220,16 +222,18 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			}
 		}
 	case model.SingleChatsListAction:
-		chatMessages, err := wsSvc.GetSingleChatList(channelMessage.ChatsListReq)
-		if err != nil {
-			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
-				errorData := model.CreateActionError(500, err.Error(), model.SingleChatsListAction, channelMessage.ChatsListReq)
-				sender.Message <- errorData
-			}
-		} else {
-			m := model.CreateReturnChatListAction(chatMessages)
-			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
-				sender.Message <- m
+		if _, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
+			chatMessages, err := wsSvc.GetSingleChatList(channelMessage.ChatsListReq)
+			if err != nil {
+				if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
+					errorData := model.CreateActionError(500, err.Error(), model.SingleChatsListAction, channelMessage.ChatsListReq)
+					sender.Message <- errorData
+				}
+			} else {
+				m := model.CreateReturnChatListAction(chatMessages)
+				if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
+					sender.Message <- m
+				}
 			}
 		}
 	}
@@ -343,43 +347,66 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 	return err
 }
 
-func (c *Client) WriteMessage() {
+func (c *ClientConnection) WriteMessage(cc *Client) {
 	ticker := time.NewTicker(pingPeriod)
 	defer func() {
 		ticker.Stop()
 		c.Conn.Close()
+		cc.Connections = slices.DeleteFunc(cc.Connections, func(item *ClientConnection) bool {
+			return item.DeviceId == c.DeviceId
+		})
 	}()
 
 	for {
 		select {
-		case message, ok := <-c.Message:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
+		case message, ok := <-cc.Message:
 			if !ok {
+				c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
 				// The hub closed the channel.
 				c.Conn.WriteMessage(websocket.CloseMessage, []byte{})
 				return
 			}
 
-			err := c.Conn.WriteJSON(message)
-			if err != nil {
+			errorFlag := false
+			for i := range cc.Connections {
+				cc.Connections[i].Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				err := cc.Connections[i].Conn.WriteJSON(message)
+				if err != nil {
+					fmt.Printf("error on sending json to client: %v\n", err)
+					//return
+					errorFlag = true
+				}
+			}
+			if errorFlag {
 				return
 			}
 		case <-ticker.C:
-			c.Conn.SetWriteDeadline(time.Now().Add(writeWait))
-			if err := c.Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+			errorFlag := false
+			for i := range cc.Connections {
+				cc.Connections[i].Conn.SetWriteDeadline(time.Now().Add(writeWait))
+				if err := cc.Connections[i].Conn.WriteMessage(websocket.PingMessage, nil); err != nil {
+					return
+				}
+			}
+			if errorFlag {
 				return
 			}
 		}
 	}
 }
 
-func (c *Client) ReadMessage(hub *Hub, rabbit rabbitmq.RabbitMQ) {
+func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.RabbitMQ) {
 	defer func() {
 		//hub.UnRegister <- c  //it just offline, didnt left
 		c.Conn.Close()
-		delete(hub.Clients, c.UserId)
-		for _, room := range hub.Rooms {
-			delete(room.Clients, c.UserId)
+		cc.Connections = slices.DeleteFunc(cc.Connections, func(item *ClientConnection) bool {
+			return item.DeviceId == c.DeviceId
+		})
+		if len(cc.Connections) == 0 {
+			delete(hub.Clients, cc.UserId)
+			for _, room := range hub.Rooms {
+				delete(room.Clients, cc.UserId)
+			}
 		}
 	}()
 	c.Conn.SetReadLimit(maxMessageSize)
@@ -412,24 +439,24 @@ func (c *Client) ReadMessage(hub *Hub, rabbit rabbitmq.RabbitMQ) {
 				ReceiverId: clientMessage.NewMessage.ReceiverId,
 				Date:       time.Now(),
 				State:      1,
-				UserId:     c.UserId,
-				Username:   c.Username,
+				UserId:     cc.UserId,
+				Username:   cc.Username,
 			}
 			receiveMessage := model.CreateReceiveNewMessageAction(message)
 
 			if clientMessage.NewMessage.RoomId == -1 {
 				//one to one message
-				rabbit.Publish(ctx, receiveMessage, conf, c.UserId)
+				rabbit.Publish(ctx, receiveMessage, conf, cc.UserId)
 			} else {
 				//group/channel message
 				hub.Broadcast <- receiveMessage
 			}
 		case model.SingleChatMessagesAction:
 			message := model.CreateGetChatMessagesAction(&clientMessage.ChatMessagesReq)
-			rabbit.Publish(ctx, message, conf, c.UserId)
+			rabbit.Publish(ctx, message, conf, cc.UserId)
 		case model.SingleChatsListAction:
 			message := model.CreateGetChatListAction(&clientMessage.ChatsListReq)
-			rabbit.Publish(ctx, message, conf, c.UserId)
+			rabbit.Publish(ctx, message, conf, cc.UserId)
 		case model.MessageReadAction:
 			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
 			message := model.CreateMessageReadAction(
@@ -439,7 +466,7 @@ func (c *Client) ReadMessage(hub *Hub, rabbit rabbitmq.RabbitMQ) {
 				clientMessage.MessageRead.ReceiverId,
 				clientMessage.MessageRead.Date,
 				2, false)
-			rabbit.Publish(ctx, message, readQueueConf, c.UserId)
+			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
 		}
 
 	}
@@ -466,18 +493,29 @@ func (h *Hub) ReviveWebsocket(wsSvc *WsService) {
 //------------------------------------------
 //------------------------------------------
 
-func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username string) error {
+func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username string, deviceId string) error {
 	err := upgrader.Upgrade(ctx, func(conn *websocket.Conn) {
-		cl := &Client{
+		connection := &ClientConnection{
 			Conn:     conn,
-			Message:  make(chan *model.ChannelMessage, 10),
-			UserId:   userId,
-			Username: username,
+			DeviceId: deviceId,
 		}
 
-		w.hub.Clients[userId] = cl
+		client, ok := w.hub.Clients[userId]
+		if ok {
+			client.Connections = append(client.Connections, connection)
+		} else {
+			cl := &Client{
+				Connections: []*ClientConnection{connection},
+				Message:     make(chan *model.ChannelMessage, 10),
+				UserId:      userId,
+				Username:    username,
+			}
 
-		go cl.WriteMessage()
+			w.hub.Clients[userId] = cl
+			client = cl
+
+			go connection.WriteMessage(cl)
+		}
 
 		chatsListReq := &model.GetSingleChatListReq{
 			UserId:               userId,
@@ -489,91 +527,10 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 		conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.SingleChatBindingKey)
 		w.rabbitmq.Publish(ctx, message, conf, userId)
 
-		cl.ReadMessage(w.hub, w.rabbitmq)
+		connection.ReadMessage(client, w.hub, w.rabbitmq)
 	})
 
 	return err
-}
-
-func (w *WsService) CreateRoom(senderId int64, receiverId int64) (int64, error) {
-	roomId, err := w.wsRepo.CreateRoom(senderId, receiverId)
-	if err != nil {
-		return 0, err
-	}
-
-	room := &Room{
-		ID:      roomId,
-		Clients: make(map[int64]*Client),
-	}
-	room.Clients[senderId] = w.hub.Clients[senderId]
-	if cl, ok := w.hub.Clients[receiverId]; ok {
-		room.Clients[receiverId] = cl
-	}
-	w.hub.Rooms[roomId] = room
-
-	return roomId, nil
-}
-
-func (w *WsService) JoinRoom(ctx *fasthttp.RequestCtx, roomId int64, clientId int64, username string) error {
-	//this func if for group/channel which is not going to implement in this time.
-	if _, ok := w.hub.Rooms[roomId]; !ok {
-		return errors.New("not found")
-	}
-	err := upgrader.Upgrade(ctx, func(conn *websocket.Conn) {
-		cl := &Client{
-			Conn:     conn,
-			Message:  make(chan *model.ChannelMessage, 10),
-			UserId:   clientId,
-			Username: username,
-		}
-
-		message := &model.ReceiveNewMessage{
-			Id:         0,
-			Uuid:       uuid.NewString(),
-			Content:    "A new user has joined the room",
-			RoomId:     roomId,
-			ReceiverId: 0,
-			State:      0,
-			Date:       time.Now(),
-			UserId:     clientId,
-			Username:   username,
-		}
-		receiveMessage := model.CreateReceiveNewMessageAction(message)
-
-		// Register a new client through the register channel
-		w.hub.Register <- receiveMessage
-		// Broadcast that message
-		w.hub.Broadcast <- receiveMessage
-
-		go cl.WriteMessage()
-		cl.ReadMessage(w.hub, w.rabbitmq)
-	})
-
-	return err
-}
-
-func (w *WsService) GetRooms() (*[]model.RoomRes, error) {
-	rooms := make([]model.RoomRes, 0)
-
-	for _, r := range w.hub.Rooms {
-		rooms = append(rooms, model.RoomRes{ID: r.ID})
-	}
-
-	return &rooms, nil
-}
-
-func (w *WsService) GetRoomClient(roomId int64) (*[]model.ClientRes, error) {
-	var clients []model.ClientRes
-	if _, ok := w.hub.Rooms[roomId]; !ok {
-		clients = make([]model.ClientRes, 0)
-		return &clients, nil
-	}
-
-	for _, cl := range w.hub.Rooms[roomId].Clients {
-		clients = append(clients, model.ClientRes{ID: cl.UserId, Username: cl.Username})
-	}
-
-	return &clients, nil
 }
 
 func (w *WsService) GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error) {

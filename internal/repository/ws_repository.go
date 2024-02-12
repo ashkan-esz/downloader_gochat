@@ -14,7 +14,6 @@ import (
 
 type IWsRepository interface {
 	GetReceiverUser(userId int64) (*model.UserDataModel, error)
-	CreateRoom(senderId int64, receiverId int64) (int64, error)
 	SaveMessage(message *model.ReceiveNewMessage) (int64, error)
 	UpdateMessageState(mid int64, creatorId int64, receiverId int64, state int) (*model.MessageDataModel, error)
 	BatchUpdateMessageState(mid int64, roomId int64, creatorId int64, receiverId int64, state int) error
@@ -55,12 +54,6 @@ func (w *WsRepository) GetReceiverUser(userId int64) (*model.UserDataModel, erro
 
 //------------------------------------------
 //------------------------------------------
-
-func (w *WsRepository) CreateRoom(senderId int64, receiverId int64) (int64, error) {
-	//todo : handle when room already exist
-	//todo : check db, room exist, create room, return roomId
-	return 55, nil
-}
 
 func (w *WsRepository) SaveMessage(message *model.ReceiveNewMessage) (int64, error) {
 	m := model.Message{

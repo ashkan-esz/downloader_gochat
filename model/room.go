@@ -40,27 +40,6 @@ func (UserMessageRead) TableName() string {
 //---------------------------------------
 //---------------------------------------
 
-type CreateRoomReq struct {
-	SenderId   int64 `json:"senderId"`
-	ReceiverId int64 `json:"receiverId"`
-}
-
-type CreateRoomRes struct {
-	RoomId int64 `json:"roomId"`
-}
-
-type RoomRes struct {
-	ID int64 `json:"id"`
-}
-
-type ClientRes struct {
-	ID       int64  `json:"id"`
-	Username string `json:"username"`
-}
-
-//---------------------------------------
-//---------------------------------------
-
 type GetSingleMessagesReq struct {
 	UserId       int64     `json:"userId"`
 	ReceiverId   int64     `json:"receiverId"`
