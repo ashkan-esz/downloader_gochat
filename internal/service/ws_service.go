@@ -211,10 +211,13 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	case model.SingleChatMessagesAction:
 		chatMessages, err := wsSvc.wsRepo.GetSingleChatMessages(channelMessage.ChatMessagesReq)
 		if err != nil {
-			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatMessagesReq.UserId]; ok {
-				errorData := model.CreateActionError(500, err.Error(), model.SingleChatMessagesAction, channelMessage.ChatMessagesReq)
-				sender.Message <- errorData
+			if err = d.Nack(false, true); err != nil {
+				log.Printf("error nacking message: %s\n", err)
 			}
+			//if sender, ok := wsSvc.hub.Clients[channelMessage.ChatMessagesReq.UserId]; ok {
+			//	errorData := model.CreateActionError(500, err.Error(), model.SingleChatMessagesAction, channelMessage.ChatMessagesReq)
+			//	sender.Message <- errorData
+			//}
 		} else {
 			m := model.CreateReturnChatMessagesAction(chatMessages)
 			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatMessagesReq.UserId]; ok {
@@ -225,10 +228,13 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 		if _, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
 			chatMessages, err := wsSvc.GetSingleChatList(channelMessage.ChatsListReq)
 			if err != nil {
-				if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
-					errorData := model.CreateActionError(500, err.Error(), model.SingleChatsListAction, channelMessage.ChatsListReq)
-					sender.Message <- errorData
+				if err = d.Nack(false, true); err != nil {
+					log.Printf("error nacking message: %s\n", err)
 				}
+				//if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
+				//	errorData := model.CreateActionError(500, err.Error(), model.SingleChatsListAction, channelMessage.ChatsListReq)
+				//	sender.Message <- errorData
+				//}
 			} else {
 				m := model.CreateReturnChatListAction(chatMessages)
 				if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
@@ -267,8 +273,11 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 					errorData := model.CreateActionError(404, "message not found", model.MessageReadAction, channelMessage.MessageRead)
 					messageReceiver.Message <- errorData
 				} else {
-					errorData := model.CreateActionError(500, err.Error(), model.MessageReadAction, channelMessage.MessageRead)
-					messageReceiver.Message <- errorData
+					if err = d.Nack(false, true); err != nil {
+						log.Printf("error nacking message: %s\n", err)
+					}
+					//errorData := model.CreateActionError(500, err.Error(), model.MessageReadAction, channelMessage.MessageRead)
+					//messageReceiver.Message <- errorData
 				}
 			}
 		} else {

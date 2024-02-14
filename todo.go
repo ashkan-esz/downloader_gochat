@@ -14,6 +14,8 @@ package main
 
 //todo : send notification on new message
 
+//todo : generate blurHash
+
 //todo : handle chat message change in one device
 
 //todo : share lists, collections
