@@ -29,5 +29,3 @@ package main
 //todo : user online/offline status
 
 //todo : message notification
-
-//todo : handle count of unread messages per chat

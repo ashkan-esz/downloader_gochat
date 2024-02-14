@@ -549,8 +549,18 @@ func (w *WsService) GetSingleChatMessages(params *model.GetSingleMessagesReq) (*
 
 func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]model.ChatsCompressedDataModel, error) {
 	readTime := time.Now().UTC()
-	chats, profileImages, err := w.wsRepo.GetSingleChatList(params)
 
+	chats, profileImages, err := w.wsRepo.GetSingleChatList(params)
+	if err != nil {
+		return nil, err
+	}
+
+	creatorIds := make([]int64, 0)
+	for i := range chats {
+		creatorIds = append(creatorIds, chats[i].UserId)
+	}
+	creatorIds = slices.Compact(creatorIds)
+	counts, err := w.wsRepo.GetSingleChatsMessageCount(creatorIds, params.UserId, 1)
 	if err != nil {
 		return nil, err
 	}
@@ -589,6 +599,12 @@ func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]mo
 				Role:          chat.Role,
 				ProfileImages: filterProfileImages(profileImages, chat.UserId),
 				Messages:      []model.MessageDataModel{m},
+			}
+			for i := range counts {
+				if counts[i].CreatorId == cChat.UserId {
+					cChat.UnreadMessagesCount = counts[i].Count
+					break
+				}
 			}
 			compressedChats = append(compressedChats, cChat)
 		}

@@ -85,10 +85,19 @@ type ChatsDataModel struct {
 }
 
 type ChatsCompressedDataModel struct {
-	UserId        int64                   `json:"userId"`
-	Username      string                  `json:"username"`
-	PublicName    string                  `json:"publicName"`
-	Role          string                  `json:"role"`
-	ProfileImages []ProfileImageDataModel `json:"profileImages"`
-	Messages      []MessageDataModel      `json:"messages"`
+	UserId              int64                   `json:"userId"`
+	Username            string                  `json:"username"`
+	PublicName          string                  `json:"publicName"`
+	Role                string                  `json:"role"`
+	ProfileImages       []ProfileImageDataModel `json:"profileImages"`
+	Messages            []MessageDataModel      `json:"messages"`
+	UnreadMessagesCount int                     `json:"unreadMessagesCount"`
+}
+
+type MessagesCountDataModel struct {
+	Count      int    `gorm:"column:count;" json:"count"`
+	CreatorId  int64  `gorm:"column:creatorId;" json:"creatorId"`
+	ReceiverId int64  `gorm:"column:receiverId;" json:"receiverId"`
+	State      int    `gorm:"column:state;" json:"state"`
+	RoomId     *int64 `gorm:"column:roomId;" json:"roomId"`
 }

@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/lib/pq"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
@@ -21,6 +22,7 @@ type IWsRepository interface {
 	UpdateUserReadMessageTime(userId int64, readTime time.Time) error
 	GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error)
 	GetSingleChatList(params *model.GetSingleChatListReq) ([]model.ChatsDataModel, []model.ProfileImageDataModel, error)
+	GetSingleChatsMessageCount(creatorIds []int64, receiverId int64, messageState int) ([]model.MessagesCountDataModel, error)
 }
 
 type WsRepository struct {
@@ -254,4 +256,42 @@ func (w *WsRepository) GetSingleChatList(params *model.GetSingleChatListReq) ([]
 		return nil, profileImages, err
 	}
 	return chats, profileImages, nil
+}
+
+func (w *WsRepository) GetSingleChatsMessageCount(creatorIds []int64, receiverId int64, messageState int) ([]model.MessagesCountDataModel, error) {
+	var counts []model.MessagesCountDataModel
+
+	//SELECT COUNT(*), "creatorId", "receiverId", state, "roomId"
+	//FROM unnest(ARRAY [3,5]) as ttt
+	//JOIN LATERAL (
+	//SELECT *
+	//FROM "Message" t_all
+	//WHERE t_all."creatorId" = ttt and t_all."receiverId" = 4
+	//) as t_limited ON t_limited.state = 1 and t_limited."roomId" IS NULL
+	//GROUP BY "creatorId", "receiverId", state, "roomId";
+
+	queryStr := "SELECT COUNT(*), \"creatorId\", \"receiverId\", state, \"roomId\" " +
+		"FROM unnest( @creatorids ::int[]) as ttt " +
+		" JOIN LATERAL ( " +
+		" SELECT * FROM \"Message\" t_all " +
+		" WHERE t_all.\"creatorId\" = ttt and t_all.\"receiverId\" = @receiverid " +
+		" ) as t_limited ON t_limited.state = @messagestate and t_limited.\"roomId\" IS NULL " +
+		" GROUP BY \"creatorId\", \"receiverId\", state, \"roomId\";"
+
+	err := w.db.Raw(queryStr,
+		map[string]interface{}{
+			"creatorids":   pq.Array(creatorIds),
+			"receiverid":   receiverId,
+			"messagestate": messageState,
+		}).
+		Scan(&counts).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			t := make([]model.MessagesCountDataModel, 0)
+			return t, nil
+		}
+		return nil, err
+	}
+	return counts, nil
 }
