@@ -15,6 +15,8 @@ const (
 	ChatExchangeType         = "topic"
 	MessageStateExchange     = "MessageStateExchange"
 	MessageStateExchangeType = "direct"
+	NotificationExchange     = "NotificationExchange"
+	NotificationExchangeType = "direct"
 )
 
 func (r *rabbit) createExchanges() {
@@ -44,6 +46,20 @@ func (r *rabbit) createExchanges() {
 	err = r.CreateExchange(messageStateConfig)
 	if err != nil {
 		log.Printf("error creating exchange %v: %s\n", MessageStateExchange, err)
+	}
+
+	notificationConfig := ConfigExchange{
+		Name:       NotificationExchange,
+		Type:       NotificationExchangeType,
+		Durable:    true,
+		AutoDelete: false,
+		Internal:   false,
+		NoWait:     false,
+		Args:       nil,
+	}
+	err = r.CreateExchange(notificationConfig)
+	if err != nil {
+		log.Printf("error creating exchange %v: %s\n", NotificationExchange, err)
 	}
 }
 

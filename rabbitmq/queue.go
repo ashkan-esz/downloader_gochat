@@ -24,6 +24,8 @@ const (
 	GroupChatBindingKey    = "chat.group"
 	MessageStateQueue      = "messageState"
 	MessageStateBindingKey = "message.state"
+	NotificationQueue      = "notification"
+	NotificationBindingKey = "notification"
 )
 
 func (r *rabbit) createQueuesAndBind() {
@@ -97,6 +99,30 @@ func (r *rabbit) createQueuesAndBind() {
 	err = r.BindQueueExchange(MessageStateBindConfig)
 	if err != nil {
 		log.Printf("error binding queue %s: %s\n", MessageStateQueue, err)
+	}
+
+	NotificationConfig := ConfigQueue{
+		Name:       NotificationQueue,
+		Durable:    true,
+		AutoDelete: false,
+		Exclusive:  false,
+		NoWait:     false,
+		Args:       nil,
+	}
+	_, err = r.CreateQueue(NotificationConfig)
+	if err != nil {
+		log.Printf("error creating queue %s: %s\n", NotificationQueue, err)
+	}
+
+	NotificationBindConfig := ConfigBindQueue{
+		QueueName:  NotificationQueue,
+		Exchange:   NotificationExchange,
+		RoutingKey: NotificationBindingKey,
+		NoWait:     false,
+	}
+	err = r.BindQueueExchange(NotificationBindConfig)
+	if err != nil {
+		log.Printf("error binding queue %s: %s\n", NotificationQueue, err)
 	}
 }
 
