@@ -12,20 +12,24 @@ package main
 
 //todo : handle device fingerprint on auth apis
 
-//todo : send notification on new message
-
 //todo : generate blurHash
-
-//todo : handle chat message change in one device
 
 //todo : share lists, collections
 //todo : share movie
 //todo : security
-//todo : notifications
-//todo : media uploads
 
 //todo : handle follower/following
 //todo : handle auth for message apis
 //todo : user online/offline status
 
-//todo : message notification
+//todo : load media limits from db
+//todo : media uploads
+
+//todo : how to send push-notification
+//todo : consider notification-settings of notification receiver in consumer
+//todo : limit the number of notification saved
+//todo : handle seen/unseen or new notifications
+//todo : handler to get notifications
+//todo : save notifications into db
+//todo : handle notification types: new-message, new-follower
+//todo : add new queue/consumer for notifications

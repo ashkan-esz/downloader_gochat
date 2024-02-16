@@ -21,6 +21,10 @@ type IUserService interface {
 	LoginUser(loginVM *model.LoginViewModel, ip string) (*model.UserViewModel, error)
 	GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool, ip string) (*model.UserViewModel, *util.TokenDetail, error)
 	LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRefreshToken string) error
+	FollowUser(jwtUserData *util.MyJwtClaims, followId int64) error
+	UnFollowUser(jwtUserData *util.MyJwtClaims, followId int64) error
+	GetUserFollowers(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
+	GetUserFollowings(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
 }
 
 type UserService struct {
@@ -223,4 +227,27 @@ func (s *UserService) LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRe
 	}
 
 	return nil
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (s *UserService) FollowUser(jwtUserData *util.MyJwtClaims, followId int64) error {
+	err := s.userRepo.AddUserFollow(jwtUserData.UserId, followId)
+	return err
+}
+
+func (s *UserService) UnFollowUser(jwtUserData *util.MyJwtClaims, followId int64) error {
+	err := s.userRepo.RemoveUserFollow(jwtUserData.UserId, followId)
+	return err
+}
+
+func (s *UserService) GetUserFollowers(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error) {
+	result, err := s.userRepo.GetUserFollowers(userId, skip, limit)
+	return result, err
+}
+
+func (s *UserService) GetUserFollowings(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error) {
+	result, err := s.userRepo.GetUserFollowings(userId, skip, limit)
+	return result, err
 }

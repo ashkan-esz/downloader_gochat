@@ -13,6 +13,23 @@ definitions:
       os:
         type: string
     type: object
+  model.FollowUserDataModel:
+    properties:
+      bio:
+        type: string
+      profileImages:
+        items:
+          $ref: '#/definitions/model.ProfileImage'
+        type: array
+      publicName:
+        type: string
+      rawUsername:
+        type: string
+      userId:
+        type: integer
+      username:
+        type: string
+    type: object
   model.LoginViewModel:
     properties:
       deviceInfo:
@@ -106,6 +123,119 @@ paths:
       summary: Show the status of server.
       tags:
       - root
+  /v1/user/follow/:followId:
+    post:
+      description: add new user to following list`
+      parameters:
+      - description: id on the user want to follow
+        in: path
+        name: followId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserViewModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Follow user
+      tags:
+      - User
+  /v1/user/followers/:userId:/:skip/:limit:
+    get:
+      description: get user followers
+      parameters:
+      - description: id of user
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: skip
+        in: path
+        name: skip
+        required: true
+        type: integer
+      - description: limit
+        in: path
+        name: limit
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.FollowUserDataModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Followers
+      tags:
+      - User
+  /v1/user/followings/:userId:/:skip/:limit:
+    get:
+      description: get user followings
+      parameters:
+      - description: id of user
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: skip
+        in: path
+        name: skip
+        required: true
+        type: integer
+      - description: limit
+        in: path
+        name: limit
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.FollowUserDataModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Followings
+      tags:
+      - User
   /v1/user/getToken:
     put:
       description: Get new Tokens, also return `refreshToken`
@@ -219,6 +349,37 @@ paths:
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
       summary: Register a new user
+      tags:
+      - User
+  /v1/user/unfollow/:followId:
+    delete:
+      description: remove user from following list`
+      parameters:
+      - description: id on the user want to follow
+        in: path
+        name: followId
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserViewModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: unFollow user
       tags:
       - User
 schemes:

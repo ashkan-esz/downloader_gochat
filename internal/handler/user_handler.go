@@ -19,6 +19,10 @@ type IUserHandler interface {
 	Login(c *fiber.Ctx) error
 	GetToken(c *fiber.Ctx) error
 	LogOut(c *fiber.Ctx) error
+	FollowUser(c *fiber.Ctx) error
+	UnFollowUser(c *fiber.Ctx) error
+	GetUserFollowers(c *fiber.Ctx) error
+	GetUserFollowings(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -248,4 +252,131 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 	})
 
 	return response.ResponseOK(c, "")
+}
+
+//------------------------------------------
+//------------------------------------------
+
+// FollowUser godoc
+//
+//	@Summary		Follow user
+//	@Description	add new user to following list`
+//	@Tags			User
+//	@Param			followId		path		integer				true   "id on the user want to follow"
+//	@Success		200				{object}	model.UserViewModel
+//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/follow/:followId [post]
+func (h *UserHandler) FollowUser(c *fiber.Ctx) error {
+	followId, err := c.ParamsInt("followId", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err = h.userService.FollowUser(jwtUserData, int64(followId))
+	if err != nil {
+		if errors.Is(err, gorm.ErrForeignKeyViolated) {
+			return response.ResponseError(c, response.UserNotFound, fiber.StatusNotFound)
+		} else if err.Error() == "duplicated key not allowed" {
+			return response.ResponseError(c, response.AlreadyFollowed, fiber.StatusConflict)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	return response.ResponseOK(c, "")
+}
+
+// UnFollowUser godoc
+//
+//	@Summary		unFollow user
+//	@Description	remove user from following list`
+//	@Tags			User
+//	@Param			followId		path		integer				true   "id on the user want to follow"
+//	@Success		200				{object}	model.UserViewModel
+//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/unfollow/:followId [delete]
+func (h *UserHandler) UnFollowUser(c *fiber.Ctx) error {
+	followId, err := c.ParamsInt("followId", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err = h.userService.UnFollowUser(jwtUserData, int64(followId))
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.UserNotFound, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	return response.ResponseOK(c, "")
+}
+
+// GetUserFollowers godoc
+//
+//	@Summary		Followers
+//	@Description	get user followers
+//	@Tags			User
+//	@Param			userId		path		integer				true   "id of user"
+//	@Param			skip		path		integer				true   "skip"
+//	@Param			limit		path		integer				true   "limit"
+//	@Success		200				{object}	model.FollowUserDataModel
+//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/followers/:userId:/:skip/:limit [get]
+func (h *UserHandler) GetUserFollowers(c *fiber.Ctx) error {
+	userId, err := c.ParamsInt("userId", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	skip, err := c.ParamsInt("skip", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	limit, err := c.ParamsInt("limit", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+
+	result, err := h.userService.GetUserFollowers(int64(userId), skip, limit)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOKWithData(c, result)
+}
+
+// GetUserFollowings godoc
+//
+//	@Summary		Followings
+//	@Description	get user followings
+//	@Tags			User
+//	@Param			userId		path		integer				true   "id of user"
+//	@Param			skip		path		integer				true   "skip"
+//	@Param			limit		path		integer				true   "limit"
+//	@Success		200				{object}	model.FollowUserDataModel
+//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/followings/:userId:/:skip/:limit [get]
+func (h *UserHandler) GetUserFollowings(c *fiber.Ctx) error {
+	userId, err := c.ParamsInt("userId", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	skip, err := c.ParamsInt("skip", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	limit, err := c.ParamsInt("limit", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+
+	result, err := h.userService.GetUserFollowings(int64(userId), skip, limit)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOKWithData(c, result)
 }

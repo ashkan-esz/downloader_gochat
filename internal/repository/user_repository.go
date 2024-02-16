@@ -23,6 +23,10 @@ type IUserRepository interface {
 	GetUserActiveSessions(userId int64) ([]model.ActiveSession, error)
 	RemoveSession(userId int64, prevRefreshToken string) error
 	RemoveSessions(userId int64, prevRefreshTokens []string) error
+	AddUserFollow(userId int64, followId int64) error
+	RemoveUserFollow(userId int64, followId int64) error
+	GetUserFollowers(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
+	GetUserFollowings(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
 }
 
 type UserRepository struct {
@@ -236,4 +240,51 @@ func (r *UserRepository) RemoveSessions(userId int64, prevRefreshTokens []string
 		return err
 	}
 	return nil
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (r *UserRepository) AddUserFollow(userId int64, followId int64) error {
+	follow := model.Follow{
+		FollowerId:  userId,
+		FollowingId: followId,
+		AddDate:     time.Now().UTC(),
+	}
+
+	err := r.db.Create(&follow).Error
+	return err
+}
+
+func (r *UserRepository) RemoveUserFollow(userId int64, followId int64) error {
+	err := r.db.Debug().Where("\"followerId\" = ? AND \"followingId\" = ?", userId, followId).Delete(&model.Follow{}).Error
+	return err
+}
+
+func (r *UserRepository) GetUserFollowers(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error) {
+	var result []model.FollowUserDataModel
+	err := r.db.Debug().Model(&model.User{}).Joins("join \"Follow\" on \"userId\" = \"followerId\" AND \"followingId\" = ? ", userId).
+		Order("\"addDate\" desc").
+		Offset(skip).
+		Limit(limit).
+		Preload("ProfileImages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("\"addDate\" DESC")
+		}).
+		Find(&result).Error
+
+	return result, err
+}
+
+func (r *UserRepository) GetUserFollowings(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error) {
+	var result []model.FollowUserDataModel
+	err := r.db.Model(&model.User{}).Joins("join \"Follow\" on \"userId\" = \"followingId\" AND \"followerId\" = ? ", userId).
+		Order("\"addDate\" desc").
+		Offset(skip).
+		Limit(limit).
+		Preload("ProfileImages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("\"addDate\" DESC")
+		}).
+		Find(&result).Error
+
+	return result, err
 }
