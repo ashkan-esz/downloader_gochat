@@ -121,6 +121,12 @@ type UserWithImageDataModel struct {
 	ProfileImages []ProfileImage `db:"profileImages" gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"profileImages"`
 }
 
+type UserMetaDataModel struct {
+	UserId     int64  `db:"userId" gorm:"column:userId" json:"userId"`
+	Username   string `db:"username" gorm:"column:username" json:"username"`
+	PublicName string `db:"publicName" gorm:"column:publicName" json:"publicName"`
+}
+
 //---------------------------------------
 //---------------------------------------
 

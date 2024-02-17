@@ -34,6 +34,14 @@ type WsService struct {
 	hub      *Hub
 }
 
+const (
+	userMessageConsumerCount  = 10
+	groupMessageConsumerCount = 1
+	messageStateConsumerCount = 3
+)
+
+var globalHub *Hub
+
 func NewWsService(WsRepo repository.IWsRepository, rabbit rabbitmq.RabbitMQ) *WsService {
 	wsSvc := WsService{
 		wsRepo:   WsRepo,
@@ -41,9 +49,10 @@ func NewWsService(WsRepo repository.IWsRepository, rabbit rabbitmq.RabbitMQ) *Ws
 		timeout:  time.Duration(2) * time.Second,
 		hub:      NewHub(),
 	}
+	globalHub = wsSvc.hub
 
 	config := rabbitmq.NewConfigConsume(rabbitmq.SingleChatQueue, "")
-	for i := 0; i < 10; i++ {
+	for i := 0; i < userMessageConsumerCount; i++ {
 		ctx, _ := context.WithCancel(context.Background())
 		go func() {
 			openConChan := make(chan struct{})
@@ -60,7 +69,7 @@ func NewWsService(WsRepo repository.IWsRepository, rabbit rabbitmq.RabbitMQ) *Ws
 	}
 
 	groupConfig := rabbitmq.NewConfigConsume(rabbitmq.GroupChatQueue, "")
-	for i := 0; i < 1; i++ {
+	for i := 0; i < groupMessageConsumerCount; i++ {
 		ctx, _ := context.WithCancel(context.Background())
 		go func() {
 			openConChan := make(chan struct{})
@@ -73,7 +82,7 @@ func NewWsService(WsRepo repository.IWsRepository, rabbit rabbitmq.RabbitMQ) *Ws
 	}
 
 	messageStateConfig := rabbitmq.NewConfigConsume(rabbitmq.MessageStateQueue, "")
-	for i := 0; i < 3; i++ {
+	for i := 0; i < messageStateConsumerCount; i++ {
 		ctx, _ := context.WithCancel(context.Background())
 		go func() {
 			openConChan := make(chan struct{})
@@ -124,6 +133,11 @@ func NewHub() *Hub {
 		UnRegister: make(chan *model.ChannelMessage),
 		Broadcast:  make(chan *model.ChannelMessage, 5),
 	}
+}
+
+func getClientFromHub(userId int64) (*Client, bool) {
+	cl, ok := globalHub.Clients[userId]
+	return cl, ok
 }
 
 //------------------------------------------
@@ -292,7 +306,6 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				messageCreator.Message <- message
 			}
 		}
-		//case model.ReceiveMessageStateAction:
 	}
 
 	if err = d.Ack(false); err != nil {
@@ -340,6 +353,17 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 			receiveNewMessage.Id = mid
 			receiveMessage := model.CreateReceiveNewMessageAction(receiveNewMessage)
 			cl.Message <- receiveMessage
+
+			//todo : only need the last message in each chat, save in queue or db ?
+			//todo : maybe dont need to put in to queue
+			// todo :
+			//// send notification to followed user
+			//ctx, _ := context.WithCancel(context.Background())
+			////defer cancel()
+			//readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.NotificationExchange, rabbitmq.NotificationBindingKey)
+			//message := model.CreateNewMessageNotificationAction(receiveNewMessage.UserId, receiveNewMessage.ReceiverId)
+			//wsSvc.rabbitmq.Publish(ctx, message, readQueueConf, receiveNewMessage.ReceiverId)
+
 			messageSendResult := model.CreateNewMessageSendResult(
 				mid,
 				receiveNewMessage.Uuid,

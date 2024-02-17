@@ -39,6 +39,25 @@ definitions:
       username_email:
         type: string
     type: object
+  model.NotificationDataModel:
+    properties:
+      creatorId:
+        type: integer
+      date:
+        type: string
+      entityId:
+        type: integer
+      entityTypeId:
+        type: integer
+      id:
+        type: integer
+      message:
+        type: string
+      receiverId:
+        type: integer
+      status:
+        type: integer
+    type: object
   model.ProfileImage:
     properties:
       addDate:
@@ -154,7 +173,7 @@ paths:
       summary: Follow user
       tags:
       - User
-  /v1/user/followers/:userId:/:skip/:limit:
+  /v1/user/followers/:userId/:skip/:limit:
     get:
       description: get user followers
       parameters:
@@ -195,7 +214,7 @@ paths:
       summary: Followers
       tags:
       - User
-  /v1/user/followings/:userId:/:skip/:limit:
+  /v1/user/followings/:userId/:skip/:limit:
     get:
       description: get user followings
       parameters:
@@ -320,6 +339,52 @@ paths:
       security:
       - BearerAuth: []
       summary: Logout
+      tags:
+      - User
+  /v1/user/notifications/:skip/:limit:
+    get:
+      description: get user followers/followings events
+      parameters:
+      - description: skip
+        in: path
+        name: skip
+        required: true
+        type: integer
+      - description: limit
+        in: path
+        name: limit
+        required: true
+        type: integer
+      - description: entityTypeId
+        in: query
+        name: entityTypeId
+        required: true
+        type: integer
+      - description: status
+        in: query
+        name: status
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.NotificationDataModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Follow events
       tags:
       - User
   /v1/user/signup:

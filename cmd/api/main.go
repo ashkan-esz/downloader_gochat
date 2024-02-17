@@ -56,13 +56,17 @@ func main() {
 	defer cancel()
 
 	userRep := repository.NewUserRepository(dbConn.GetDB(), mongoDB.GetDB())
-	userSvc := service.NewUserService(userRep)
+	userSvc := service.NewUserService(userRep, rabbit)
 	userHandler := handler.NewUserHandler(userSvc)
 
 	wsRep := repository.NewWsRepository(dbConn.GetDB(), mongoDB.GetDB())
 	wsSvc := service.NewWsService(wsRep, rabbit)
 	wsHandler := handler.NewWsHandler(wsSvc)
 
-	api.InitRouter(userHandler, wsHandler)
+	notifRep := repository.NewNotificationRepository(dbConn.GetDB(), mongoDB.GetDB())
+	notifSvc := service.NewNotificationService(notifRep, rabbit)
+	notifHandler := handler.NewNotificationHandler(notifSvc)
+
+	api.InitRouter(userHandler, wsHandler, notifHandler)
 	api.Start("0.0.0.0:8080")
 }

@@ -1,12 +1,14 @@
 package service
 
 import (
+	"context"
 	"downloader_gochat/configs"
 	"downloader_gochat/db/redis"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
 	"downloader_gochat/pkg/email"
 	"downloader_gochat/pkg/geoip"
+	"downloader_gochat/rabbitmq"
 	"downloader_gochat/util"
 	"strconv"
 	"strings"
@@ -29,12 +31,14 @@ type IUserService interface {
 
 type UserService struct {
 	userRepo repository.IUserRepository
+	rabbitmq rabbitmq.RabbitMQ
 	timeout  time.Duration
 }
 
-func NewUserService(userRepo repository.IUserRepository) *UserService {
+func NewUserService(userRepo repository.IUserRepository, rabbit rabbitmq.RabbitMQ) *UserService {
 	return &UserService{
 		userRepo: userRepo,
+		rabbitmq: rabbit,
 		timeout:  time.Duration(2) * time.Second,
 	}
 }
@@ -234,6 +238,14 @@ func (s *UserService) LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRe
 
 func (s *UserService) FollowUser(jwtUserData *util.MyJwtClaims, followId int64) error {
 	err := s.userRepo.AddUserFollow(jwtUserData.UserId, followId)
+	if err == nil {
+		// send notification to followed user
+		ctx, _ := context.WithCancel(context.Background())
+		//defer cancel()
+		readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.NotificationExchange, rabbitmq.NotificationBindingKey)
+		message := model.CreateFollowNotificationAction(jwtUserData.UserId, followId)
+		s.rabbitmq.Publish(ctx, message, readQueueConf, followId)
+	}
 	return err
 }
 

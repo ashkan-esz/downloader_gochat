@@ -19,7 +19,7 @@ import (
 
 var router *fiber.App
 
-func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler) {
+func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, notifHandler *handler.NotificationHandler) {
 	router = fiber.New()
 
 	router.Use(helmet.New())
@@ -39,11 +39,17 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler) 
 		userRoutes.Delete("/unfollow/:followId", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UnFollowUser)
 		userRoutes.Get("/followers/:userId/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetUserFollowers)
 		userRoutes.Get("/followings/:userId/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetUserFollowings)
+		userRoutes.Get("/notifications/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.GetUserNotifications)
 	}
 
-	router.Get("/ws/addClient", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.AddClient)
-	router.Get("/ws/singleChat/messages", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetSingleChatMessages)
-	router.Get("/ws/singleChat/list", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetSingleChatList)
+	//todo :
+	//router.Get("/ws/addClient", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.AddClient)
+	//router.Get("/ws/singleChat/messages", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetSingleChatMessages)
+	//router.Get("/ws/singleChat/list", middleware.CORSMiddleware, middleware.AuthMiddleware, wsHandler.GetSingleChatList)
+
+	router.Get("/ws/addClient", middleware.CORSMiddleware, wsHandler.AddClient)
+	router.Get("/ws/singleChat/messages", middleware.CORSMiddleware, wsHandler.GetSingleChatMessages)
+	router.Get("/ws/singleChat/list", middleware.CORSMiddleware, wsHandler.GetSingleChatList)
 
 	router.Get("/", HealthCheck)
 	router.Get("/metrics", monitor.New())

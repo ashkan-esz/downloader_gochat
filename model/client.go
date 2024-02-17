@@ -13,6 +13,8 @@ const ReceiveNewMessageAction = "receive-new-message"
 const NewMessageSendResultAction = "new-message-send-result"
 const ReceiveMessageStateAction = "receive-message-state"
 const ErrorAction = "action-error"
+const FollowNotifAction = "new-follow-notification"
+const NewMessageNotifAction = "new-message-notification"
 
 // both way
 const SingleChatsListAction = "single-chats-list"
@@ -36,6 +38,7 @@ type ChannelMessage struct {
 	ChatMessages         *[]MessageDataModel         `json:"chatMessages,omitempty"`
 	Chats                *[]ChatsCompressedDataModel `json:"chats,omitempty"`
 	ActionError          *ActionError                `json:"actionError,omitempty"`
+	NotificationData     *NotificationDataModel      `json:"notificationData,omitempty"`
 }
 
 //------------------------------------------
@@ -217,5 +220,44 @@ func CreateActionError(code int, errorMessage string, action string, actionData 
 		NewMessageSendResult: nil,
 		Chats:                nil,
 		MessageRead:          nil,
+	}
+}
+
+func CreateFollowNotificationAction(userId int64, followId int64) *ChannelMessage {
+	return &ChannelMessage{
+		Action: FollowNotifAction,
+		NotificationData: &NotificationDataModel{
+			Id:           0,
+			CreatorId:    userId,
+			ReceiverId:   followId,
+			Date:         time.Now(),
+			Status:       1,
+			EntityId:     userId,
+			EntityTypeId: FollowNotificationTypeId,
+			Message:      "",
+		},
+		ReceiveNewMessage:    nil,
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
+		MessageRead:          nil,
+		ActionError:          nil,
+	}
+}
+
+func CreateNewMessageNotificationAction(message *ReceiveNewMessage) *ChannelMessage {
+	//todo : implement
+	return &ChannelMessage{
+		Action:               NewMessageNotifAction,
+		ReceiveNewMessage:    message,
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
+		MessageRead:          nil,
+		ActionError:          nil,
 	}
 }

@@ -23,6 +23,7 @@ type IUserHandler interface {
 	UnFollowUser(c *fiber.Ctx) error
 	GetUserFollowers(c *fiber.Ctx) error
 	GetUserFollowings(c *fiber.Ctx) error
+	GetUserNotifications(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -326,7 +327,7 @@ func (h *UserHandler) UnFollowUser(c *fiber.Ctx) error {
 //	@Success		200				{object}	model.FollowUserDataModel
 //	@Failure		400,401,404			{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
-//	@Router			/v1/user/followers/:userId:/:skip/:limit [get]
+//	@Router			/v1/user/followers/:userId/:skip/:limit [get]
 func (h *UserHandler) GetUserFollowers(c *fiber.Ctx) error {
 	userId, err := c.ParamsInt("userId", 0)
 	if err != nil {
@@ -359,7 +360,7 @@ func (h *UserHandler) GetUserFollowers(c *fiber.Ctx) error {
 //	@Success		200				{object}	model.FollowUserDataModel
 //	@Failure		400,401,404			{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
-//	@Router			/v1/user/followings/:userId:/:skip/:limit [get]
+//	@Router			/v1/user/followings/:userId/:skip/:limit [get]
 func (h *UserHandler) GetUserFollowings(c *fiber.Ctx) error {
 	userId, err := c.ParamsInt("userId", 0)
 	if err != nil {

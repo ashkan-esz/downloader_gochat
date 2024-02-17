@@ -91,7 +91,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/user/followers/:userId:/:skip/:limit": {
+        "/v1/user/followers/:userId/:skip/:limit": {
             "get": {
                 "security": [
                     {
@@ -154,7 +154,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/user/followings/:userId:/:skip/:limit": {
+        "/v1/user/followings/:userId/:skip/:limit": {
             "get": {
                 "security": [
                     {
@@ -348,6 +348,76 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/user/notifications/:skip/:limit": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "get user followers/followings events",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Follow events",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "skip",
+                        "name": "skip",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "limit",
+                        "name": "limit",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "entityTypeId",
+                        "name": "entityTypeId",
+                        "in": "query",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "status",
+                        "name": "status",
+                        "in": "query",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.NotificationDataModel"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/signup": {
             "post": {
                 "description": "Register a new user with the provided credentials\nDevice detection can be improved on client side with adding 'deviceInfo.fingerprint'",
@@ -497,6 +567,35 @@ const docTemplate = `{
                 },
                 "username_email": {
                     "type": "string"
+                }
+            }
+        },
+        "model.NotificationDataModel": {
+            "type": "object",
+            "properties": {
+                "creatorId": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "entityId": {
+                    "type": "integer"
+                },
+                "entityTypeId": {
+                    "type": "integer"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "message": {
+                    "type": "string"
+                },
+                "receiverId": {
+                    "type": "integer"
+                },
+                "status": {
+                    "type": "integer"
                 }
             }
         },
