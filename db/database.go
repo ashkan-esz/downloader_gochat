@@ -95,6 +95,11 @@ func (d *Database) AutoMigrate() {
 	if err != nil {
 		log.Printf("error on AutoMigrate: %v\n", err)
 	}
+
+	err = d.db.Model(&model.NotificationEntityType{}).CreateInBatches(model.NotificationEntityTypesAndId, 10).Error
+	if err != nil {
+		log.Printf("error on Inserting Notification entity types: %v\n", err)
+	}
 }
 
 func (d *Database) Close() {
