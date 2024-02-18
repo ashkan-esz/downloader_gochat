@@ -4,26 +4,29 @@ import (
 	"log"
 	"os"
 	"strconv"
+	"strings"
 
 	"github.com/joho/godotenv"
 )
 
 type ConfigStruct struct {
-	DbUrl                 string
-	AccessTokenSecret     string
-	RefreshTokenSecret    string
-	MigrateOnStart        bool
-	DefaultProfileImage   string
-	AccessTokenExpireHour int
-	RefreshTokenExpireDay int
-	ActiveSessionsLimit   int
-	RedisUrl              string
-	RedisPassword         string
-	MongodbDatabaseUrl    string
-	MongodbDatabaseName   string
-	AgendaJobsCollection  string
-	MainServerAddress     string
-	RabbitMqUrl           string
+	DbUrl                     string
+	AccessTokenSecret         string
+	RefreshTokenSecret        string
+	MigrateOnStart            bool
+	DefaultProfileImage       string
+	AccessTokenExpireHour     int
+	RefreshTokenExpireDay     int
+	ActiveSessionsLimit       int
+	WaitForRedisConnectionSec int
+	RedisUrl                  string
+	RedisPassword             string
+	MongodbDatabaseUrl        string
+	MongodbDatabaseName       string
+	AgendaJobsCollection      string
+	MainServerAddress         string
+	RabbitMqUrl               string
+	CorsAllowedOrigins        []string
 }
 
 var configs = ConfigStruct{}
@@ -54,6 +57,11 @@ func LoadEnvVariables() {
 		configs.ActiveSessionsLimit = 5
 	} else {
 		configs.ActiveSessionsLimit = sessionLimit
+	}
+	configs.WaitForRedisConnectionSec, err = strconv.Atoi(os.Getenv("WAIT_REDIS_CONNECTION_SEC"))
+	configs.CorsAllowedOrigins = strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), "---")
+	for i := range configs.CorsAllowedOrigins {
+		configs.CorsAllowedOrigins[i] = strings.TrimSpace(configs.CorsAllowedOrigins[i])
 	}
 	configs.AccessTokenExpireHour = 1
 	configs.RefreshTokenExpireDay = 180

@@ -144,7 +144,7 @@ func getClientFromHub(userId int64) (*Client, bool) {
 //------------------------------------------
 
 func (h *Hub) RunGroupHandler() {
-	//todo : use rabbitmq
+	//Note : use rabbitmq
 
 	for {
 		select {

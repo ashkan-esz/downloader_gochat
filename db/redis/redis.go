@@ -12,7 +12,7 @@ import (
 var redisClient *redis.Client
 
 func ConnectRedis() {
-	time.Sleep(5 * time.Second)
+	time.Sleep(time.Duration(configs.GetConfigs().WaitForRedisConnectionSec) * time.Second)
 	redisClient = redis.NewClient(&redis.Options{
 		Addr:     configs.GetConfigs().RedisUrl,
 		Password: configs.GetConfigs().RedisPassword,

@@ -1,6 +1,9 @@
 package service
 
 import (
+	"downloader_gochat/configs"
+	"regexp"
+	"slices"
 	"time"
 
 	"github.com/fasthttp/websocket"
@@ -48,13 +51,21 @@ import (
 var upgrader = websocket.FastHTTPUpgrader{
 	ReadBufferSize:  1024,
 	WriteBufferSize: 1024,
-	//todo :
 	CheckOrigin: func(r *fasthttp.RequestCtx) bool {
-		//origin := r.Header.Get("Origin")
-		//return origin == "http://localhost:3000"
-		return true
+		origin := string(r.Request.Header.Peek("Origin"))
+		host := string(r.Request.Header.Peek("Host"))
+		corsAllowedOrigins := configs.GetConfigs().CorsAllowedOrigins
+
+		return localhostRegex.MatchString(host) ||
+			localhostRegex.MatchString(origin) ||
+			slices.Index(corsAllowedOrigins, host) != -1 ||
+			slices.Index(corsAllowedOrigins, origin) != -1
 	},
 }
+
+var (
+	localhostRegex = regexp.MustCompile(`(?i)^(https?://)?localhost(:\d{4})?$`)
+)
 
 const (
 	// Time allowed to write a message to the peer.

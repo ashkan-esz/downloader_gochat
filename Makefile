@@ -24,6 +24,6 @@ run_rabbitmq:
 	docker run --restart unless-stopped --network=host --hostname rabbitmq --name rabbitmq -p 15672:15672 -p 5672:5672 -e RABBITMQ_DEFAULT_USER=user -e RABBITMQ_DEFAULT_PASS=password rabbitmq
 
 run_redis:
-	docker run --restart unless-stopped --network=host --memory 200m -e ALLOW_EMPTY_PASSWORD=yes redis:alpine
+	docker run --restart unless-stopped -d --network=host --memory 200m -e ALLOW_EMPTY_PASSWORD=yes redis:alpine
 
 .PHONY: db_dev create_db_dev drop_db_dev migrate_up_db_dev migrate_down_db_dev update_swagger build_rabbitmq run_rabbitmq run_redis
