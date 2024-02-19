@@ -60,8 +60,10 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 		return
 	}
 
+	//todo : also need profileImage for push-notification
 	switch channelMessage.Action {
 	case model.FollowNotifAction:
+		// need to save the notification, show notification in app, send push-notification to followed user
 		err = notifSvc.notifRepo.SaveUserNotification(channelMessage.NotificationData)
 		if err != nil {
 			if err = d.Nack(false, true); err != nil {
@@ -75,7 +77,10 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				receiverUser.Message <- channelMessage
 			}
 		}
-		//case model.NewMessageNotifAction:
+	case model.NewMessageNotifAction:
+		// don't need to save this notification, show notification in app, send push-notification (only if user is offline)
+		// in app notification in handled by newMessage action, just send push-notification
+		//todo : send push-notification to channelMessage.NotificationData.ReceiverId
 	}
 
 	if err = d.Ack(false); err != nil {

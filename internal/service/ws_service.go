@@ -351,18 +351,9 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 		if ok {
 			//receiver is online
 			receiveNewMessage.Id = mid
+			//todo : add creator profileImage
 			receiveMessage := model.CreateReceiveNewMessageAction(receiveNewMessage)
 			cl.Message <- receiveMessage
-
-			//todo : only need the last message in each chat, save in queue or db ?
-			//todo : maybe dont need to put in to queue
-			// todo :
-			//// send notification to followed user
-			//ctx, _ := context.WithCancel(context.Background())
-			////defer cancel()
-			//readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.NotificationExchange, rabbitmq.NotificationBindingKey)
-			//message := model.CreateNewMessageNotificationAction(receiveNewMessage.UserId, receiveNewMessage.ReceiverId)
-			//wsSvc.rabbitmq.Publish(ctx, message, readQueueConf, receiveNewMessage.ReceiverId)
 
 			messageSendResult := model.CreateNewMessageSendResult(
 				mid,
@@ -373,6 +364,14 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 				receiveNewMessage.State,
 				200, "")
 			sender.Message <- messageSendResult
+		} else {
+			//receiver is offline
+			// don't need to save this notification, show notification in app, send push-notification (only if user is offline)
+			ctx, _ := context.WithCancel(context.Background())
+			//defer cancel()
+			notifQueueConf := rabbitmq.NewConfigPublish(rabbitmq.NotificationExchange, rabbitmq.NotificationBindingKey)
+			notifMessage := model.CreateNewMessageNotificationAction(receiveNewMessage)
+			wsSvc.rabbitmq.Publish(ctx, notifMessage, notifQueueConf, receiveNewMessage.ReceiverId)
 		}
 		err = wsSvc.wsRepo.UpdateUserReceivedMessageTime(receiveNewMessage.ReceiverId)
 	}

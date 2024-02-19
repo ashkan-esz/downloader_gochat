@@ -248,10 +248,19 @@ func CreateFollowNotificationAction(userId int64, followId int64) *ChannelMessag
 }
 
 func CreateNewMessageNotificationAction(message *ReceiveNewMessage) *ChannelMessage {
-	//todo : implement
 	return &ChannelMessage{
-		Action:               NewMessageNotifAction,
-		ReceiveNewMessage:    message,
+		Action: NewMessageNotifAction,
+		NotificationData: &NotificationDataModel{
+			Id:           0,
+			CreatorId:    message.UserId,
+			ReceiverId:   message.ReceiverId,
+			Date:         message.Date,
+			Status:       1,
+			EntityId:     message.Id,
+			EntityTypeId: NewMessageNotificationTypeId,
+			Message:      message.Content,
+		},
+		ReceiveNewMessage:    nil,
 		ChatsListReq:         nil,
 		ChatMessages:         nil,
 		ChatMessagesReq:      nil,

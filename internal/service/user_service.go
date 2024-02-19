@@ -239,7 +239,7 @@ func (s *UserService) LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRe
 func (s *UserService) FollowUser(jwtUserData *util.MyJwtClaims, followId int64) error {
 	err := s.userRepo.AddUserFollow(jwtUserData.UserId, followId)
 	if err == nil {
-		// send notification to followed user
+		// need to save the notification, show notification in app, send push-notification to followed user
 		ctx, _ := context.WithCancel(context.Background())
 		//defer cancel()
 		readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.NotificationExchange, rabbitmq.NotificationBindingKey)

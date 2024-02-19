@@ -29,4 +29,3 @@ package main
 //todo : consider notification-settings of notification receiver in consumer
 //todo : limit the number of notification saved
 //todo : handle seen/unseen or new notifications
-//todo : handle notification types: new-message
