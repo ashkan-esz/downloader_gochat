@@ -60,7 +60,7 @@ func main() {
 	userHandler := handler.NewUserHandler(userSvc)
 
 	wsRep := repository.NewWsRepository(dbConn.GetDB(), mongoDB.GetDB())
-	wsSvc := service.NewWsService(wsRep, rabbit)
+	wsSvc := service.NewWsService(wsRep, userRep, rabbit)
 	wsHandler := handler.NewWsHandler(wsSvc)
 
 	notifRep := repository.NewNotificationRepository(dbConn.GetDB(), mongoDB.GetDB())

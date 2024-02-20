@@ -23,7 +23,7 @@ func ConnectRedis() {
 	fmt.Println("====> [[GoChat Redis Client:", pong, err, "]]")
 }
 
-func GetRedis(ctx context.Context, key string) (interface{}, error) {
+func GetRedis(ctx context.Context, key string) (string, error) {
 	val, err := redisClient.Get(ctx, key).Result()
 	return val, err
 }

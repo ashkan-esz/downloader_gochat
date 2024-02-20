@@ -22,6 +22,9 @@ package main
 //todo : handle auth for message apis
 //todo : user online/offline status
 
+//todo : update redis cache after editing profile data
+//todo : add apis for editing profile data and profile image
+
 //todo : load media limits from db
 //todo : media uploads
 

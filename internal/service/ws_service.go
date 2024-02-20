@@ -29,6 +29,7 @@ type IWsService interface {
 
 type WsService struct {
 	wsRepo   repository.IWsRepository
+	userRep  repository.IUserRepository
 	rabbitmq rabbitmq.RabbitMQ
 	timeout  time.Duration
 	hub      *Hub
@@ -42,9 +43,10 @@ const (
 
 var globalHub *Hub
 
-func NewWsService(WsRepo repository.IWsRepository, rabbit rabbitmq.RabbitMQ) *WsService {
+func NewWsService(WsRepo repository.IWsRepository, userRep repository.IUserRepository, rabbit rabbitmq.RabbitMQ) *WsService {
 	wsSvc := WsService{
 		wsRepo:   WsRepo,
+		userRep:  userRep,
 		rabbitmq: rabbit,
 		timeout:  time.Duration(2) * time.Second,
 		hub:      NewHub(),
@@ -351,7 +353,13 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 		if ok {
 			//receiver is online
 			receiveNewMessage.Id = mid
-			//todo : add creator profileImage
+
+			// add creator profileImage, read from cache only
+			userCacheData, _ := getCachedUserData(receiveNewMessage.UserId)
+			if userCacheData != nil && len(userCacheData.ProfileImages) > 0 {
+				receiveNewMessage.CreatorImage = userCacheData.ProfileImages[0].Thumbnail
+			}
+
 			receiveMessage := model.CreateReceiveNewMessageAction(receiveNewMessage)
 			cl.Message <- receiveMessage
 
@@ -558,6 +566,29 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 		message := model.CreateGetChatListAction(chatsListReq)
 		conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.SingleChatBindingKey)
 		w.rabbitmq.Publish(ctx, message, conf, userId)
+
+		// load profileImage and notification settings from db, save to redis for cache
+		//todo : add more fields to notification settings
+		notificationSettings, _ := w.userRep.GetUserMetaDataAndNotificationSettings(userId, 1)
+		if notificationSettings != nil {
+			cacheData := model.CachedUserData{
+				Username:      notificationSettings.Username,
+				PublicName:    notificationSettings.PublicName,
+				ProfileImages: notificationSettings.ProfileImages,
+				NotificationSettings: model.NotificationSettings{
+					UserId:                    userId,
+					FinishedListSpinOffSequel: notificationSettings.FinishedListSpinOffSequel,
+					FollowMovie:               notificationSettings.FollowMovie,
+					FollowMovieBetterQuality:  notificationSettings.FollowMovieBetterQuality,
+					FollowMovieSubtitle:       notificationSettings.FollowMovieSubtitle,
+					FutureList:                notificationSettings.FutureList,
+					FutureListSerialSeasonEnd: notificationSettings.FutureListSerialSeasonEnd,
+					FutureListSubtitle:        notificationSettings.FutureListSubtitle,
+				},
+			}
+			_ = setUserDataCache(userId, &cacheData)
+			//todo : send it to user too, for sync between devices
+		}
 
 		connection.ReadMessage(client, w.hub, w.rabbitmq)
 	})

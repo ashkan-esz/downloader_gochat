@@ -23,7 +23,7 @@ func AuthMiddleware(c *fiber.Ctx) error {
 	}
 
 	result, err := redis.GetRedis(c.Context(), "jwtKey:"+refreshToken)
-	if result != nil && result != "" && err != nil && err.Error() != "redis: nil" {
+	if result != "" && err != nil && err.Error() != "redis: nil" {
 		return response.ResponseError(c, "Unauthorized, refreshToken is in blacklist", fiber.StatusUnauthorized)
 	}
 
@@ -74,7 +74,7 @@ func IsAuthRefreshToken(c *fiber.Ctx) error {
 	}
 
 	result, err := redis.GetRedis(c.Context(), "jwtKey:"+refreshToken)
-	if result != nil && result != "" && err != nil && err.Error() != "redis: nil" {
+	if result != "" && err != nil && err.Error() != "redis: nil" {
 		return response.ResponseError(c, "Unauthorized, refreshToken is in blacklist", fiber.StatusUnauthorized)
 	}
 

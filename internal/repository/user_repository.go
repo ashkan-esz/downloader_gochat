@@ -27,6 +27,7 @@ type IUserRepository interface {
 	RemoveUserFollow(userId int64, followId int64) error
 	GetUserFollowers(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
 	GetUserFollowings(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
+	GetUserMetaDataAndNotificationSettings(id int64, imageLimit int) (*model.UserMetaWithNotificationSettings, error)
 }
 
 type UserRepository struct {
@@ -287,4 +288,24 @@ func (r *UserRepository) GetUserFollowings(userId int64, skip int, limit int) ([
 		Find(&result).Error
 
 	return result, err
+}
+
+func (r *UserRepository) GetUserMetaDataAndNotificationSettings(id int64, imageLimit int) (*model.UserMetaWithNotificationSettings, error) {
+	var result model.UserMetaWithNotificationSettings
+	err := r.db.
+		Model(&model.User{}).
+		Select("\"User\".*, \"NotificationSettings\".*").
+		Where("\"User\".\"userId\" = ?", id).
+		Limit(1).
+		Joins("JOIN \"NotificationSettings\" ON \"User\".\"userId\" = \"NotificationSettings\".\"userId\" ").
+		Preload("ProfileImages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("\"addDate\" DESC").Limit(imageLimit)
+		}).
+		Find(&result).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
 }

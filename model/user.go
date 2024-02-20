@@ -121,6 +121,21 @@ type UserWithImageDataModel struct {
 	ProfileImages []ProfileImage `db:"profileImages" gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"profileImages"`
 }
 
+type UserMetaWithNotificationSettings struct {
+	UserId        int64          `gorm:"column:userId" json:"userId"`
+	Username      string         `gorm:"column:username" json:"username"`
+	PublicName    string         `gorm:"column:publicName" json:"publicName"`
+	ProfileImages []ProfileImage `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
+	//NotificationSettings NotificationSettings `gorm:"foreignKey:UserId;references:UserId;" json:"notificationSettings"`
+	FinishedListSpinOffSequel bool `gorm:"column:finishedList_spinOffSequel;" json:"finishedListSpinOffSequel"`
+	FollowMovie               bool `gorm:"column:followMovie;" json:"followMovie"`
+	FollowMovieBetterQuality  bool `gorm:"column:followMovie_betterQuality;type:boolean;not null;" json:"followMovieBetterQuality"`
+	FollowMovieSubtitle       bool `gorm:"column:followMovie_subtitle;" json:"followMovieSubtitle"`
+	FutureList                bool `gorm:"column:futureList;" json:"futureList"`
+	FutureListSerialSeasonEnd bool `gorm:"column:futureList_serialSeasonEnd;" json:"futureListSerialSeasonEnd"`
+	FutureListSubtitle        bool `gorm:"column:futureList_subtitle;" json:"futureListSubtitle"`
+}
+
 type UserMetaDataModel struct {
 	UserId     int64  `db:"userId" gorm:"column:userId" json:"userId"`
 	Username   string `db:"username" gorm:"column:username" json:"username"`

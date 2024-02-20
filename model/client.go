@@ -52,15 +52,16 @@ type NewMessage struct {
 }
 
 type ReceiveNewMessage struct {
-	Id         int64     `json:"id"`
-	Uuid       string    `json:"uuid"`
-	Content    string    `json:"content"`
-	RoomId     int64     `json:"roomId"`
-	ReceiverId int64     `json:"receiverId"`
-	State      int       `json:"state"`
-	Date       time.Time `json:"date"`
-	UserId     int64     `json:"userId"`
-	Username   string    `json:"username"`
+	Id           int64     `json:"id"`
+	Uuid         string    `json:"uuid"`
+	Content      string    `json:"content"`
+	RoomId       int64     `json:"roomId"`
+	ReceiverId   int64     `json:"receiverId"`
+	State        int       `json:"state"`
+	Date         time.Time `json:"date"`
+	UserId       int64     `json:"userId"`
+	Username     string    `json:"username"`
+	CreatorImage string    `json:"creatorImage"`
 }
 
 type NewMessageSendResult struct {
