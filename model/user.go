@@ -127,6 +127,8 @@ type UserMetaWithNotificationSettings struct {
 	PublicName    string         `gorm:"column:publicName" json:"publicName"`
 	ProfileImages []ProfileImage `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
 	//NotificationSettings NotificationSettings `gorm:"foreignKey:UserId;references:UserId;" json:"notificationSettings"`
+	NewFollower               bool `gorm:"column:newFollower;" json:"newFollower"`
+	NewMessage                bool `gorm:"column:newMessage;" json:"newMessage"`
 	FinishedListSpinOffSequel bool `gorm:"column:finishedList_spinOffSequel;" json:"finishedListSpinOffSequel"`
 	FollowMovie               bool `gorm:"column:followMovie;" json:"followMovie"`
 	FollowMovieBetterQuality  bool `gorm:"column:followMovie_betterQuality;type:boolean;not null;" json:"followMovieBetterQuality"`

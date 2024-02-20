@@ -568,7 +568,6 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 		w.rabbitmq.Publish(ctx, message, conf, userId)
 
 		// load profileImage and notification settings from db, save to redis for cache
-		//todo : add more fields to notification settings
 		notificationSettings, _ := w.userRep.GetUserMetaDataAndNotificationSettings(userId, 1)
 		if notificationSettings != nil {
 			cacheData := model.CachedUserData{
@@ -577,6 +576,8 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 				ProfileImages: notificationSettings.ProfileImages,
 				NotificationSettings: model.NotificationSettings{
 					UserId:                    userId,
+					NewFollower:               notificationSettings.NewFollower,
+					NewMessage:                notificationSettings.NewMessage,
 					FinishedListSpinOffSequel: notificationSettings.FinishedListSpinOffSequel,
 					FollowMovie:               notificationSettings.FollowMovie,
 					FollowMovieBetterQuality:  notificationSettings.FollowMovieBetterQuality,

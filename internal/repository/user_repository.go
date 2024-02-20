@@ -81,6 +81,8 @@ func (r *UserRepository) AddUser(user *model.User) (*model.User, error) {
 			FutureList:                true,
 			FutureListSerialSeasonEnd: true,
 			FutureListSubtitle:        true,
+			NewFollower:               true,
+			NewMessage:                false,
 		}
 		if err := tx.Create(&notificationSettings).Error; err != nil {
 			return err

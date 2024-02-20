@@ -19,6 +19,8 @@ func (DownloadLinksSettings) TableName() string {
 
 type NotificationSettings struct {
 	UserId                    int64 `gorm:"column:userId;type:integer;not null;primaryKey;uniqueIndex:NotificationSettings_userId_key;"`
+	NewFollower               bool  `gorm:"column:newFollower;type:boolean;not null;"`
+	NewMessage                bool  `gorm:"column:newMessage;type:boolean;not null;"`
 	FinishedListSpinOffSequel bool  `gorm:"column:finishedList_spinOffSequel;type:boolean;not null;"`
 	FollowMovie               bool  `gorm:"column:followMovie;type:boolean;not null;"`
 	FollowMovieBetterQuality  bool  `gorm:"column:followMovie_betterQuality;type:boolean;not null;"`
