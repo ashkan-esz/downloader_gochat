@@ -54,4 +54,5 @@ type NotificationDataModel struct {
 	EntityId     int64     `gorm:"column:entityId;" json:"entityId"`
 	EntityTypeId int       `gorm:"column:entityTypeId;" json:"entityTypeId"`
 	Message      string    `json:"message"`
+	CreatorImage string    `json:"creatorImage"`
 }

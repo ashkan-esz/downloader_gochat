@@ -43,6 +43,8 @@ definitions:
     properties:
       creatorId:
         type: integer
+      creatorImage:
+        type: string
       date:
         type: string
       entityId:

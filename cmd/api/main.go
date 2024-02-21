@@ -64,7 +64,7 @@ func main() {
 	wsHandler := handler.NewWsHandler(wsSvc)
 
 	notifRep := repository.NewNotificationRepository(dbConn.GetDB(), mongoDB.GetDB())
-	notifSvc := service.NewNotificationService(notifRep, rabbit)
+	notifSvc := service.NewNotificationService(notifRep, userRep, rabbit)
 	notifHandler := handler.NewNotificationHandler(notifSvc)
 
 	api.InitRouter(userHandler, wsHandler, notifHandler)

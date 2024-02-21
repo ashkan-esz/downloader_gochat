@@ -13,6 +13,8 @@ type INotificationRepository interface {
 	GetUserNotifications(userId int64, skip int, limit int, entityTypeId int, status int) ([]model.NotificationDataModel, error)
 	GetUserMetaData(id int64) (*model.UserMetaDataModel, error)
 	GetBatchUserMetaData(ids []int64) ([]model.UserMetaDataModel, error)
+	GetUserMetaDataWithImage(id int64, imageLimit int) (*model.UserMetaWithImageDataModel, error)
+	GetBatchUserMetaDataWithImage(ids []int64) ([]model.UserMetaWithImageDataModel, error)
 }
 
 type NotificationRepository struct {
@@ -58,7 +60,7 @@ func (n *NotificationRepository) GetUserNotifications(userId int64, skip int, li
 		"status":       status,
 	}).
 		Model(&model.Notification{}).
-		Omit("message").
+		Omit("message", "creatorImage").
 		Order("date desc").
 		Offset(skip).
 		Limit(limit).
@@ -95,6 +97,40 @@ func (n *NotificationRepository) GetBatchUserMetaData(ids []int64) ([]model.User
 	var userDataModel []model.UserMetaDataModel
 	err := n.db.Where("\"userId\" IN ?", ids).
 		Model(&model.User{}).
+		Find(&userDataModel).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	return userDataModel, nil
+}
+
+func (n *NotificationRepository) GetUserMetaDataWithImage(id int64, imageLimit int) (*model.UserMetaWithImageDataModel, error) {
+	var result model.UserMetaWithImageDataModel
+	err := n.db.
+		Model(&model.User{}).
+		Where("\"userId\" = ?", id).
+		Limit(1).
+		Preload("ProfileImages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("\"addDate\" DESC").Limit(imageLimit)
+		}).
+		Find(&result).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (n *NotificationRepository) GetBatchUserMetaDataWithImage(ids []int64) ([]model.UserMetaWithImageDataModel, error) {
+	var userDataModel []model.UserMetaWithImageDataModel
+	err := n.db.Where("\"userId\" IN ?", ids).
+		Model(&model.User{}).
+		Preload("ProfileImages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("\"addDate\" DESC")
+		}).
 		Find(&userDataModel).
 		Error
 	if err != nil {

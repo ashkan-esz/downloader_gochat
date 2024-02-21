@@ -19,6 +19,7 @@ type INotificationService interface {
 
 type NotificationService struct {
 	notifRepo repository.INotificationRepository
+	userRep   repository.IUserRepository
 	rabbitmq  rabbitmq.RabbitMQ
 }
 
@@ -26,9 +27,10 @@ const (
 	notificationConsumerCount = 3
 )
 
-func NewNotificationService(notifRepo repository.INotificationRepository, rabbit rabbitmq.RabbitMQ) *NotificationService {
+func NewNotificationService(notifRepo repository.INotificationRepository, userRep repository.IUserRepository, rabbit rabbitmq.RabbitMQ) *NotificationService {
 	notifSvc := NotificationService{
 		notifRepo: notifRepo,
+		userRep:   userRep,
 		rabbitmq:  rabbit,
 	}
 
@@ -60,7 +62,6 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 		return
 	}
 
-	//todo : also need profileImage for push-notification
 	switch channelMessage.Action {
 	case model.FollowNotifAction:
 		// need to save the notification, show notification in app, send push-notification to followed user
@@ -71,9 +72,9 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			}
 		} else {
 			//todo : send push-notification to channelMessage.NotificationData.ReceiverId
+			notifSvc.handleNotificationMessageAndImage(channelMessage.NotificationData)
 			receiverUser, ok := getClientFromHub(channelMessage.NotificationData.ReceiverId)
 			if ok {
-				notifSvc.generateNotificationMessage(channelMessage.NotificationData)
 				receiverUser.Message <- channelMessage
 			}
 		}
@@ -108,8 +109,8 @@ func (n *NotificationService) GetUserNotifications(userId int64, skip int, limit
 			found := false
 			for i2 := range cachedData {
 				if cachedData[i2].UserId == result[i].CreatorId {
-					message := fmt.Sprintf("User %v Started Following You", cachedData[i2].Username)
-					result[i].Message = message
+					result[i].Message = generateNotificationMessage(result[i].EntityTypeId, cachedData[i2].Username)
+					result[i].CreatorImage = addCreatorImageToNotification(cachedData[i2].ProfileImages)
 					found = true
 					break
 				}
@@ -124,14 +125,14 @@ func (n *NotificationService) GetUserNotifications(userId int64, skip int, limit
 	}
 
 	if len(misCacheUserIds) > 0 {
-		users, err := n.notifRepo.GetBatchUserMetaData(misCacheUserIds)
+		users, err := n.notifRepo.GetBatchUserMetaDataWithImage(misCacheUserIds)
 		if users != nil {
 			for i := range result {
 				if result[i].Message == "" {
 					for i2 := range users {
 						if users[i2].UserId == result[i].CreatorId {
-							message := fmt.Sprintf("User %v Started Following You", users[i2].Username)
-							result[i].Message = message
+							result[i].Message = generateNotificationMessage(result[i].EntityTypeId, users[i2].Username)
+							result[i].CreatorImage = addCreatorImageToNotification(users[i2].ProfileImages)
 							break
 						}
 					}
@@ -147,28 +148,45 @@ func (n *NotificationService) GetUserNotifications(userId int64, skip int, limit
 //------------------------------------------
 //------------------------------------------
 
-func (n *NotificationService) generateNotificationMessage(notification *model.NotificationDataModel) *model.NotificationDataModel {
+func (n *NotificationService) handleNotificationMessageAndImage(notification *model.NotificationDataModel) *model.NotificationDataModel {
 	switch notification.EntityTypeId {
 	case 1:
 		//follow notification
-		creatorUser, ok := getClientFromHub(notification.CreatorId)
-		if ok {
-			message := fmt.Sprintf("User %v Started Following You", creatorUser.Username)
-			notification.Message = message
+		cacheData, _ := getCachedUserData(notification.CreatorId)
+		if cacheData != nil {
+			notification.Message = generateNotificationMessage(notification.EntityTypeId, cacheData.Username)
+			notification.CreatorImage = addCreatorImageToNotification(cacheData.ProfileImages)
 		} else {
-			cacheData, _ := getCachedUserData(notification.CreatorId)
-			if cacheData != nil {
-				message := fmt.Sprintf("User %v Started Following You", cacheData.Username)
-				notification.Message = message
-			} else {
-				user, err := n.notifRepo.GetUserMetaData(notification.CreatorId)
-				if err == nil && user != nil {
-					message := fmt.Sprintf("User %v Started Following You", user.Username)
-					notification.Message = message
-				}
+			user, err := n.notifRepo.GetUserMetaDataWithImage(notification.CreatorId, 1)
+			if err == nil && user != nil {
+				notification.Message = generateNotificationMessage(notification.EntityTypeId, user.Username)
+				notification.CreatorImage = addCreatorImageToNotification(user.ProfileImages)
 			}
 		}
 	case 2:
 	}
 	return notification
+}
+
+func generateNotificationMessage(entityTypeId int, username string) string {
+	message := ""
+	switch entityTypeId {
+	case 1:
+		//new follower
+		message = fmt.Sprintf("User %v Started Following You", username)
+	case 2:
+		//new message
+	}
+	return message
+}
+
+func addCreatorImageToNotification(profileImages []model.ProfileImage) string {
+	if len(profileImages) > 0 {
+		if profileImages[0].Thumbnail != "" {
+			return profileImages[0].Thumbnail
+		} else {
+			return profileImages[0].Url
+		}
+	}
+	return ""
 }

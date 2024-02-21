@@ -576,6 +576,9 @@ const docTemplate = `{
                 "creatorId": {
                     "type": "integer"
                 },
+                "creatorImage": {
+                    "type": "string"
+                },
                 "date": {
                     "type": "string"
                 },
