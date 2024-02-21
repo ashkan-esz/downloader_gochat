@@ -100,19 +100,47 @@ func (n *NotificationService) GetUserNotifications(userId int64, skip int, limit
 		}
 	}
 	userIds = slices.Compact(userIds)
-	users, err := n.notifRepo.GetBatchUserMetaData(userIds)
-	if err == nil {
+	misCacheUserIds := []int64{}
+
+	cachedData, _ := getCachedMultiUserData(userIds)
+	if cachedData != nil && len(cachedData) > 0 {
 		for i := range result {
-			//n.generateNotificationMessage(&result[i])
-			for i2 := range users {
-				if users[i2].UserId == result[i].CreatorId {
-					message := fmt.Sprintf("User %v Started Following You", users[i2].Username)
+			found := false
+			for i2 := range cachedData {
+				if cachedData[i2].UserId == result[i].CreatorId {
+					message := fmt.Sprintf("User %v Started Following You", cachedData[i2].Username)
 					result[i].Message = message
+					found = true
 					break
 				}
 			}
+			if !found {
+				misCacheUserIds = append(misCacheUserIds, result[i].CreatorId)
+			}
 		}
+		misCacheUserIds = slices.Compact(misCacheUserIds)
+	} else {
+		misCacheUserIds = userIds
 	}
+
+	if len(misCacheUserIds) > 0 {
+		users, err := n.notifRepo.GetBatchUserMetaData(misCacheUserIds)
+		if users != nil {
+			for i := range result {
+				if result[i].Message == "" {
+					for i2 := range users {
+						if users[i2].UserId == result[i].CreatorId {
+							message := fmt.Sprintf("User %v Started Following You", users[i2].Username)
+							result[i].Message = message
+							break
+						}
+					}
+				}
+			}
+		}
+		return &result, err
+	}
+
 	return &result, err
 }
 
@@ -128,10 +156,16 @@ func (n *NotificationService) generateNotificationMessage(notification *model.No
 			message := fmt.Sprintf("User %v Started Following You", creatorUser.Username)
 			notification.Message = message
 		} else {
-			user, err := n.notifRepo.GetUserMetaData(notification.CreatorId)
-			if err == nil && user != nil {
-				message := fmt.Sprintf("User %v Started Following You", user.Username)
+			cacheData, _ := getCachedUserData(notification.CreatorId)
+			if cacheData != nil {
+				message := fmt.Sprintf("User %v Started Following You", cacheData.Username)
 				notification.Message = message
+			} else {
+				user, err := n.notifRepo.GetUserMetaData(notification.CreatorId)
+				if err == nil && user != nil {
+					message := fmt.Sprintf("User %v Started Following You", user.Username)
+					notification.Message = message
+				}
 			}
 		}
 	case 2:

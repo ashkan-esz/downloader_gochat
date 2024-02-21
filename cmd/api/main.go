@@ -37,6 +37,9 @@ import (
 func main() {
 	configs.LoadEnvVariables()
 
+	go redis.ConnectRedis()
+	go geoip.Load()
+
 	dbConn, err := db.NewDatabase()
 	if err != nil {
 		log.Fatalf("could not initialize database connection: %s", err)
@@ -47,9 +50,6 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not initialize mongodb database connection: %s", err)
 	}
-
-	go redis.ConnectRedis()
-	go geoip.Load()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	rabbit := rabbitmq.Start(ctx)

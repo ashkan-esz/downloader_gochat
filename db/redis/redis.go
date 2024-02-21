@@ -28,6 +28,11 @@ func GetRedis(ctx context.Context, key string) (string, error) {
 	return val, err
 }
 
+func MGetRedis(ctx context.Context, keys []string) ([]interface{}, error) {
+	val, err := redisClient.MGet(ctx, keys...).Result()
+	return val, err
+}
+
 func SetRedis(ctx context.Context, key string, value interface{}, duration time.Duration) error {
 	err := redisClient.Set(ctx, key, value, duration).Err()
 	return err

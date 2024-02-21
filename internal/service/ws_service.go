@@ -571,6 +571,7 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 		notificationSettings, _ := w.userRep.GetUserMetaDataAndNotificationSettings(userId, 1)
 		if notificationSettings != nil {
 			cacheData := model.CachedUserData{
+				UserId:        notificationSettings.UserId,
 				Username:      notificationSettings.Username,
 				PublicName:    notificationSettings.PublicName,
 				ProfileImages: notificationSettings.ProfileImages,
