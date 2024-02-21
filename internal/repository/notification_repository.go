@@ -3,6 +3,7 @@ package repository
 import (
 	"downloader_gochat/model"
 	"errors"
+	"time"
 
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
@@ -15,6 +16,8 @@ type INotificationRepository interface {
 	GetBatchUserMetaData(ids []int64) ([]model.UserMetaDataModel, error)
 	GetUserMetaDataWithImage(id int64, imageLimit int) (*model.UserMetaWithImageDataModel, error)
 	GetBatchUserMetaDataWithImage(ids []int64) ([]model.UserMetaWithImageDataModel, error)
+	BatchUpdateNotificationStatusByDate(date time.Time, receiverId int64, entityTypeId int, status int) error
+	BatchUpdateNotificationStatusById(receiverId int64, nid int64, entityTypeId int, status int) error
 }
 
 type NotificationRepository struct {
@@ -28,8 +31,6 @@ func NewNotificationRepository(db *gorm.DB, mongodb *mongo.Database) *Notificati
 
 //------------------------------------------
 //------------------------------------------
-
-//todo : handle flag notification as seen
 
 func (n *NotificationRepository) SaveUserNotification(notifData *model.NotificationDataModel) error {
 	notif := model.Notification{
@@ -74,6 +75,54 @@ func (n *NotificationRepository) GetUserNotifications(userId int64, skip int, li
 	}
 
 	return notifications, nil
+}
+
+func (n *NotificationRepository) BatchUpdateNotificationStatusByDate(date time.Time, receiverId int64, entityTypeId int, status int) error {
+	result := n.db.
+		Model(&model.Notification{}).
+		Where("\"receiverId\" = ? and \"entityTypeId\" = ? and \"date\" <= (?) ", receiverId, entityTypeId, date).
+		UpdateColumn("\"status\"", status)
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return result.Error
+	}
+	return nil
+}
+
+func (n *NotificationRepository) BatchUpdateNotificationStatusById(receiverId int64, nid int64, entityTypeId int, status int) error {
+	var result *gorm.DB
+	if entityTypeId == 0 {
+		subQuery := n.db.
+			Model(&model.Notification{}).
+			Where("\"id\" = ? and \"receiverId\" = ? and status < ?", nid, receiverId, status).
+			Select("date")
+
+		result = n.db.
+			Model(&model.Notification{}).
+			Where("\"receiverId\" = ? and \"date\" <= (?) ", receiverId, subQuery).
+			UpdateColumn("\"status\"", status)
+	} else {
+		subQuery := n.db.
+			Model(&model.Notification{}).
+			Where("\"id\" = ? and \"receiverId\" = ? and \"entityTypeId\" = ? and status < ?", nid, receiverId, entityTypeId, status).
+			Select("date")
+
+		result = n.db.
+			Model(&model.Notification{}).
+			Where("\"receiverId\" = ? and \"entityTypeId\" = ? and \"date\" <= (?) ", receiverId, entityTypeId, subQuery).
+			UpdateColumn("\"status\"", status)
+	}
+
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return result.Error
+	}
+	return nil
 }
 
 //------------------------------------------

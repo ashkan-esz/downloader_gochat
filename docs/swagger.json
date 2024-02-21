@@ -415,6 +415,69 @@
                 }
             }
         },
+        "/v1/user/notifications/batchUpdateStatus/:id/:entityTypeId/:status": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "update the status of notifications",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Notification Status update",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "notificationId",
+                        "name": "id",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "type of notification",
+                        "name": "entityTypeId",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "new value of status",
+                        "name": "status",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseOKModel"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/signup": {
             "post": {
                 "description": "Register a new user with the provided credentials\nDevice detection can be improved on client side with adding 'deviceInfo.fingerprint'",
@@ -686,6 +749,17 @@
                     "type": "integer"
                 },
                 "errorMessage": {}
+            }
+        },
+        "response.ResponseOKModel": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "errorMessage": {
+                    "type": "string"
+                }
             }
         }
     },

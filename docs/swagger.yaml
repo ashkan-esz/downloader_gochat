@@ -118,6 +118,13 @@ definitions:
         type: integer
       errorMessage: {}
     type: object
+  response.ResponseOKModel:
+    properties:
+      code:
+        type: integer
+      errorMessage:
+        type: string
+    type: object
 host: localhost:8080
 info:
   contact:
@@ -387,6 +394,47 @@ paths:
       security:
       - BearerAuth: []
       summary: Follow events
+      tags:
+      - User
+  /v1/user/notifications/batchUpdateStatus/:id/:entityTypeId/:status:
+    put:
+      description: update the status of notifications
+      parameters:
+      - description: notificationId
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: type of notification
+        in: path
+        name: entityTypeId
+        required: true
+        type: integer
+      - description: new value of status
+        in: path
+        name: status
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Notification Status update
       tags:
       - User
   /v1/user/signup:

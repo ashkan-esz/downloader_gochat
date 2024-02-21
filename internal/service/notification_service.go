@@ -14,7 +14,8 @@ import (
 )
 
 type INotificationService interface {
-	GetUserNotifications(userId int64, skip int, limit int, entityTypeId int, status int) (*[]model.NotificationDataModel, error)
+	GetUserNotifications(userId int64, skip int, limit int, entityTypeId int, status int, autoUpdateStatus bool) (*[]model.NotificationDataModel, error)
+	BatchUpdateUserNotificationStatus(userId int64, id int64, entityTypeId int, status int) error
 }
 
 type NotificationService struct {
@@ -92,7 +93,7 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 //------------------------------------------
 //------------------------------------------
 
-func (n *NotificationService) GetUserNotifications(userId int64, skip int, limit int, entityTypeId int, status int) (*[]model.NotificationDataModel, error) {
+func (n *NotificationService) GetUserNotifications(userId int64, skip int, limit int, entityTypeId int, status int, autoUpdateStatus bool) (*[]model.NotificationDataModel, error) {
 	result, err := n.notifRepo.GetUserNotifications(userId, skip, limit, entityTypeId, status)
 	userIds := []int64{}
 	for i := range result {
@@ -138,11 +139,22 @@ func (n *NotificationService) GetUserNotifications(userId int64, skip int, limit
 					}
 				}
 			}
+			if len(result) > 0 && skip == 0 && limit > 0 && entityTypeId != 0 && status == 0 && autoUpdateStatus {
+				_ = n.notifRepo.BatchUpdateNotificationStatusByDate(result[0].Date, userId, entityTypeId, 2)
+			}
 		}
 		return &result, err
 	}
 
+	if len(result) > 0 && skip == 0 && limit > 0 && entityTypeId != 0 && status == 0 && autoUpdateStatus {
+		_ = n.notifRepo.BatchUpdateNotificationStatusByDate(result[0].Date, userId, entityTypeId, 2)
+	}
 	return &result, err
+}
+
+func (n *NotificationService) BatchUpdateUserNotificationStatus(userId int64, id int64, entityTypeId int, status int) error {
+	err := n.notifRepo.BatchUpdateNotificationStatusById(userId, id, entityTypeId, status)
+	return err
 }
 
 //------------------------------------------
