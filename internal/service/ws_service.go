@@ -589,7 +589,7 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 				},
 			}
 			_ = setUserDataCache(userId, &cacheData)
-			//todo : send it to user too, for sync between devices
+			client.Message <- model.CreateNotificationSettingsAction(&cacheData.NotificationSettings)
 		}
 
 		connection.ReadMessage(client, w.hub, w.rabbitmq)

@@ -19,6 +19,7 @@ const NewMessageNotifAction = "new-message-notification"
 // both way
 const SingleChatsListAction = "single-chats-list"
 const SingleChatMessagesAction = "single-chat-messages"
+const NotificationSettingsAction = "notification-settings"
 
 type ClientMessage struct {
 	Action          string               `json:"action,omitempty"`
@@ -39,6 +40,7 @@ type ChannelMessage struct {
 	Chats                *[]ChatsCompressedDataModel `json:"chats,omitempty"`
 	ActionError          *ActionError                `json:"actionError,omitempty"`
 	NotificationData     *NotificationDataModel      `json:"notificationData,omitempty"`
+	NotificationSettings *NotificationSettings       `json:"notificationSettings,omitempty"`
 }
 
 //------------------------------------------
@@ -261,6 +263,22 @@ func CreateNewMessageNotificationAction(message *ReceiveNewMessage) *ChannelMess
 			EntityTypeId: NewMessageNotificationTypeId,
 			Message:      message.Content,
 		},
+		ReceiveNewMessage:    nil,
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
+		MessageRead:          nil,
+		ActionError:          nil,
+	}
+}
+
+func CreateNotificationSettingsAction(notificationSettings *NotificationSettings) *ChannelMessage {
+	return &ChannelMessage{
+		Action:               NotificationSettingsAction,
+		NotificationSettings: notificationSettings,
+		NotificationData:     nil,
 		ReceiveNewMessage:    nil,
 		ChatsListReq:         nil,
 		ChatMessages:         nil,
