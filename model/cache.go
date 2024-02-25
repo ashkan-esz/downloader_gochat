@@ -6,4 +6,5 @@ type CachedUserData struct {
 	PublicName           string               `gorm:"column:publicName" json:"publicName"`
 	ProfileImages        []ProfileImage       `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
 	NotificationSettings NotificationSettings `gorm:"foreignKey:UserId;references:UserId;"`
+	NotifTokens          []string             `json:"notifTokens"`
 }

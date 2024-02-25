@@ -28,7 +28,5 @@ package main
 //todo : load media limits from db
 //todo : media uploads
 
-//todo : how to send push-notification
 //todo : consider notification-settings of notification receiver in consumer
-//todo : limit the number of notification saved
-//todo : handle seen/unseen or new notifications
+//todo : add api to set fcmToken

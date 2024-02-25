@@ -588,6 +588,9 @@ const docTemplate = `{
                 "fingerprint": {
                     "type": "string"
                 },
+                "notifToken": {
+                    "type": "string"
+                },
                 "os": {
                     "type": "string"
                 }

@@ -587,7 +587,14 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 					FutureListSerialSeasonEnd: notificationSettings.FutureListSerialSeasonEnd,
 					FutureListSubtitle:        notificationSettings.FutureListSubtitle,
 				},
+				NotifTokens: []string{},
 			}
+
+			for i := range notificationSettings.ActiveSessions {
+				cacheData.NotifTokens = append(cacheData.NotifTokens, notificationSettings.ActiveSessions[i].NotifToken)
+			}
+			cacheData.NotifTokens = slices.Compact(cacheData.NotifTokens)
+
 			_ = setUserDataCache(userId, &cacheData)
 			client.Message <- model.CreateNotificationSettingsAction(&cacheData.NotificationSettings)
 		}

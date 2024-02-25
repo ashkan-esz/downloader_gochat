@@ -158,6 +158,7 @@ func (r *UserRepository) AddSession(device *model.DeviceInfo, deviceId string, u
 		AppVersion:   device.AppVersion,
 		DeviceModel:  device.DeviceModel,
 		DeviceOs:     device.Os,
+		NotifToken:   device.NotifToken,
 		IpLocation:   ipLocation,
 	}
 	err := r.db.Create(&newDevice).Error
@@ -177,6 +178,7 @@ func (r *UserRepository) UpdateSession(device *model.DeviceInfo, deviceId string
 		AppVersion:   device.AppVersion,
 		DeviceModel:  device.DeviceModel,
 		DeviceOs:     device.Os,
+		NotifToken:   device.NotifToken,
 		IpLocation:   ipLocation,
 		LoginDate:    now,
 	}
@@ -302,6 +304,9 @@ func (r *UserRepository) GetUserMetaDataAndNotificationSettings(id int64, imageL
 		Joins("JOIN \"NotificationSettings\" ON \"User\".\"userId\" = \"NotificationSettings\".\"userId\" ").
 		Preload("ProfileImages", func(db *gorm.DB) *gorm.DB {
 			return db.Order("\"addDate\" DESC").Limit(imageLimit)
+		}).
+		Preload("ActiveSessions", func(db *gorm.DB) *gorm.DB {
+			return db.Select("userId", "notifToken")
 		}).
 		Find(&result).
 		Error

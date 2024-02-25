@@ -26,6 +26,7 @@ type ConfigStruct struct {
 	AgendaJobsCollection      string
 	MainServerAddress         string
 	RabbitMqUrl               string
+	FirebaseAuthKey           string
 	CorsAllowedOrigins        []string
 }
 
@@ -52,6 +53,7 @@ func LoadEnvVariables() {
 	configs.AgendaJobsCollection = os.Getenv("AGENDA_JOBS_COLLECTION")
 	configs.MainServerAddress = os.Getenv("MAIN_SERVER_ADDRESS")
 	configs.RabbitMqUrl = os.Getenv("RABBITMQ_URL")
+	configs.FirebaseAuthKey = os.Getenv("FIREBASE_AUTH_KEY")
 	sessionLimit, err := strconv.Atoi(os.Getenv("ACTIVE_SESSIONS_LIMIT"))
 	if err != nil || sessionLimit == 0 {
 		configs.ActiveSessionsLimit = 5

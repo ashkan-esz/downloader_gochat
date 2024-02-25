@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"log"
 	"slices"
+	"strconv"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -19,20 +20,22 @@ type INotificationService interface {
 }
 
 type NotificationService struct {
-	notifRepo repository.INotificationRepository
-	userRep   repository.IUserRepository
-	rabbitmq  rabbitmq.RabbitMQ
+	notifRepo    repository.INotificationRepository
+	userRep      repository.IUserRepository
+	rabbitmq     rabbitmq.RabbitMQ
+	pushNotifSvc IPushNotificationService
 }
 
 const (
 	notificationConsumerCount = 3
 )
 
-func NewNotificationService(notifRepo repository.INotificationRepository, userRep repository.IUserRepository, rabbit rabbitmq.RabbitMQ) *NotificationService {
+func NewNotificationService(notifRepo repository.INotificationRepository, userRep repository.IUserRepository, rabbit rabbitmq.RabbitMQ, pushNotifSvc IPushNotificationService) *NotificationService {
 	notifSvc := NotificationService{
-		notifRepo: notifRepo,
-		userRep:   userRep,
-		rabbitmq:  rabbit,
+		notifRepo:    notifRepo,
+		userRep:      userRep,
+		rabbitmq:     rabbit,
+		pushNotifSvc: pushNotifSvc,
 	}
 
 	notificationConfig := rabbitmq.NewConfigConsume(rabbitmq.NotificationQueue, "")
@@ -72,8 +75,8 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				log.Printf("error nacking [notification] message: %s\n", err)
 			}
 		} else {
-			//todo : send push-notification to channelMessage.NotificationData.ReceiverId
-			notifSvc.handleNotificationMessageAndImage(channelMessage.NotificationData)
+			notifSvc.handleNotification(channelMessage.NotificationData)
+
 			receiverUser, ok := getClientFromHub(channelMessage.NotificationData.ReceiverId)
 			if ok {
 				receiverUser.Message <- channelMessage
@@ -82,7 +85,10 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	case model.NewMessageNotifAction:
 		// don't need to save this notification, show notification in app, send push-notification (only if user is offline)
 		// in app notification in handled by newMessage action, just send push-notification
-		//todo : send push-notification to channelMessage.NotificationData.ReceiverId
+		_, ok := getClientFromHub(channelMessage.NotificationData.ReceiverId)
+		if !ok {
+			notifSvc.handleNotification(channelMessage.NotificationData)
+		}
 	}
 
 	if err = d.Ack(false); err != nil {
@@ -110,7 +116,7 @@ func (n *NotificationService) GetUserNotifications(userId int64, skip int, limit
 			found := false
 			for i2 := range cachedData {
 				if cachedData[i2].UserId == result[i].CreatorId {
-					result[i].Message = generateNotificationMessage(result[i].EntityTypeId, cachedData[i2].Username)
+					result[i].Message = generateNotificationMessage(&result[i], cachedData[i2].Username)
 					result[i].CreatorImage = addCreatorImageToNotification(cachedData[i2].ProfileImages)
 					found = true
 					break
@@ -132,7 +138,7 @@ func (n *NotificationService) GetUserNotifications(userId int64, skip int, limit
 				if result[i].Message == "" {
 					for i2 := range users {
 						if users[i2].UserId == result[i].CreatorId {
-							result[i].Message = generateNotificationMessage(result[i].EntityTypeId, users[i2].Username)
+							result[i].Message = generateNotificationMessage(&result[i], users[i2].Username)
 							result[i].CreatorImage = addCreatorImageToNotification(users[i2].ProfileImages)
 							break
 						}
@@ -160,44 +166,77 @@ func (n *NotificationService) BatchUpdateUserNotificationStatus(userId int64, id
 //------------------------------------------
 //------------------------------------------
 
-func (n *NotificationService) handleNotificationMessageAndImage(notification *model.NotificationDataModel) *model.NotificationDataModel {
-	switch notification.EntityTypeId {
-	case 1:
-		//follow notification
-		cacheData, _ := getCachedUserData(notification.CreatorId)
-		if cacheData != nil {
-			notification.Message = generateNotificationMessage(notification.EntityTypeId, cacheData.Username)
-			notification.CreatorImage = addCreatorImageToNotification(cacheData.ProfileImages)
-		} else {
-			user, err := n.notifRepo.GetUserMetaDataWithImage(notification.CreatorId, 1)
-			if err == nil && user != nil {
-				notification.Message = generateNotificationMessage(notification.EntityTypeId, user.Username)
-				notification.CreatorImage = addCreatorImageToNotification(user.ProfileImages)
+func (n *NotificationService) handleNotification(notificationData *model.NotificationDataModel) {
+	cacheData, _ := getCachedUserData(notificationData.CreatorId)
+	if cacheData != nil {
+		notificationData.Message = generateNotificationMessage(notificationData, cacheData.Username)
+		notificationData.CreatorImage = addCreatorImageToNotification(cacheData.ProfileImages)
+	} else {
+		userData, err := n.notifRepo.GetUserMetaDataWithImage(notificationData.CreatorId, 1)
+		if err == nil && userData != nil {
+			notificationData.Message = generateNotificationMessage(notificationData, userData.Username)
+			notificationData.CreatorImage = addCreatorImageToNotification(userData.ProfileImages)
+		}
+	}
+
+	pushNotificationTitle := ""
+	switch notificationData.EntityTypeId {
+	case model.FollowNotificationTypeId:
+		pushNotificationTitle = "New Follower"
+	case model.NewMessageNotificationTypeId:
+		pushNotificationTitle = "New Message"
+	}
+
+	receiverCacheData, _ := getCachedUserData(notificationData.ReceiverId)
+	if receiverCacheData != nil {
+		for i := range receiverCacheData.NotifTokens {
+			if receiverCacheData.NotifTokens[i] != "" {
+				n.pushNotifSvc.AddPushNotificationToBuffer(
+					receiverCacheData.NotifTokens[i],
+					pushNotificationTitle,
+					notificationData.Message,
+					notificationData.CreatorImage,
+					strconv.FormatInt(notificationData.CreatorId, 10),
+				)
 			}
 		}
-	case 2:
+	} else {
+		receiverUserData, err := n.userRep.GetUserMetaDataAndNotificationSettings(notificationData.ReceiverId, 1)
+		if err == nil && receiverUserData != nil {
+			for i := range receiverUserData.ActiveSessions {
+				if receiverUserData.ActiveSessions[i].NotifToken != "" {
+					n.pushNotifSvc.AddPushNotificationToBuffer(
+						receiverUserData.ActiveSessions[i].NotifToken,
+						pushNotificationTitle,
+						notificationData.Message,
+						notificationData.CreatorImage,
+						strconv.FormatInt(notificationData.CreatorId, 10),
+					)
+				}
+			}
+		}
 	}
-	return notification
 }
 
-func generateNotificationMessage(entityTypeId int, username string) string {
+func generateNotificationMessage(notificationData *model.NotificationDataModel, username string) string {
 	message := ""
-	switch entityTypeId {
-	case 1:
+	switch notificationData.EntityTypeId {
+	case model.FollowNotificationTypeId:
 		//new follower
 		message = fmt.Sprintf("User %v Started Following You", username)
-	case 2:
+	case model.NewMessageNotificationTypeId:
 		//new message
+		message = fmt.Sprintf("%v: %v", username, notificationData.Message)
 	}
 	return message
 }
 
 func addCreatorImageToNotification(profileImages []model.ProfileImage) string {
 	if len(profileImages) > 0 {
-		if profileImages[0].Thumbnail != "" {
-			return profileImages[0].Thumbnail
-		} else {
+		if profileImages[0].Url != "" {
 			return profileImages[0].Url
+		} else if profileImages[0].Thumbnail != "" {
+			return profileImages[0].Thumbnail
 		}
 	}
 	return ""

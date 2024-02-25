@@ -100,6 +100,7 @@ type DeviceInfo struct {
 	AppVersion  string `json:"appVersion"`
 	Os          string `json:"os"`
 	DeviceModel string `json:"deviceModel"`
+	NotifToken  string `json:"notifToken"`
 	Fingerprint string `json:"fingerprint"`
 }
 
@@ -122,10 +123,11 @@ type UserWithImageDataModel struct {
 }
 
 type UserMetaWithNotificationSettings struct {
-	UserId        int64          `gorm:"column:userId" json:"userId"`
-	Username      string         `gorm:"column:username" json:"username"`
-	PublicName    string         `gorm:"column:publicName" json:"publicName"`
-	ProfileImages []ProfileImage `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
+	UserId         int64           `gorm:"column:userId" json:"userId"`
+	Username       string          `gorm:"column:username" json:"username"`
+	PublicName     string          `gorm:"column:publicName" json:"publicName"`
+	ProfileImages  []ProfileImage  `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
+	ActiveSessions []ActiveSession `gorm:"foreignKey:UserId;references:UserId;" json:"activeSessions"`
 	//NotificationSettings NotificationSettings `gorm:"foreignKey:UserId;references:UserId;" json:"notificationSettings"`
 	NewFollower               bool `gorm:"column:newFollower;" json:"newFollower"`
 	NewMessage                bool `gorm:"column:newMessage;" json:"newMessage"`
