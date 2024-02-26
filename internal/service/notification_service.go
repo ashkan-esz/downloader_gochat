@@ -189,6 +189,11 @@ func (n *NotificationService) handleNotification(notificationData *model.Notific
 
 	receiverCacheData, _ := getCachedUserData(notificationData.ReceiverId)
 	if receiverCacheData != nil {
+		if (notificationData.EntityTypeId == model.FollowNotificationTypeId && !receiverCacheData.NotificationSettings.NewFollower) ||
+			(notificationData.EntityTypeId == model.NewMessageNotificationTypeId && !receiverCacheData.NotificationSettings.NewMessage) {
+			//push-notification is disabled
+			return
+		}
 		for i := range receiverCacheData.NotifTokens {
 			if receiverCacheData.NotifTokens[i] != "" {
 				n.pushNotifSvc.AddPushNotificationToBuffer(
@@ -203,6 +208,11 @@ func (n *NotificationService) handleNotification(notificationData *model.Notific
 	} else {
 		receiverUserData, err := n.userRep.GetUserMetaDataAndNotificationSettings(notificationData.ReceiverId, 1)
 		if err == nil && receiverUserData != nil {
+			if (notificationData.EntityTypeId == model.FollowNotificationTypeId && !receiverUserData.NewFollower) ||
+				(notificationData.EntityTypeId == model.NewMessageNotificationTypeId && !receiverUserData.NewMessage) {
+				//push-notification is disabled
+				return
+			}
 			for i := range receiverUserData.ActiveSessions {
 				if receiverUserData.ActiveSessions[i].NotifToken != "" {
 					n.pushNotifSvc.AddPushNotificationToBuffer(
@@ -223,7 +233,7 @@ func generateNotificationMessage(notificationData *model.NotificationDataModel, 
 	switch notificationData.EntityTypeId {
 	case model.FollowNotificationTypeId:
 		//new follower
-		message = fmt.Sprintf("User %v Started Following You", username)
+		message = fmt.Sprintf("%v Started Following You", username)
 	case model.NewMessageNotificationTypeId:
 		//new message
 		message = fmt.Sprintf("%v: %v", username, notificationData.Message)

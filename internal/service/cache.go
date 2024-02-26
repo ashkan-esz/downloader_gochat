@@ -7,6 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
+	"time"
 )
 
 type ICacheService interface {
@@ -69,7 +70,7 @@ func setUserDataCache(userId int64, userData *model.CachedUserData) error {
 		fmt.Println("Redis Error on saving userData: ", err)
 		return err
 	}
-	err = redis.SetRedis(context.Background(), userDataCachePrefix+strconv.FormatInt(userId, 10), jsonData, 0)
+	err = redis.SetRedis(context.Background(), userDataCachePrefix+strconv.FormatInt(userId, 10), jsonData, 24*time.Hour)
 	if err != nil {
 		fmt.Println("Redis Error on saving userData: ", err)
 	}

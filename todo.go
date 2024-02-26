@@ -22,11 +22,8 @@ package main
 //todo : handle auth for message apis
 //todo : user online/offline status
 
-//todo : update redis cache after editing profile data
+//todo : update redis cache after editing profile data or settings
 //todo : add apis for editing profile data and profile image
 
 //todo : load media limits from db
 //todo : media uploads
-
-//todo : consider notification-settings of notification receiver in consumer
-//todo : add api to set fcmToken

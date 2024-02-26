@@ -57,17 +57,6 @@ func main() {
 
 	pushNotifSvc := service.NewPushNotificationService()
 
-	//go func() {
-	//	//todo : remove below block
-	//	openConChan := make(chan struct{})
-	//	rabbitmq.NotifySetupDone(openConChan)
-	//	<-openConChan
-	//	fmt.Println("-----> Sending test push-notification")
-	//	readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.NotificationExchange, rabbitmq.NotificationBindingKey)
-	//	message := model.CreateFollowNotificationAction(5, 4)
-	//	rabbit.Publish(ctx, message, readQueueConf, 4)
-	//}()
-
 	userRep := repository.NewUserRepository(dbConn.GetDB(), mongoDB.GetDB())
 	userSvc := service.NewUserService(userRep, rabbit)
 	userHandler := handler.NewUserHandler(userSvc)
