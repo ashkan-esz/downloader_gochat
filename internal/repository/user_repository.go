@@ -20,6 +20,7 @@ type IUserRepository interface {
 	AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) error
 	UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) (bool, error)
 	UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string, ipLocation string) (*model.ActiveSession, error)
+	UpdateSessionNotifToken(userId int64, refreshToken string, notifToken string) error
 	GetUserActiveSessions(userId int64) ([]model.ActiveSession, error)
 	RemoveSession(userId int64, prevRefreshToken string) error
 	RemoveSessions(userId int64, prevRefreshTokens []string) error
@@ -220,6 +221,23 @@ func (r *UserRepository) UpdateSessionRefreshToken(device *model.DeviceInfo, use
 	}
 
 	return &activeSession, nil
+}
+
+func (r *UserRepository) UpdateSessionNotifToken(userId int64, refreshToken string, notifToken string) error {
+	activeSession := model.ActiveSession{}
+	result := r.db.Model(&activeSession).
+		Where("\"userId\" = ? AND \"refreshToken\" = ?", userId, refreshToken).
+		UpdateColumn("\"notifToken\"", notifToken)
+
+	if result.Error != nil {
+		return result.Error
+	}
+
+	if result.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+
+	return nil
 }
 
 func (r *UserRepository) GetUserActiveSessions(userId int64) ([]model.ActiveSession, error) {

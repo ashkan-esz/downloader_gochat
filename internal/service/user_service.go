@@ -23,6 +23,7 @@ type IUserService interface {
 	LoginUser(loginVM *model.LoginViewModel, ip string) (*model.UserViewModel, error)
 	GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool, ip string) (*model.UserViewModel, *util.TokenDetail, error)
 	LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRefreshToken string) error
+	SetNotifToken(jwtUserData *util.MyJwtClaims, refreshToken string, notifToken string) error
 	FollowUser(jwtUserData *util.MyJwtClaims, followId int64) error
 	UnFollowUser(jwtUserData *util.MyJwtClaims, followId int64) error
 	GetUserFollowers(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
@@ -231,6 +232,11 @@ func (s *UserService) LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRe
 	}
 
 	return nil
+}
+
+func (s *UserService) SetNotifToken(jwtUserData *util.MyJwtClaims, refreshToken string, notifToken string) error {
+	err := s.userRepo.UpdateSessionNotifToken(jwtUserData.UserId, refreshToken, notifToken)
+	return err
 }
 
 //------------------------------------------

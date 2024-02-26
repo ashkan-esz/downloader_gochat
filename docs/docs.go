@@ -481,6 +481,52 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/user/setNotifToken": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "send device token as Notification token",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Notification Token",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "notifToken",
+                        "name": "notifToken",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK"
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/signup": {
             "post": {
                 "description": "Register a new user with the provided credentials\nDevice detection can be improved on client side with adding 'deviceInfo.fingerprint'",

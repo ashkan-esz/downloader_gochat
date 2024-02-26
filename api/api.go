@@ -35,6 +35,7 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 		userRoutes.Post("/login", middleware.CORSMiddleware, userHandler.Login)
 		userRoutes.Put("/getToken", middleware.CORSMiddleware, middleware.IsAuthRefreshToken, userHandler.GetToken)
 		userRoutes.Put("/logout", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.LogOut)
+		userRoutes.Put("/setNotifToken/:notifToken", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.SetNotifToken)
 		userRoutes.Post("/follow/:followId", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.FollowUser)
 		userRoutes.Delete("/unfollow/:followId", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UnFollowUser)
 		userRoutes.Get("/followers/:userId/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetUserFollowers)

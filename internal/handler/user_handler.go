@@ -19,6 +19,7 @@ type IUserHandler interface {
 	Login(c *fiber.Ctx) error
 	GetToken(c *fiber.Ctx) error
 	LogOut(c *fiber.Ctx) error
+	SetNotifToken(c *fiber.Ctx) error
 	FollowUser(c *fiber.Ctx) error
 	UnFollowUser(c *fiber.Ctx) error
 	GetUserFollowers(c *fiber.Ctx) error
@@ -251,6 +252,32 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 		SameSite:    "none",
 		SessionOnly: false,
 	})
+
+	return response.ResponseOK(c, "")
+}
+
+// SetNotifToken godoc
+//
+//	@Summary		Notification Token
+//	@Description	send device token as Notification token
+//	@Tags			User
+//	@Param			notifToken		path		string				true   "notifToken"
+//	@Success		200
+//	@Failure		401,403,404	{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/setNotifToken [put]
+func (h *UserHandler) SetNotifToken(c *fiber.Ctx) error {
+	refreshToken := c.Locals("refreshToken").(string)
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	notifToken := c.Params("notifToken", "")
+	err := h.userService.SetNotifToken(jwtUserData, refreshToken, notifToken)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, "Cannot find device", fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
 
 	return response.ResponseOK(c, "")
 }
