@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"downloader_gochat/api"
+	"downloader_gochat/cloudStorage"
 	"downloader_gochat/configs"
 	"downloader_gochat/db"
 	"downloader_gochat/db/mongodb"
@@ -50,12 +51,14 @@ func main() {
 	if err != nil {
 		log.Fatalf("could not initialize mongodb database connection: %s", err)
 	}
+	go configs.LoadDbConfigs(mongoDB.GetDB())
 
 	ctx, cancel := context.WithCancel(context.Background())
 	rabbit := rabbitmq.Start(ctx)
 	defer cancel()
 
 	pushNotifSvc := service.NewPushNotificationService()
+	cloudStorageSvc := cloudStorage.StartS3StorageService()
 
 	userRep := repository.NewUserRepository(dbConn.GetDB(), mongoDB.GetDB())
 	userSvc := service.NewUserService(userRep, rabbit)
@@ -69,6 +72,10 @@ func main() {
 	notifSvc := service.NewNotificationService(notifRep, userRep, rabbit, pushNotifSvc)
 	notifHandler := handler.NewNotificationHandler(notifSvc)
 
-	api.InitRouter(userHandler, wsHandler, notifHandler)
+	mediaRep := repository.NewMediaRepository(dbConn.GetDB(), mongoDB.GetDB())
+	mediaSvc := service.NewMediaService(mediaRep, userRep, wsRep, rabbit, cloudStorageSvc)
+	mediaHandler := handler.NewMediaHandler(mediaSvc)
+
+	api.InitRouter(userHandler, wsHandler, notifHandler, mediaHandler)
 	api.Start("0.0.0.0:8080")
 }

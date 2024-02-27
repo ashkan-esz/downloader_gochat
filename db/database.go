@@ -90,7 +90,7 @@ func (d *Database) AutoMigrate() {
 		&model.FollowMovie{}, &model.LikeDislikeMovie{}, &model.WatchedMovie{},
 		&model.WatchListGroup{}, &model.WatchListMovie{},
 		&model.UserCollection{}, &model.UserCollectionMovie{},
-		&model.Room{}, &model.Message{},
+		&model.Room{}, &model.Message{}, &model.UserMessageRead{}, &model.MediaFile{},
 	)
 	if err != nil {
 		log.Printf("error on AutoMigrate: %v\n", err)

@@ -21,6 +21,8 @@ type Message struct {
 	RoomId     *int64    `gorm:"column:roomId;type:integer;"`
 	CreatorId  int64     `gorm:"column:creatorId;type:integer;not null;"`
 	ReceiverId int64     `gorm:"column:receiverId;type:integer;not null;"`
+	//-----------------------------------
+	Medias []MediaFile `gorm:"foreignKey:MessageId;references:Id;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (Message) TableName() string {

@@ -348,6 +348,57 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/user/media/upload": {
+            "post": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "upload and share media files in chats",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Upload File",
+                "parameters": [
+                    {
+                        "description": "upload file data",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.UploadMediaReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.MediaFile"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/notifications/:skip/:limit": {
             "get": {
                 "security": [
@@ -682,6 +733,32 @@ const docTemplate = `{
                 }
             }
         },
+        "model.MediaFile": {
+            "type": "object",
+            "properties": {
+                "blurHash": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "messageId": {
+                    "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "thumbnail": {
+                    "type": "string"
+                },
+                "type": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "model.NotificationDataModel": {
             "type": "object",
             "properties": {
@@ -767,6 +844,23 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "refreshToken": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UploadMediaReq": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "receiverId": {
+                    "type": "integer"
+                },
+                "roomId": {
+                    "type": "integer"
+                },
+                "uuid": {
                     "type": "string"
                 }
             }

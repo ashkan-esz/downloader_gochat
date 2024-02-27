@@ -24,6 +24,3 @@ package main
 
 //todo : update redis cache after editing profile data or settings
 //todo : add apis for editing profile data and profile image
-
-//todo : load media limits from db
-//todo : media uploads

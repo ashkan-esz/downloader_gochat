@@ -19,7 +19,7 @@ import (
 
 var router *fiber.App
 
-func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, notifHandler *handler.NotificationHandler) {
+func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, notifHandler *handler.NotificationHandler, mediaHandler *handler.MediaHandler) {
 	router = fiber.New()
 
 	router.Use(helmet.New())
@@ -42,6 +42,7 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 		userRoutes.Get("/followings/:userId/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetUserFollowings)
 		userRoutes.Get("/notifications/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.GetUserNotifications)
 		userRoutes.Put("/notifications/batchUpdateStatus/:id/:entityTypeId/:status", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.BatchUpdateUserNotificationStatus)
+		userRoutes.Post("/media/upload", middleware.CORSMiddleware, middleware.AuthMiddleware, mediaHandler.UploadFile)
 	}
 
 	//todo :

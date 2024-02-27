@@ -362,17 +362,19 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 
 			receiveMessage := model.CreateReceiveNewMessageAction(receiveNewMessage)
 			cl.Message <- receiveMessage
+		}
 
-			messageSendResult := model.CreateNewMessageSendResult(
-				mid,
-				receiveNewMessage.Uuid,
-				receiveNewMessage.RoomId,
-				receiveNewMessage.ReceiverId,
-				receiveNewMessage.Date,
-				receiveNewMessage.State,
-				200, "")
-			sender.Message <- messageSendResult
-		} else {
+		messageSendResult := model.CreateNewMessageSendResult(
+			mid,
+			receiveNewMessage.Uuid,
+			receiveNewMessage.RoomId,
+			receiveNewMessage.ReceiverId,
+			receiveNewMessage.Date,
+			receiveNewMessage.State,
+			200, "")
+		sender.Message <- messageSendResult
+
+		if !ok {
 			//receiver is offline
 			// don't need to save this notification, show notification in app, send push-notification (only if user is offline)
 			ctx, _ := context.WithCancel(context.Background())
