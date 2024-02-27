@@ -10,24 +10,29 @@ import (
 )
 
 type ConfigStruct struct {
-	DbUrl                     string
-	AccessTokenSecret         string
-	RefreshTokenSecret        string
-	MigrateOnStart            bool
-	DefaultProfileImage       string
-	AccessTokenExpireHour     int
-	RefreshTokenExpireDay     int
-	ActiveSessionsLimit       int
-	WaitForRedisConnectionSec int
-	RedisUrl                  string
-	RedisPassword             string
-	MongodbDatabaseUrl        string
-	MongodbDatabaseName       string
-	AgendaJobsCollection      string
-	MainServerAddress         string
-	RabbitMqUrl               string
-	FirebaseAuthKey           string
-	CorsAllowedOrigins        []string
+	DbUrl                        string
+	AccessTokenSecret            string
+	RefreshTokenSecret           string
+	MigrateOnStart               bool
+	DefaultProfileImage          string
+	AccessTokenExpireHour        int
+	RefreshTokenExpireDay        int
+	ActiveSessionsLimit          int
+	WaitForRedisConnectionSec    int
+	RedisUrl                     string
+	RedisPassword                string
+	MongodbDatabaseUrl           string
+	MongodbDatabaseName          string
+	AgendaJobsCollection         string
+	MainServerAddress            string
+	RabbitMqUrl                  string
+	FirebaseAuthKey              string
+	CorsAllowedOrigins           []string
+	CloudStorageEndpoint         string
+	CloudStorageWebsiteEndpoint  string
+	CloudStorageAccessKey        string
+	CloudStorageSecretAccessKey  string
+	CloudStorageBucketNamePrefix string
 }
 
 var configs = ConfigStruct{}
@@ -54,6 +59,11 @@ func LoadEnvVariables() {
 	configs.MainServerAddress = os.Getenv("MAIN_SERVER_ADDRESS")
 	configs.RabbitMqUrl = os.Getenv("RABBITMQ_URL")
 	configs.FirebaseAuthKey = os.Getenv("FIREBASE_AUTH_KEY")
+	configs.CloudStorageEndpoint = os.Getenv("CLOUAD_STORAGE_ENDPOINT")
+	configs.CloudStorageWebsiteEndpoint = os.Getenv("CLOUAD_STORAGE_WEBSITE_ENDPOINT")
+	configs.CloudStorageAccessKey = os.Getenv("CLOUAD_STORAGE_ACCESS_KEY")
+	configs.CloudStorageSecretAccessKey = os.Getenv("CLOUAD_STORAGE_SECRET_ACCESS_KEY")
+	configs.CloudStorageBucketNamePrefix = os.Getenv("BUCKET_NAME_PREFIX")
 	sessionLimit, err := strconv.Atoi(os.Getenv("ACTIVE_SESSIONS_LIMIT"))
 	if err != nil || sessionLimit == 0 {
 		configs.ActiveSessionsLimit = 5
