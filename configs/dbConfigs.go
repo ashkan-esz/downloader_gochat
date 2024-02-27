@@ -1,0 +1,55 @@
+package configs
+
+import (
+	"context"
+	"fmt"
+	"sync"
+	"time"
+
+	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo"
+)
+
+type DbConfigData struct {
+	Id                        primitive.ObjectID `bson:"_id"`
+	Title                     string             `bson:"title"`
+	CorsAllowedOrigins        []string           `bson:"corsAllowedOrigins"`
+	DisableTestUserRequests   bool               `bson:"disableTestUserRequests"`
+	DisableCrawlerForDuration int                `bson:"disableCrawlerForDuration"`
+	DisableCrawlerStart       int                `bson:"disableCrawlerStart"`
+	CrawlerDisabled           bool               `bson:"crawlerDisabled"`
+	DisableCrawler            bool               `bson:"disableCrawler"`
+	DevelopmentFaze           bool               `bson:"developmentFaze"`
+	DevelopmentFazeStart      int                `bson:"developmentFazeStart"`
+	MediaFileSizeLimit        int64              `bson:"mediaFileSizeLimit"`
+	MediaFileExtensionLimit   string             `bson:"mediaFileExtensionLimit"`
+}
+
+var rwm sync.RWMutex
+var dbConfigs DbConfigData
+
+func GetDbConfigs() DbConfigData {
+	rwm.RLock()
+	defer rwm.RUnlock()
+	return dbConfigs
+}
+
+func LoadDbConfigs(mongodb *mongo.Database) {
+	tick := time.NewTicker(30 * time.Minute)
+	load(mongodb)
+	defer rwm.Unlock()
+	for range tick.C {
+		load(mongodb)
+	}
+}
+
+func load(mongodb *mongo.Database) {
+	rwm.Lock()
+	defer rwm.Unlock()
+	err := mongodb.Collection("configs").FindOne(context.Background(), bson.D{{"title", "server configs"}}).Decode(&dbConfigs)
+	if err != nil {
+		fmt.Printf("could not get dbConfig from mongodb: %s\n", err)
+		//log.Fatalf("could not get dbConfig from mongodb: %s", err)
+	}
+}
