@@ -63,13 +63,14 @@ type GetSingleChatListReq struct {
 }
 
 type MessageDataModel struct {
-	Id         int64     `gorm:"column:id" json:"id"`
-	Content    string    `gorm:"column:content" json:"content"`
-	Date       time.Time `gorm:"column:date" json:"date"`
-	State      int       `gorm:"column:state" json:"state"`
-	RoomId     *int64    `gorm:"column:roomId" json:"roomId,omitempty"`
-	CreatorId  int64     `gorm:"column:creatorId" json:"creatorId"`
-	ReceiverId int64     `gorm:"column:receiverId" json:"receiverId"`
+	Id         int64       `gorm:"column:id" json:"id"`
+	Content    string      `gorm:"column:content" json:"content"`
+	Date       time.Time   `gorm:"column:date" json:"date"`
+	State      int         `gorm:"column:state" json:"state"`
+	RoomId     *int64      `gorm:"column:roomId" json:"roomId,omitempty"`
+	CreatorId  int64       `gorm:"column:creatorId" json:"creatorId"`
+	ReceiverId int64       `gorm:"column:receiverId" json:"receiverId"`
+	Medias     []MediaFile `gorm:"foreignKey:MessageId;references:Id;" json:"medias"`
 }
 
 type ChatsDataModel struct {
@@ -84,6 +85,14 @@ type ChatsDataModel struct {
 	RoomId     *int64    `gorm:"column:roomId" json:"roomId"`
 	CreatorId  int64     `gorm:"column:creatorId" json:"creatorId"`
 	ReceiverId int64     `gorm:"column:receiverId" json:"receiverId"`
+	//Medias     []MediaFile `gorm:"foreignKey:MessageId;references:Id;" json:"medias"`
+	MediaFileId   int64     `gorm:"column:id;" json:"mediaFileId"`
+	MediaFileDate time.Time `gorm:"column:date;" json:"mediaFileDate"`
+	Url           string    `gorm:"column:url;" json:"url"`
+	Type          string    `gorm:"column:type;" json:"type"`
+	Size          int64     `gorm:"column:size;" json:"size"`
+	Thumbnail     string    `gorm:"column:thumbnail;" json:"thumbnail"`
+	BlurHash      string    `gorm:"column:blurHash;" json:"blurHash"`
 }
 
 type ChatsCompressedDataModel struct {

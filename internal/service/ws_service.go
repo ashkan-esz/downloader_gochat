@@ -316,12 +316,12 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 }
 
 func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *WsService) error {
-	sender, ok := wsSvc.hub.Clients[receiveNewMessage.UserId]
+	sender, senderExist := wsSvc.hub.Clients[receiveNewMessage.UserId]
 	mid, err := wsSvc.wsRepo.SaveMessage(receiveNewMessage)
 	if err != nil {
 		if errors.Is(err, gorm.ErrForeignKeyViolated) {
 			// receiver user not found
-			if ok {
+			if senderExist {
 				messageSendResult := model.CreateNewMessageSendResult(
 					-1,
 					receiveNewMessage.Uuid,
@@ -334,7 +334,7 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 				// maybe save error
 			}
 		} else {
-			if ok {
+			if senderExist {
 				messageSendResult := model.CreateNewMessageSendResult(
 					-1,
 					receiveNewMessage.Uuid,
@@ -349,8 +349,8 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 			}
 		}
 	} else {
-		cl, ok := wsSvc.hub.Clients[receiveNewMessage.ReceiverId]
-		if ok {
+		cl, receiverExist := wsSvc.hub.Clients[receiveNewMessage.ReceiverId]
+		if receiverExist {
 			//receiver is online
 			receiveNewMessage.Id = mid
 
@@ -364,17 +364,19 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 			cl.Message <- receiveMessage
 		}
 
-		messageSendResult := model.CreateNewMessageSendResult(
-			mid,
-			receiveNewMessage.Uuid,
-			receiveNewMessage.RoomId,
-			receiveNewMessage.ReceiverId,
-			receiveNewMessage.Date,
-			receiveNewMessage.State,
-			200, "")
-		sender.Message <- messageSendResult
+		if senderExist {
+			messageSendResult := model.CreateNewMessageSendResult(
+				mid,
+				receiveNewMessage.Uuid,
+				receiveNewMessage.RoomId,
+				receiveNewMessage.ReceiverId,
+				receiveNewMessage.Date,
+				receiveNewMessage.State,
+				200, "")
+			sender.Message <- messageSendResult
+		}
 
-		if !ok {
+		if !receiverExist {
 			//receiver is offline
 			// don't need to save this notification, show notification in app, send push-notification (only if user is offline)
 			ctx, _ := context.WithCancel(context.Background())
@@ -561,7 +563,7 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 
 		chatsListReq := &model.GetSingleChatListReq{
 			UserId:               userId,
-			MessagePerChatLimit:  3,
+			MessagePerChatLimit:  2,
 			ChatsLimit:           20,
 			IncludeProfileImages: true,
 		}
@@ -647,12 +649,39 @@ func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]mo
 			Date:       chat.Date,
 			State:      chat.State,
 			Content:    chat.Content,
+			Medias: []model.MediaFile{
+				{
+					Id:        chat.MediaFileId,
+					MessageId: chat.Id,
+					Date:      chat.MediaFileDate,
+					Url:       chat.Url,
+					Type:      chat.Type,
+					Size:      chat.Size,
+					Thumbnail: chat.Thumbnail,
+					BlurHash:  chat.BlurHash,
+				},
+			},
+		}
+		if chat.MediaFileId == 0 {
+			m.Medias = nil
 		}
 		exist := false
 		for i := range compressedChats {
 			if chat.UserId == compressedChats[i].UserId {
 				exist = true
-				compressedChats[i].Messages = append(compressedChats[i].Messages, m)
+				messageExist := false
+				if m.Medias != nil {
+					for i2, message := range compressedChats[i].Messages {
+						if message.Id == m.Id {
+							messageExist = true
+							compressedChats[i].Messages[i2].Medias = append(compressedChats[i].Messages[i2].Medias, m.Medias[0])
+							break
+						}
+					}
+				}
+				if !messageExist {
+					compressedChats[i].Messages = append(compressedChats[i].Messages, m)
+				}
 				break
 			}
 		}
@@ -679,6 +708,12 @@ func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]mo
 		slices.SortFunc(compressedChats[i].Messages, func(a, b model.MessageDataModel) int {
 			return b.Date.Compare(a.Date)
 		})
+
+		for i2 := range compressedChats[i].Messages {
+			slices.SortFunc(compressedChats[i].Messages[i2].Medias, func(a, b model.MediaFile) int {
+				return a.Date.Compare(b.Date)
+			})
+		}
 	}
 	slices.SortFunc(compressedChats, func(a, b model.ChatsCompressedDataModel) int {
 		return b.Messages[0].Date.Compare(a.Messages[0].Date)

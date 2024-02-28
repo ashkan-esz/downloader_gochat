@@ -180,6 +180,9 @@ func (w *WsRepository) GetSingleChatMessages(params *model.GetSingleMessagesReq)
 		Order(clause.OrderByColumn{Column: clause.Column{Name: "date"}, Desc: params.ReverseOrder}).
 		Offset(params.Skip).
 		Limit(params.Limit).
+		Preload("Medias", func(db *gorm.DB) *gorm.DB {
+			return db.Order("date ASC")
+		}).
 		Find(&messages).Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -194,7 +197,7 @@ func (w *WsRepository) GetSingleChatMessages(params *model.GetSingleMessagesReq)
 func (w *WsRepository) GetSingleChatList(params *model.GetSingleChatListReq) ([]model.ChatsDataModel, []model.ProfileImageDataModel, error) {
 	var chats []model.ChatsDataModel
 
-	//SELECT t_limited.*, "User"."publicName", "User".username, "User"."userId", "User".role
+	//SELECT t_limited.*, "User"."publicName", "User".username, "User"."userId", "User".role, "MediaFile".*
 	//FROM (
 	//    (
 	//         SELECT DISTINCT "creatorId"
@@ -210,15 +213,15 @@ func (w *WsRepository) GetSingleChatList(params *model.GetSingleChatListReq) ([]
 	//        offset 0
 	//        LIMIT 2
 	//    ) as t_limited ON t_limited.state = 1 and t_limited."roomId" IS NULL
-	//) join "User" on t_limited."creatorId" = "User"."userId";
+	//) join "User" on t_limited."creatorId" = "User"."userId" left join "MediaFile" on t_limited.id = "MediaFile"."messageId";
 
-	queryStr := "SELECT t_limited.*, \"User\".\"publicName\", \"User\".username, \"User\".\"userId\", \"User\".role " +
+	queryStr := "SELECT t_limited.*, \"User\".\"publicName\", \"User\".username, \"User\".\"userId\", \"User\".role, \"MediaFile\".* " +
 		"FROM ( ( SELECT DISTINCT \"creatorId\" FROM \"Message\" offset @chatskip limit @chatlimit) as t_groups " +
 		"JOIN LATERAL (SELECT * FROM \"Message\" t_all WHERE t_all.\"creatorId\" = t_groups.\"creatorId\" and t_all.\"receiverId\" = @receiverid " +
 		"ORDER BY t_all.date desc Offset @messageskip LIMIT @messagelimit) " +
-		"as t_limited ON t_limited.state = @messagestate and t_limited.\"roomId\" IS NULL) join \"User\" on t_limited.\"creatorId\" = \"User\".\"userId\";"
+		"as t_limited ON t_limited.state = @messagestate AND t_limited.\"roomId\" IS NULL) JOIN \"User\" ON t_limited.\"creatorId\" = \"User\".\"userId\" LEFT JOIN \"MediaFile\" ON t_limited.id = \"MediaFile\".\"messageId\";"
 	if params.MessageState == 0 {
-		queryStr = strings.Replace(queryStr, "t_limited.state = @messagestate and ", "", 1)
+		queryStr = strings.Replace(queryStr, "t_limited.state = @messagestate AND ", "", 1)
 	}
 
 	err := w.db.Raw(queryStr,

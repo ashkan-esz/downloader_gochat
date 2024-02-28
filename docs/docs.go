@@ -739,6 +739,9 @@ const docTemplate = `{
                 "blurHash": {
                     "type": "string"
                 },
+                "date": {
+                    "type": "string"
+                },
                 "id": {
                     "type": "integer"
                 },

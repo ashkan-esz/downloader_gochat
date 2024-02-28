@@ -45,6 +45,8 @@ definitions:
     properties:
       blurHash:
         type: string
+      date:
+        type: string
       id:
         type: integer
       messageId:
