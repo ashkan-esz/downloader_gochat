@@ -20,7 +20,9 @@ import (
 var router *fiber.App
 
 func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, notifHandler *handler.NotificationHandler, mediaHandler *handler.MediaHandler) {
-	router = fiber.New()
+	router = fiber.New(fiber.Config{
+		BodyLimit: 100 * 1024 * 1024,
+	})
 
 	router.Use(helmet.New())
 	router.Use(cors.New())

@@ -1,17 +1,27 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"downloader_gochat/cloudStorage"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
 	"downloader_gochat/rabbitmq"
+	"encoding/base64"
+	"fmt"
 	"mime/multipart"
 	"path/filepath"
+	"strings"
 	"time"
 
+	"github.com/buckket/go-blurhash"
+	"github.com/disintegration/imaging"
 	"github.com/google/uuid"
+	"github.com/kolesa-team/go-webp/encoder"
+	"github.com/kolesa-team/go-webp/webp"
 )
+
+// sudo apt-get install libwebp-dev
 
 type IMediaService interface {
 	UploadFile(userId int64, messageData *model.UploadMediaReq, contentType string, fileSize int64, fileName string, fileBuffer multipart.File) (*model.MediaFile, error)
@@ -34,9 +44,6 @@ func NewMediaService(mediaRepo repository.IMediaRepository, userRep repository.I
 		cloudStorage: cloudStorage,
 	}
 }
-
-//todo : create blurHash for uploaded image/video file
-//todo : create thumbnail for uploaded image/video file
 
 //------------------------------------------
 //------------------------------------------
@@ -73,6 +80,10 @@ func (m *MediaService) UploadFile(userId int64, messageData *model.UploadMediaRe
 		Thumbnail: "",
 		BlurHash:  "",
 	}
+	if strings.Contains(contentType, "image") {
+		mediaFile.Thumbnail, mediaFile.BlurHash = createThumbnailAndBlurHash(contentType, fileBuffer)
+	}
+
 	err = m.mediaRepo.SaveMediaData(&mediaFile)
 	if err != nil {
 		return nil, err
@@ -123,4 +134,55 @@ func (m *MediaService) UploadFile(userId int64, messageData *model.UploadMediaRe
 	_ = m.wsRep.UpdateUserReceivedMessageTime(newMessage.ReceiverId)
 
 	return &mediaFile, err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func createThumbnailAndBlurHash(contentType string, fileBuffer multipart.File) (string, string) {
+	img, err := imaging.Decode(fileBuffer)
+	if err != nil {
+		fmt.Println("Error on decoding uploaded image: ", err)
+		return "", ""
+	}
+
+	thumbnailStr := ""
+	dstImage := imaging.Thumbnail(img, 128, 128, imaging.Linear)
+
+	switch contentType {
+	case "image/jpeg", "image/png":
+		newbuf := new(bytes.Buffer)
+		//err = jpeg.Encode(newbuf, dstImage, &jpeg.Options{Quality: 20})
+		options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 30)
+		if err != nil {
+			fmt.Println("Error on creating webp options: ", err)
+		} else {
+			err = webp.Encode(newbuf, dstImage, options)
+			if err != nil {
+				fmt.Println("Error on encoding webp: ", err)
+			} else {
+				str := base64.StdEncoding.EncodeToString(newbuf.Bytes())
+				//thumbnailStr = "data:image/jpeg;base64," + str
+				thumbnailStr = "data:image/webp;base64," + str
+			}
+		}
+	}
+
+	if thumbnailStr != "" {
+		//creating blurHash from thumbnail image
+		str, err := blurhash.Encode(4, 3, dstImage)
+		if err != nil {
+			fmt.Println("Error on creating blurHash from thumbnail image: ", err)
+			return thumbnailStr, ""
+		}
+		return thumbnailStr, str
+	} else {
+		//creating blurHash from original image
+		str, err := blurhash.Encode(4, 3, img)
+		if err != nil {
+			fmt.Println("Error on creating blurHash from original image: ", err)
+			return thumbnailStr, ""
+		}
+		return thumbnailStr, str
+	}
 }
