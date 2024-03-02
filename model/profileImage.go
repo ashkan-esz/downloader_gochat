@@ -15,10 +15,25 @@ func (ProfileImage) TableName() string {
 	return "ProfileImage"
 }
 
+//------------------------------------------
+//------------------------------------------
+
 type ProfileImageDataModel struct {
 	AddDate   time.Time `gorm:"column:addDate;" json:"addDate"`
 	Url       string    `gorm:"column:url;" json:"url"`
 	Size      int64     `gorm:"column:size;" json:"size"`
 	Thumbnail string    `gorm:"column:thumbnail;" json:"thumbnail"`
 	UserId    int64     `gorm:"column:userId;" json:"userId"`
+}
+
+type FollowListProfileImageDataModel struct {
+	AddDate   time.Time `gorm:"column:addDate;" json:"-"`
+	Url       string    `gorm:"column:url;" json:"url"`
+	Size      int64     `gorm:"column:size;" json:"size"`
+	Thumbnail string    `gorm:"column:thumbnail;" json:"thumbnail"`
+	UserId    int64     `gorm:"column:userId;" json:"-"`
+}
+
+func (FollowListProfileImageDataModel) TableName() string {
+	return "ProfileImage"
 }

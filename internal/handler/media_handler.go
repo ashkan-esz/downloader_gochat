@@ -38,8 +38,8 @@ func NewMediaHandler(mediaService service.IMediaService) *MediaHandler {
 //	@Description	upload and share media files in chats
 //	@Tags			User
 //	@Param			user		body		model.UploadMediaReq	true	"upload file data"
-//	@Success		200				{object}	model.MediaFile
-//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Success		200			{object}	model.MediaFile
+//	@Failure		400,401,404	{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
 //	@Router			/v1/user/media/upload [post]
 func (m *MediaHandler) UploadFile(c *fiber.Ctx) error {

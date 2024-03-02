@@ -45,7 +45,7 @@ func NewUserHandler(userService service.IUserService) *UserHandler {
 //	@Summary		Register a new user
 //	@Description	Register a new user with the provided credentials
 //	@Description	Device detection can be improved on client side with adding 'deviceInfo.fingerprint'
-//	@Tags			User
+//	@Tags			User-Auth
 //	@Param			noCookie	query		bool					true	"return refreshToken in response body instead of saving in cookie"
 //	@Param			user		body		model.RegisterViewModel	true	"User object"
 //	@Success		200			{object}	model.UserViewModel
@@ -105,7 +105,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 //
 //	@Summary		Login user
 //	@Description	Login with provided credentials
-//	@Tags			User
+//	@Tags			User-Auth
 //	@Param			noCookie	query		bool					true	"return refreshToken in response body instead of saving in cookie"
 //	@Param			user		body		model.LoginViewModel	true	"User object"
 //	@Success		200			{object}	model.UserViewModel
@@ -160,7 +160,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 //
 //	@Summary		Get Token
 //	@Description	Get new Tokens, also return `refreshToken`
-//	@Tags			User
+//	@Tags			User-Auth
 //	@Param			noCookie		query		bool				true	"return refreshToken in response body instead of saving in cookie"
 //	@Param			profileImages	query		bool				true	"also return profile images, slower response"
 //	@Param			user			body		model.DeviceInfo	true	"Device Info"
@@ -224,7 +224,7 @@ func (h *UserHandler) GetToken(c *fiber.Ctx) error {
 //	@Summary		Logout
 //	@Description	Logout user, return accessToken as empty string and also reset/remove refreshToken cookie if use in browser
 //	@Description	.in other environments reset refreshToken from client after successful logout.
-//	@Tags			User
+//	@Tags			User-Auth
 //	@Success		200
 //	@Failure		401,403	{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
@@ -261,7 +261,7 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 //	@Summary		Notification Token
 //	@Description	send device token as Notification token
 //	@Tags			User
-//	@Param			notifToken		path		string				true   "notifToken"
+//	@Param			notifToken	path	string	true	"notifToken"
 //	@Success		200
 //	@Failure		401,403,404	{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
@@ -287,12 +287,12 @@ func (h *UserHandler) SetNotifToken(c *fiber.Ctx) error {
 
 // FollowUser godoc
 //
-//	@Summary		Follow user
-//	@Description	add new user to following list`
-//	@Tags			User
-//	@Param			followId		path		integer				true   "id on the user want to follow"
-//	@Success		200				{object}	model.UserViewModel
-//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Summary		Follow User
+//	@Description	Add followId user to your following list
+//	@Tags			User-Follow
+//	@Param			followId		path		integer	true	"id on the user want to follow"
+//	@Success		200				{object}	response.ResponseOKModel
+//	@Failure		400,404,409,500	{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
 //	@Router			/v1/user/follow/:followId [post]
 func (h *UserHandler) FollowUser(c *fiber.Ctx) error {
@@ -317,12 +317,12 @@ func (h *UserHandler) FollowUser(c *fiber.Ctx) error {
 
 // UnFollowUser godoc
 //
-//	@Summary		unFollow user
-//	@Description	remove user from following list`
-//	@Tags			User
-//	@Param			followId		path		integer				true   "id on the user want to follow"
-//	@Success		200				{object}	model.UserViewModel
-//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Summary		UnFollow User
+//	@Description	Remove followId user from users following list
+//	@Tags			User-Follow
+//	@Param			followId	path		integer	true	"id on the user want to unfollow"
+//	@Success		200			{object}	response.ResponseOKModel
+//	@Failure		400,404,500	{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
 //	@Router			/v1/user/unfollow/:followId [delete]
 func (h *UserHandler) UnFollowUser(c *fiber.Ctx) error {
@@ -347,12 +347,12 @@ func (h *UserHandler) UnFollowUser(c *fiber.Ctx) error {
 //
 //	@Summary		Followers
 //	@Description	get user followers
-//	@Tags			User
-//	@Param			userId		path		integer				true   "id of user"
-//	@Param			skip		path		integer				true   "skip"
-//	@Param			limit		path		integer				true   "limit"
-//	@Success		200				{object}	model.FollowUserDataModel
-//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Tags			User-Follow
+//	@Param			userId	path		integer	true	"id of user"
+//	@Param			skip	path		integer	true	"skip"
+//	@Param			limit	path		integer	true	"limit"
+//	@Success		200		{object}	model.FollowUserDataModel
+//	@Failure		400,500	{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
 //	@Router			/v1/user/followers/:userId/:skip/:limit [get]
 func (h *UserHandler) GetUserFollowers(c *fiber.Ctx) error {
@@ -380,12 +380,12 @@ func (h *UserHandler) GetUserFollowers(c *fiber.Ctx) error {
 //
 //	@Summary		Followings
 //	@Description	get user followings
-//	@Tags			User
-//	@Param			userId		path		integer				true   "id of user"
-//	@Param			skip		path		integer				true   "skip"
-//	@Param			limit		path		integer				true   "limit"
-//	@Success		200				{object}	model.FollowUserDataModel
-//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Tags			User-Follow
+//	@Param			userId	path		integer	true	"id of user"
+//	@Param			skip	path		integer	true	"skip"
+//	@Param			limit	path		integer	true	"limit"
+//	@Success		200		{object}	model.FollowUserDataModel
+//	@Failure		400,500	{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
 //	@Router			/v1/user/followings/:userId/:skip/:limit [get]
 func (h *UserHandler) GetUserFollowings(c *fiber.Ctx) error {

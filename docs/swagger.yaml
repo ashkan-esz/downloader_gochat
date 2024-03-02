@@ -15,13 +15,22 @@ definitions:
       os:
         type: string
     type: object
+  model.FollowListProfileImageDataModel:
+    properties:
+      size:
+        type: integer
+      thumbnail:
+        type: string
+      url:
+        type: string
+    type: object
   model.FollowUserDataModel:
     properties:
       bio:
         type: string
       profileImages:
         items:
-          $ref: '#/definitions/model.ProfileImage'
+          $ref: '#/definitions/model.FollowListProfileImageDataModel'
         type: array
       publicName:
         type: string
@@ -182,10 +191,10 @@ paths:
             type: object
       summary: Show the status of server.
       tags:
-      - root
+      - System
   /v1/user/follow/:followId:
     post:
-      description: add new user to following list`
+      description: Add followId user to your following list
       parameters:
       - description: id on the user want to follow
         in: path
@@ -196,24 +205,28 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.UserViewModel'
+            $ref: '#/definitions/response.ResponseOKModel'
         "400":
           description: Bad Request
-          schema:
-            $ref: '#/definitions/response.ResponseErrorModel'
-        "401":
-          description: Unauthorized
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
       security:
       - BearerAuth: []
-      summary: Follow user
+      summary: Follow User
       tags:
-      - User
+      - User-Follow
   /v1/user/followers/:userId/:skip/:limit:
     get:
       description: get user followers
@@ -242,19 +255,15 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/response.ResponseErrorModel'
-        "404":
-          description: Not Found
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
       security:
       - BearerAuth: []
       summary: Followers
       tags:
-      - User
+      - User-Follow
   /v1/user/followings/:userId/:skip/:limit:
     get:
       description: get user followings
@@ -283,19 +292,15 @@ paths:
           description: Bad Request
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
-        "401":
-          description: Unauthorized
-          schema:
-            $ref: '#/definitions/response.ResponseErrorModel'
-        "404":
-          description: Not Found
+        "500":
+          description: Internal Server Error
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
       security:
       - BearerAuth: []
       summary: Followings
       tags:
-      - User
+      - User-Follow
   /v1/user/getToken:
     put:
       description: Get new Tokens, also return `refreshToken`
@@ -333,7 +338,7 @@ paths:
       - BearerAuth: []
       summary: Get Token
       tags:
-      - User
+      - User-Auth
   /v1/user/login:
     post:
       description: Login with provided credentials
@@ -360,7 +365,7 @@ paths:
             $ref: '#/definitions/response.ResponseErrorModel'
       summary: Login user
       tags:
-      - User
+      - User-Auth
   /v1/user/logout:
     put:
       description: |-
@@ -381,7 +386,7 @@ paths:
       - BearerAuth: []
       summary: Logout
       tags:
-      - User
+      - User-Auth
   /v1/user/media/upload:
     post:
       description: upload and share media files in chats
@@ -558,12 +563,12 @@ paths:
             $ref: '#/definitions/response.ResponseErrorModel'
       summary: Register a new user
       tags:
-      - User
+      - User-Auth
   /v1/user/unfollow/:followId:
     delete:
-      description: remove user from following list`
+      description: Remove followId user from users following list
       parameters:
-      - description: id on the user want to follow
+      - description: id on the user want to unfollow
         in: path
         name: followId
         required: true
@@ -572,24 +577,24 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/model.UserViewModel'
+            $ref: '#/definitions/response.ResponseOKModel'
         "400":
           description: Bad Request
-          schema:
-            $ref: '#/definitions/response.ResponseErrorModel'
-        "401":
-          description: Unauthorized
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
         "404":
           description: Not Found
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
       security:
       - BearerAuth: []
-      summary: unFollow user
+      summary: UnFollow User
       tags:
-      - User
+      - User-Follow
 schemes:
 - http
 securityDefinitions:

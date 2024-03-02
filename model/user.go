@@ -111,14 +111,14 @@ type UserDataModel struct {
 	UserId   int64  `db:"userId" gorm:"column:userId" json:"userId"`
 	Username string `db:"username" gorm:"column:username" json:"username"`
 	Email    string `db:"email" gorm:"column:email" json:"email"`
-	Password string `db:"password" gorm:"column:password" json:"password"`
+	Password string `db:"password" gorm:"column:password" json:"-"`
 }
 
 type UserWithImageDataModel struct {
 	UserId        int64          `db:"userId" gorm:"column:userId" json:"userId"`
 	Username      string         `db:"username" gorm:"column:username" json:"username"`
 	Email         string         `db:"email" gorm:"column:email" json:"email"`
-	Password      string         `db:"password" gorm:"column:password" json:"password"`
+	Password      string         `db:"password" gorm:"column:password" json:"-"`
 	ProfileImages []ProfileImage `db:"profileImages" gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;" json:"profileImages"`
 }
 

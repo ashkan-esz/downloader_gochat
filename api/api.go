@@ -96,7 +96,7 @@ func timeoutMiddleware(timeout time.Duration) func(c *fiber.Ctx) error {
 //
 //	@Summary		Show the status of server.
 //	@Description	get the status of server.
-//	@Tags			root
+//	@Tags			System
 //	@Success		200	{object}	map[string]interface{}
 //	@Router			/ [get]
 func HealthCheck(c *fiber.Ctx) error {

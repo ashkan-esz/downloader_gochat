@@ -31,12 +31,12 @@ func NewNotificationHandler(notifService service.INotificationService) *Notifica
 //	@Summary		Follow events
 //	@Description	get user followers/followings events
 //	@Tags			User
-//	@Param			skip		path		integer				true   "skip"
-//	@Param			limit		path		integer				true   "limit"
-//	@Param			entityTypeId		query		integer				true   "entityTypeId"
-//	@Param			status		query		integer				true   "status"
+//	@Param			skip			path		integer	true	"skip"
+//	@Param			limit			path		integer	true	"limit"
+//	@Param			entityTypeId	query		integer	true	"entityTypeId"
+//	@Param			status			query		integer	true	"status"
 //	@Success		200				{object}	model.NotificationDataModel
-//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Failure		400,401,404		{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
 //	@Router			/v1/user/notifications/:skip/:limit [get]
 func (n *NotificationHandler) GetUserNotifications(c *fiber.Ctx) error {
@@ -65,11 +65,11 @@ func (n *NotificationHandler) GetUserNotifications(c *fiber.Ctx) error {
 //	@Summary		Notification Status update
 //	@Description	update the status of notifications
 //	@Tags			User
-//	@Param			id		path		integer				true   "notificationId"
-//	@Param			entityTypeId		path		integer				true   "type of notification"
-//	@Param			status		path		integer				true   "new value of status"
+//	@Param			id				path		integer	true	"notificationId"
+//	@Param			entityTypeId	path		integer	true	"type of notification"
+//	@Param			status			path		integer	true	"new value of status"
 //	@Success		200				{object}	response.ResponseOKModel
-//	@Failure		400,401,404			{object}	response.ResponseErrorModel
+//	@Failure		400,401,404		{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
 //	@Router			/v1/user/notifications/batchUpdateStatus/:id/:entityTypeId/:status [put]
 func (n *NotificationHandler) BatchUpdateUserNotificationStatus(c *fiber.Ctx) error {

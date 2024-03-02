@@ -28,7 +28,7 @@ const docTemplate = `{
             "get": {
                 "description": "get the status of server.",
                 "tags": [
-                    "root"
+                    "System"
                 ],
                 "summary": "Show the status of server.",
                 "responses": {
@@ -49,11 +49,11 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "add new user to following list` + "`" + `",
+                "description": "Add followId user to your following list",
                 "tags": [
-                    "User"
+                    "User-Follow"
                 ],
-                "summary": "Follow user",
+                "summary": "Follow User",
                 "parameters": [
                     {
                         "type": "integer",
@@ -67,7 +67,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.UserViewModel"
+                            "$ref": "#/definitions/response.ResponseOKModel"
                         }
                     },
                     "400": {
@@ -76,14 +76,20 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
@@ -100,7 +106,7 @@ const docTemplate = `{
                 ],
                 "description": "get user followers",
                 "tags": [
-                    "User"
+                    "User-Follow"
                 ],
                 "summary": "Followers",
                 "parameters": [
@@ -139,14 +145,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.ResponseErrorModel"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
@@ -163,7 +163,7 @@ const docTemplate = `{
                 ],
                 "description": "get user followings",
                 "tags": [
-                    "User"
+                    "User-Follow"
                 ],
                 "summary": "Followings",
                 "parameters": [
@@ -202,14 +202,8 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
-                        "schema": {
-                            "$ref": "#/definitions/response.ResponseErrorModel"
-                        }
-                    },
-                    "404": {
-                        "description": "Not Found",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
@@ -226,7 +220,7 @@ const docTemplate = `{
                 ],
                 "description": "Get new Tokens, also return ` + "`" + `refreshToken` + "`" + `",
                 "tags": [
-                    "User"
+                    "User-Auth"
                 ],
                 "summary": "Get Token",
                 "parameters": [
@@ -280,7 +274,7 @@ const docTemplate = `{
             "post": {
                 "description": "Login with provided credentials",
                 "tags": [
-                    "User"
+                    "User-Auth"
                 ],
                 "summary": "Login user",
                 "parameters": [
@@ -326,7 +320,7 @@ const docTemplate = `{
                 ],
                 "description": "Logout user, return accessToken as empty string and also reset/remove refreshToken cookie if use in browser\n.in other environments reset refreshToken from client after successful logout.",
                 "tags": [
-                    "User"
+                    "User-Auth"
                 ],
                 "summary": "Logout",
                 "responses": {
@@ -582,7 +576,7 @@ const docTemplate = `{
             "post": {
                 "description": "Register a new user with the provided credentials\nDevice detection can be improved on client side with adding 'deviceInfo.fingerprint'",
                 "tags": [
-                    "User"
+                    "User-Auth"
                 ],
                 "summary": "Register a new user",
                 "parameters": [
@@ -626,15 +620,15 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "remove user from following list` + "`" + `",
+                "description": "Remove followId user from users following list",
                 "tags": [
-                    "User"
+                    "User-Follow"
                 ],
-                "summary": "unFollow user",
+                "summary": "UnFollow User",
                 "parameters": [
                     {
                         "type": "integer",
-                        "description": "id on the user want to follow",
+                        "description": "id on the user want to unfollow",
                         "name": "followId",
                         "in": "path",
                         "required": true
@@ -644,7 +638,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/model.UserViewModel"
+                            "$ref": "#/definitions/response.ResponseOKModel"
                         }
                     },
                     "400": {
@@ -653,14 +647,14 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
                     },
-                    "401": {
-                        "description": "Unauthorized",
+                    "404": {
+                        "description": "Not Found",
                         "schema": {
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
                     },
-                    "404": {
-                        "description": "Not Found",
+                    "500": {
+                        "description": "Internal Server Error",
                         "schema": {
                             "$ref": "#/definitions/response.ResponseErrorModel"
                         }
@@ -693,6 +687,20 @@ const docTemplate = `{
                 }
             }
         },
+        "model.FollowListProfileImageDataModel": {
+            "type": "object",
+            "properties": {
+                "size": {
+                    "type": "integer"
+                },
+                "thumbnail": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                }
+            }
+        },
         "model.FollowUserDataModel": {
             "type": "object",
             "properties": {
@@ -702,7 +710,7 @@ const docTemplate = `{
                 "profileImages": {
                     "type": "array",
                     "items": {
-                        "$ref": "#/definitions/model.ProfileImage"
+                        "$ref": "#/definitions/model.FollowListProfileImageDataModel"
                     }
                 },
                 "publicName": {

@@ -18,10 +18,10 @@ func (Follow) TableName() string {
 //------------------------------------------
 
 type FollowUserDataModel struct {
-	UserId        int64          `gorm:"column:userId" json:"userId"`
-	Username      string         `gorm:"column:username" json:"username"`
-	RawUsername   string         `gorm:"column:rawUsername" json:"rawUsername"`
-	PublicName    string         `gorm:"column:publicName" json:"publicName"`
-	Bio           string         `gorm:"column:bio" json:"bio"`
-	ProfileImages []ProfileImage `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
+	UserId        int64                             `gorm:"column:userId" json:"userId"`
+	Username      string                            `gorm:"column:username" json:"username"`
+	RawUsername   string                            `gorm:"column:rawUsername" json:"rawUsername"`
+	PublicName    string                            `gorm:"column:publicName" json:"publicName"`
+	Bio           string                            `gorm:"column:bio" json:"bio"`
+	ProfileImages []FollowListProfileImageDataModel `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
 }

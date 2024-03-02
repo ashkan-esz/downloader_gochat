@@ -18,9 +18,10 @@ package main
 //todo : share movie
 //todo : security
 
-//todo : handle follower/following
 //todo : handle auth for message apis
+//todo : user isTyping status
 //todo : user online/offline status
 
 //todo : update redis cache after editing profile data or settings
+
 //todo : add apis for editing profile data and profile image
