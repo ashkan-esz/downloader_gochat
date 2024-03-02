@@ -25,6 +25,8 @@ type IUserHandler interface {
 	GetUserFollowers(c *fiber.Ctx) error
 	GetUserFollowings(c *fiber.Ctx) error
 	GetUserNotifications(c *fiber.Ctx) error
+	GetUserSettings(c *fiber.Ctx) error
+	UpdateUserSettings(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -260,7 +262,7 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 //
 //	@Summary		Notification Token
 //	@Description	send device token as Notification token
-//	@Tags			User
+//	@Tags			User-Notifications
 //	@Param			notifToken	path	string	true	"notifToken"
 //	@Success		200
 //	@Failure		401,403,404	{object}	response.ResponseErrorModel
@@ -407,4 +409,77 @@ func (h *UserHandler) GetUserFollowings(c *fiber.Ctx) error {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 	return response.ResponseOKWithData(c, result)
+}
+
+// GetUserSettings godoc
+//
+//	@Summary		Get User Settings
+//	@Description	Returns user settings for movies, downloadLinks and notifications.
+//	@Tags			User-Setting
+//	@Param			settingName	path		model.SettingName	true	"name of setting"
+//	@Success		200			{object}	model.UserSettingsRes
+//	@Failure		400,404,500	{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/userSettings/:settingName [get]
+func (h *UserHandler) GetUserSettings(c *fiber.Ctx) error {
+	settingName := c.Params("settingName", "all")
+
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	result, err := h.userService.GetUserSettings(jwtUserData.UserId, model.SettingName(settingName))
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOKWithData(c, result)
+}
+
+// UpdateUserSettings godoc
+//
+//	@Summary		Change user settings based on settingName.
+//	@Description	Change user settings based on settingName.
+//	@Tags			User-Setting
+//	@Param			settingName				path		model.SettingName			true	"name of setting"
+//	@Param			downloadLinksSettings	body		model.DownloadLinksSettings	false	"new setting values"
+//	@Param			notificationSettings	body		model.NotificationSettings	false	"new setting values"
+//	@Param			movieSettings			body		model.MovieSettings			false	"new setting values"
+//	@Success		200						{object}	response.ResponseOKModel
+//	@Failure		400,404,500				{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/updateUserSettings/:settingName [put]
+func (h *UserHandler) UpdateUserSettings(c *fiber.Ctx) error {
+	settingName := c.Params("settingName", "")
+
+	settings := model.UserSettingsRes{
+		DownloadLinksSettings: nil,
+		NotificationSettings:  nil,
+		MovieSettings:         nil,
+	}
+
+	err := c.BodyParser(&settings)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	switch settingName {
+	case string(model.NotificationSettingsName):
+		if settings.NotificationSettings == nil {
+			return response.ResponseError(c, "Invalid fields for notificationSettings", fiber.StatusBadRequest)
+		}
+	case string(model.DownloadSettingsName):
+		if settings.DownloadLinksSettings == nil {
+			return response.ResponseError(c, "Invalid fields for downloadLinksSettings", fiber.StatusBadRequest)
+		}
+	case string(model.MovieSettingsName):
+		if settings.MovieSettings == nil {
+			return response.ResponseError(c, "Invalid fields for movieSettings", fiber.StatusBadRequest)
+		}
+	default:
+		return response.ResponseError(c, "Invalid settingName", fiber.StatusBadRequest)
+	}
+
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err = h.userService.UpdateUserSettings(jwtUserData.UserId, model.SettingName(settingName), &settings)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOK(c, "")
 }

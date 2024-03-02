@@ -15,6 +15,21 @@ definitions:
       os:
         type: string
     type: object
+  model.DownloadLinksSettings:
+    properties:
+      includeCensored:
+        type: boolean
+      includeDubbed:
+        type: boolean
+      includeHardSub:
+        type: boolean
+      preferredQualities:
+        items:
+          type: string
+        type: array
+      userId:
+        type: integer
+    type: object
   model.FollowListProfileImageDataModel:
     properties:
       size:
@@ -69,6 +84,15 @@ definitions:
       url:
         type: string
     type: object
+  model.MovieSettings:
+    properties:
+      includeAnime:
+        type: boolean
+      includeHentai:
+        type: boolean
+      userId:
+        type: integer
+    type: object
   model.NotificationDataModel:
     properties:
       creatorId:
@@ -88,6 +112,29 @@ definitions:
       receiverId:
         type: integer
       status:
+        type: integer
+    type: object
+  model.NotificationSettings:
+    properties:
+      finishedListSpinOffSequel:
+        type: boolean
+      followMovie:
+        type: boolean
+      followMovieBetterQuality:
+        type: boolean
+      followMovieSubtitle:
+        type: boolean
+      futureList:
+        type: boolean
+      futureListSerialSeasonEnd:
+        type: boolean
+      futureListSubtitle:
+        type: boolean
+      newFollower:
+        type: boolean
+      newMessage:
+        type: boolean
+      userId:
         type: integer
     type: object
   model.ProfileImage:
@@ -137,6 +184,15 @@ definitions:
         type: integer
       uuid:
         type: string
+    type: object
+  model.UserSettingsRes:
+    properties:
+      downloadLinksSettings:
+        $ref: '#/definitions/model.DownloadLinksSettings'
+      movieSettings:
+        $ref: '#/definitions/model.MovieSettings'
+      notificationSettings:
+        $ref: '#/definitions/model.NotificationSettings'
     type: object
   model.UserViewModel:
     properties:
@@ -464,7 +520,7 @@ paths:
       - BearerAuth: []
       summary: Follow events
       tags:
-      - User
+      - User-Notifications
   /v1/user/notifications/batchUpdateStatus/:id/:entityTypeId/:status:
     put:
       description: update the status of notifications
@@ -505,7 +561,7 @@ paths:
       - BearerAuth: []
       summary: Notification Status update
       tags:
-      - User
+      - User-Notifications
   /v1/user/setNotifToken:
     put:
       description: send device token as Notification token
@@ -534,7 +590,7 @@ paths:
       - BearerAuth: []
       summary: Notification Token
       tags:
-      - User
+      - User-Notifications
   /v1/user/signup:
     post:
       description: |-
@@ -595,6 +651,91 @@ paths:
       summary: UnFollow User
       tags:
       - User-Follow
+  /v1/user/updateUserSettings/:settingName:
+    put:
+      description: Change user settings based on settingName.
+      parameters:
+      - description: name of setting
+        enum:
+        - downloadLinks
+        - notification
+        - movie
+        in: path
+        name: settingName
+        required: true
+        type: string
+      - description: new setting values
+        in: body
+        name: downloadLinksSettings
+        schema:
+          $ref: '#/definitions/model.DownloadLinksSettings'
+      - description: new setting values
+        in: body
+        name: notificationSettings
+        schema:
+          $ref: '#/definitions/model.NotificationSettings'
+      - description: new setting values
+        in: body
+        name: movieSettings
+        schema:
+          $ref: '#/definitions/model.MovieSettings'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Change user settings based on settingName.
+      tags:
+      - User-Setting
+  /v1/user/userSettings/:settingName:
+    get:
+      description: Returns user settings for movies, downloadLinks and notifications.
+      parameters:
+      - description: name of setting
+        enum:
+        - downloadLinks
+        - notification
+        - movie
+        in: path
+        name: settingName
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserSettingsRes'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Get User Settings
+      tags:
+      - User-Setting
 schemes:
 - http
 securityDefinitions:

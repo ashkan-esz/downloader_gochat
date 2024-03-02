@@ -22,6 +22,6 @@ package main
 //todo : user isTyping status
 //todo : user online/offline status
 
-//todo : update redis cache after editing profile data or settings
+//todo : update redis cache after editing profile data or settings, also write it on ws
 
 //todo : add apis for editing profile data and profile image

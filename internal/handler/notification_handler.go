@@ -30,7 +30,7 @@ func NewNotificationHandler(notifService service.INotificationService) *Notifica
 //
 //	@Summary		Follow events
 //	@Description	get user followers/followings events
-//	@Tags			User
+//	@Tags			User-Notifications
 //	@Param			skip			path		integer	true	"skip"
 //	@Param			limit			path		integer	true	"limit"
 //	@Param			entityTypeId	query		integer	true	"entityTypeId"
@@ -64,7 +64,7 @@ func (n *NotificationHandler) GetUserNotifications(c *fiber.Ctx) error {
 //
 //	@Summary		Notification Status update
 //	@Description	update the status of notifications
-//	@Tags			User
+//	@Tags			User-Notifications
 //	@Param			id				path		integer	true	"notificationId"
 //	@Param			entityTypeId	path		integer	true	"type of notification"
 //	@Param			status			path		integer	true	"new value of status"

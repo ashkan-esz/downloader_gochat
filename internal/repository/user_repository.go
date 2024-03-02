@@ -29,6 +29,12 @@ type IUserRepository interface {
 	GetUserFollowers(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
 	GetUserFollowings(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
 	GetUserMetaDataAndNotificationSettings(id int64, imageLimit int) (*model.UserMetaWithNotificationSettings, error)
+	GetUserDownloadLinkSettings(userId int64) (*model.DownloadLinksSettings, error)
+	GetUserNotificationSettings(userId int64) (*model.NotificationSettings, error)
+	GetUserMovieSettings(userId int64) (*model.MovieSettings, error)
+	UpdateUserDownloadLinkSettings(userId int64, settings model.DownloadLinksSettings) error
+	UpdateUserNotificationSettings(userId int64, settings model.NotificationSettings) error
+	UpdateUserMovieSettings(userId int64, settings model.MovieSettings) error
 }
 
 type UserRepository struct {
@@ -334,3 +340,99 @@ func (r *UserRepository) GetUserMetaDataAndNotificationSettings(id int64, imageL
 	}
 	return &result, nil
 }
+
+//------------------------------------------
+//------------------------------------------
+
+func (r *UserRepository) GetUserDownloadLinkSettings(userId int64) (*model.DownloadLinksSettings, error) {
+	var result model.DownloadLinksSettings
+	err := r.db.
+		Model(&model.DownloadLinksSettings{}).
+		Where("\"userId\" = ?", userId).
+		Limit(1).
+		Find(&result).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (r *UserRepository) GetUserNotificationSettings(userId int64) (*model.NotificationSettings, error) {
+	var result model.NotificationSettings
+	err := r.db.
+		Model(&model.NotificationSettings{}).
+		Where("\"userId\" = ?", userId).
+		Limit(1).
+		Find(&result).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (r *UserRepository) GetUserMovieSettings(userId int64) (*model.MovieSettings, error) {
+	var result model.MovieSettings
+	err := r.db.
+		Model(&model.MovieSettings{}).
+		Where("\"userId\" = ?", userId).
+		Limit(1).
+		Find(&result).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (r *UserRepository) UpdateUserDownloadLinkSettings(userId int64, settings model.DownloadLinksSettings) error {
+	err := r.db.
+		Model(&model.DownloadLinksSettings{}).
+		Where("\"userId\" = ?", userId).
+		Updates(map[string]interface{}{
+			"includeCensored":    settings.IncludeCensored,
+			"includeDubbed":      settings.IncludeDubbed,
+			"includeHardSub":     settings.IncludeHardSub,
+			"preferredQualities": settings.PreferredQualities,
+		}).
+		Error
+	return err
+}
+
+func (r *UserRepository) UpdateUserNotificationSettings(userId int64, settings model.NotificationSettings) error {
+	err := r.db.
+		Model(&model.NotificationSettings{}).
+		Where("\"userId\" = ?", userId).
+		Updates(map[string]interface{}{
+			"newFollower":                settings.NewFollower,
+			"newMessage":                 settings.NewMessage,
+			"finishedList_spinOffSequel": settings.FinishedListSpinOffSequel,
+			"followMovie":                settings.FollowMovie,
+			"followMovie_betterQuality":  settings.FollowMovieBetterQuality,
+			"followMovie_subtitle":       settings.FollowMovieSubtitle,
+			"futureList":                 settings.FutureList,
+			"futureList_serialSeasonEnd": settings.FutureListSerialSeasonEnd,
+			"futureList_subtitle":        settings.FutureListSubtitle,
+		}).
+		Error
+	return err
+}
+
+func (r *UserRepository) UpdateUserMovieSettings(userId int64, settings model.MovieSettings) error {
+	err := r.db.
+		Model(&model.MovieSettings{}).
+		Where("\"userId\" = ?", userId).
+		Updates(map[string]interface{}{
+			"includeAnime":  settings.IncludeAnime,
+			"includeHentai": settings.IncludeHentai,
+		}).
+		Error
+	return err
+}
+
+//------------------------------------------
+//------------------------------------------

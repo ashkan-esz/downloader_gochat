@@ -10,6 +10,7 @@ import (
 	"downloader_gochat/pkg/geoip"
 	"downloader_gochat/rabbitmq"
 	"downloader_gochat/util"
+	"errors"
 	"strconv"
 	"strings"
 	"time"
@@ -28,6 +29,8 @@ type IUserService interface {
 	UnFollowUser(jwtUserData *util.MyJwtClaims, followId int64) error
 	GetUserFollowers(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
 	GetUserFollowings(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
+	GetUserSettings(userId int64, settingName model.SettingName) (*model.UserSettingsRes, error)
+	UpdateUserSettings(userId int64, settingName model.SettingName, settings *model.UserSettingsRes) error
 }
 
 type UserService struct {
@@ -269,3 +272,76 @@ func (s *UserService) GetUserFollowings(userId int64, skip int, limit int) ([]mo
 	result, err := s.userRepo.GetUserFollowings(userId, skip, limit)
 	return result, err
 }
+
+//------------------------------------------
+//------------------------------------------
+
+func (s *UserService) GetUserSettings(userId int64, settingName model.SettingName) (*model.UserSettingsRes, error) {
+	result := model.UserSettingsRes{
+		DownloadLinksSettings: nil,
+		NotificationSettings:  nil,
+		MovieSettings:         nil,
+	}
+	if string(settingName) == model.AllSettingsName {
+		notif, err := s.userRepo.GetUserNotificationSettings(userId)
+		if err != nil {
+			return nil, err
+		}
+		result.NotificationSettings = notif
+
+		download, err := s.userRepo.GetUserDownloadLinkSettings(userId)
+		if err != nil {
+			return nil, err
+		}
+		result.DownloadLinksSettings = download
+
+		movie, err := s.userRepo.GetUserMovieSettings(userId)
+		if err != nil {
+			return nil, err
+		}
+		result.MovieSettings = movie
+	} else {
+		switch settingName {
+		case model.NotificationSettingsName:
+			notif, err := s.userRepo.GetUserNotificationSettings(userId)
+			if err != nil {
+				return nil, err
+			}
+			result.NotificationSettings = notif
+		case model.DownloadSettingsName:
+			download, err := s.userRepo.GetUserDownloadLinkSettings(userId)
+			if err != nil {
+				return nil, err
+			}
+			result.DownloadLinksSettings = download
+		case model.MovieSettingsName:
+			movie, err := s.userRepo.GetUserMovieSettings(userId)
+			if err != nil {
+				return nil, err
+			}
+			result.MovieSettings = movie
+		default:
+			return nil, errors.New("invalid settingName")
+		}
+	}
+	return &result, nil
+}
+
+func (s *UserService) UpdateUserSettings(userId int64, settingName model.SettingName, settings *model.UserSettingsRes) error {
+	switch settingName {
+	case model.NotificationSettingsName:
+		err := s.userRepo.UpdateUserNotificationSettings(userId, *settings.NotificationSettings)
+		return err
+	case model.DownloadSettingsName:
+		err := s.userRepo.UpdateUserDownloadLinkSettings(userId, *settings.DownloadLinksSettings)
+		return err
+	case model.MovieSettingsName:
+		err := s.userRepo.UpdateUserMovieSettings(userId, *settings.MovieSettings)
+		return err
+	default:
+		return errors.New("invalid settingName")
+	}
+}
+
+//------------------------------------------
+//------------------------------------------

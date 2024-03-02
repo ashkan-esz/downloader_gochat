@@ -7,7 +7,7 @@ type DownloadLinksSettings struct {
 	IncludeCensored    bool           `gorm:"column:includeCensored;type:boolean;not null;"`
 	IncludeDubbed      bool           `gorm:"column:includeDubbed;type:boolean;not null;"`
 	IncludeHardSub     bool           `gorm:"column:includeHardSub;type:boolean;not null;"`
-	PreferredQualities pq.StringArray `gorm:"column:preferredQualities;type:text[];not null;"`
+	PreferredQualities pq.StringArray `gorm:"column:preferredQualities;type:text[];not null;" swaggertype:"array,string"`
 }
 
 func (DownloadLinksSettings) TableName() string {
@@ -45,4 +45,25 @@ type MovieSettings struct {
 
 func (MovieSettings) TableName() string {
 	return "MovieSettings"
+}
+
+//-----------------------------------------------------
+//-----------------------------------------------------
+
+type SettingName string
+
+const (
+	AllSettingsName          string      = "all"
+	DownloadSettingsName     SettingName = "downloadLinks"
+	NotificationSettingsName SettingName = "notification"
+	MovieSettingsName        SettingName = "movie"
+)
+
+//-----------------------------------------------------
+//-----------------------------------------------------
+
+type UserSettingsRes struct {
+	DownloadLinksSettings *DownloadLinksSettings `gorm:"foreignKey:UserId;references:UserId;" json:"downloadLinksSettings"`
+	NotificationSettings  *NotificationSettings  `gorm:"foreignKey:UserId;references:UserId;" json:"notificationSettings"`
+	MovieSettings         *MovieSettings         `gorm:"foreignKey:UserId;references:UserId;" json:"movieSettings"`
 }

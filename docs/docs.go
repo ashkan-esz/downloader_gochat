@@ -402,7 +402,7 @@ const docTemplate = `{
                 ],
                 "description": "get user followers/followings events",
                 "tags": [
-                    "User"
+                    "User-Notifications"
                 ],
                 "summary": "Follow events",
                 "parameters": [
@@ -472,7 +472,7 @@ const docTemplate = `{
                 ],
                 "description": "update the status of notifications",
                 "tags": [
-                    "User"
+                    "User-Notifications"
                 ],
                 "summary": "Notification Status update",
                 "parameters": [
@@ -535,7 +535,7 @@ const docTemplate = `{
                 ],
                 "description": "send device token as Notification token",
                 "tags": [
-                    "User"
+                    "User-Notifications"
                 ],
                 "summary": "Notification Token",
                 "parameters": [
@@ -661,6 +661,138 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/user/updateUserSettings/:settingName": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Change user settings based on settingName.",
+                "tags": [
+                    "User-Setting"
+                ],
+                "summary": "Change user settings based on settingName.",
+                "parameters": [
+                    {
+                        "enum": [
+                            "downloadLinks",
+                            "notification",
+                            "movie"
+                        ],
+                        "type": "string",
+                        "description": "name of setting",
+                        "name": "settingName",
+                        "in": "path",
+                        "required": true
+                    },
+                    {
+                        "description": "new setting values",
+                        "name": "downloadLinksSettings",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/model.DownloadLinksSettings"
+                        }
+                    },
+                    {
+                        "description": "new setting values",
+                        "name": "notificationSettings",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/model.NotificationSettings"
+                        }
+                    },
+                    {
+                        "description": "new setting values",
+                        "name": "movieSettings",
+                        "in": "body",
+                        "schema": {
+                            "$ref": "#/definitions/model.MovieSettings"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseOKModel"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/user/userSettings/:settingName": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Returns user settings for movies, downloadLinks and notifications.",
+                "tags": [
+                    "User-Setting"
+                ],
+                "summary": "Get User Settings",
+                "parameters": [
+                    {
+                        "enum": [
+                            "downloadLinks",
+                            "notification",
+                            "movie"
+                        ],
+                        "type": "string",
+                        "description": "name of setting",
+                        "name": "settingName",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UserSettingsRes"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -684,6 +816,29 @@ const docTemplate = `{
                 },
                 "os": {
                     "type": "string"
+                }
+            }
+        },
+        "model.DownloadLinksSettings": {
+            "type": "object",
+            "properties": {
+                "includeCensored": {
+                    "type": "boolean"
+                },
+                "includeDubbed": {
+                    "type": "boolean"
+                },
+                "includeHardSub": {
+                    "type": "boolean"
+                },
+                "preferredQualities": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "userId": {
+                    "type": "integer"
                 }
             }
         },
@@ -770,6 +925,20 @@ const docTemplate = `{
                 }
             }
         },
+        "model.MovieSettings": {
+            "type": "object",
+            "properties": {
+                "includeAnime": {
+                    "type": "boolean"
+                },
+                "includeHentai": {
+                    "type": "boolean"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.NotificationDataModel": {
             "type": "object",
             "properties": {
@@ -798,6 +967,41 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "status": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.NotificationSettings": {
+            "type": "object",
+            "properties": {
+                "finishedListSpinOffSequel": {
+                    "type": "boolean"
+                },
+                "followMovie": {
+                    "type": "boolean"
+                },
+                "followMovieBetterQuality": {
+                    "type": "boolean"
+                },
+                "followMovieSubtitle": {
+                    "type": "boolean"
+                },
+                "futureList": {
+                    "type": "boolean"
+                },
+                "futureListSerialSeasonEnd": {
+                    "type": "boolean"
+                },
+                "futureListSubtitle": {
+                    "type": "boolean"
+                },
+                "newFollower": {
+                    "type": "boolean"
+                },
+                "newMessage": {
+                    "type": "boolean"
+                },
+                "userId": {
                     "type": "integer"
                 }
             }
@@ -873,6 +1077,20 @@ const docTemplate = `{
                 },
                 "uuid": {
                     "type": "string"
+                }
+            }
+        },
+        "model.UserSettingsRes": {
+            "type": "object",
+            "properties": {
+                "downloadLinksSettings": {
+                    "$ref": "#/definitions/model.DownloadLinksSettings"
+                },
+                "movieSettings": {
+                    "$ref": "#/definitions/model.MovieSettings"
+                },
+                "notificationSettings": {
+                    "$ref": "#/definitions/model.NotificationSettings"
                 }
             }
         },
