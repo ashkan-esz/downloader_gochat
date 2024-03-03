@@ -19,3 +19,29 @@ type ActiveSession struct {
 func (ActiveSession) TableName() string {
 	return "ActiveSession"
 }
+
+//------------------------------------------
+//------------------------------------------
+
+type ActiveSessionDataModel struct {
+	UserId      int64  `gorm:"column:userId;" json:"-"`
+	AppName     string `gorm:"column:appName;"`
+	AppVersion  string `gorm:"column:appVersion;"`
+	DeviceId    string `gorm:"column:deviceId;"`
+	DeviceModel string `gorm:"column:deviceModel;"`
+	DeviceOs    string `gorm:"column:deviceOs;"`
+	//NotifToken   string    `gorm:"column:notifToken;" json:"-"`
+	IpLocation   string    `gorm:"column:ipLocation;"`
+	LastUseDate  time.Time `gorm:"column:lastUseDate;"`
+	LoginDate    time.Time `gorm:"column:loginDate;"`
+	RefreshToken string    `gorm:"column:refreshToken;" json:"-"`
+}
+
+func (ActiveSessionDataModel) TableName() string {
+	return "ActiveSession"
+}
+
+type ActiveSessionRes struct {
+	ThisDevice     *ActiveSessionDataModel   `json:"thisDevice"`
+	ActiveSessions *[]ActiveSessionDataModel `json:"activeSessions"`
+}

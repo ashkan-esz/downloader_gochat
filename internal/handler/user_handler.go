@@ -29,6 +29,7 @@ type IUserHandler interface {
 	GetUserSettings(c *fiber.Ctx) error
 	UpdateUserSettings(c *fiber.Ctx) error
 	UpdateUserFavoriteGenres(c *fiber.Ctx) error
+	GetActiveSessions(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -522,4 +523,26 @@ func (h *UserHandler) UpdateUserFavoriteGenres(c *fiber.Ctx) error {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 	return response.ResponseOK(c, "")
+}
+
+// GetActiveSessions godoc
+//
+//	@Summary		Active Sessions
+//	@Description	Return users current session and other active sections.
+//	@Tags			User
+//	@Success		200		{object}	model.ActiveSessionRes
+//	@Failure		404,500	{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/activeSessions [get]
+func (h *UserHandler) GetActiveSessions(c *fiber.Ctx) error {
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	refreshToken := c.Locals("refreshToken").(string)
+	result, err := h.userService.GetActiveSessions(jwtUserData.UserId, refreshToken)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.SessionNotFound, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOKWithData(c, result)
 }

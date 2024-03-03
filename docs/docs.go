@@ -97,6 +97,40 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/user/activeSessions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Return users current session and other active sections.",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Active Sessions",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.ActiveSessionRes"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/follow/:followId": {
             "post": {
                 "security": [
@@ -851,6 +885,50 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "model.ActiveSessionDataModel": {
+            "type": "object",
+            "properties": {
+                "appName": {
+                    "type": "string"
+                },
+                "appVersion": {
+                    "type": "string"
+                },
+                "deviceId": {
+                    "type": "string"
+                },
+                "deviceModel": {
+                    "type": "string"
+                },
+                "deviceOs": {
+                    "type": "string"
+                },
+                "ipLocation": {
+                    "description": "NotifToken   string    ` + "`" + `gorm:\"column:notifToken;\" json:\"-\"` + "`" + `",
+                    "type": "string"
+                },
+                "lastUseDate": {
+                    "type": "string"
+                },
+                "loginDate": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ActiveSessionRes": {
+            "type": "object",
+            "properties": {
+                "activeSessions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ActiveSessionDataModel"
+                    }
+                },
+                "thisDevice": {
+                    "$ref": "#/definitions/model.ActiveSessionDataModel"
+                }
+            }
+        },
         "model.DeviceInfo": {
             "type": "object",
             "properties": {

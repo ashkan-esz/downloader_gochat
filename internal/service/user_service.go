@@ -11,6 +11,7 @@ import (
 	"downloader_gochat/rabbitmq"
 	"downloader_gochat/util"
 	"errors"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -32,6 +33,7 @@ type IUserService interface {
 	GetUserSettings(userId int64, settingName model.SettingName) (*model.UserSettingsRes, error)
 	UpdateUserSettings(userId int64, settingName model.SettingName, settings *model.UserSettingsRes) error
 	UpdateUserFavoriteGenres(userId int64, genresArray []string) error
+	GetActiveSessions(userId int64, refreshToken string) (*model.ActiveSessionRes, error)
 }
 
 type UserService struct {
@@ -350,6 +352,29 @@ func (s *UserService) UpdateUserSettings(userId int64, settingName model.Setting
 func (s *UserService) UpdateUserFavoriteGenres(userId int64, genresArray []string) error {
 	err := s.userRepo.UpdateUserFavoriteGenres(userId, genresArray)
 	return err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (s *UserService) GetActiveSessions(userId int64, refreshToken string) (*model.ActiveSessionRes, error) {
+	sessions, err := s.userRepo.GetActiveSessions(userId)
+	if err != nil {
+		return nil, err
+	}
+
+	thisDeviceIndex := slices.IndexFunc(sessions, func(s model.ActiveSessionDataModel) bool {
+		return s.RefreshToken == refreshToken
+	})
+	activeSessions := slices.DeleteFunc(sessions, func(s model.ActiveSessionDataModel) bool {
+		return s.RefreshToken == refreshToken
+	})
+	result := model.ActiveSessionRes{
+		ThisDevice:     &sessions[thisDeviceIndex],
+		ActiveSessions: &activeSessions,
+	}
+
+	return &result, err
 }
 
 //------------------------------------------

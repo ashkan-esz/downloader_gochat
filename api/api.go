@@ -45,6 +45,7 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 		userRoutes.Get("/userSettings/:settingName", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetUserSettings)
 		userRoutes.Put("/updateUserSettings/:settingName", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UpdateUserSettings)
 		userRoutes.Put("/updateFavoriteGenres/:genres", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UpdateUserFavoriteGenres)
+		userRoutes.Get("/activeSessions", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetActiveSessions)
 		userRoutes.Get("/notifications/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.GetUserNotifications)
 		userRoutes.Put("/notifications/batchUpdateStatus/:id/:entityTypeId/:status", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.BatchUpdateUserNotificationStatus)
 		userRoutes.Post("/media/upload", middleware.CORSMiddleware, middleware.AuthMiddleware, mediaHandler.UploadFile)

@@ -36,6 +36,7 @@ type IUserRepository interface {
 	UpdateUserNotificationSettings(userId int64, settings model.NotificationSettings) error
 	UpdateUserMovieSettings(userId int64, settings model.MovieSettings) error
 	UpdateUserFavoriteGenres(userId int64, genresArray []string) error
+	GetActiveSessions(userId int64) ([]model.ActiveSessionDataModel, error)
 }
 
 type UserRepository struct {
@@ -445,6 +446,19 @@ func (r *UserRepository) UpdateUserFavoriteGenres(userId int64, genresArray []st
 		UpdateColumn("favoriteGenres", pq.StringArray(genresArray)).
 		Error
 	return err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (r *UserRepository) GetActiveSessions(userId int64) ([]model.ActiveSessionDataModel, error) {
+	var result []model.ActiveSessionDataModel
+	err := r.db.
+		Model(&model.ActiveSessionDataModel{}).
+		Where("\"userId\" = ?", userId).
+		Find(&result).
+		Error
+	return result, err
 }
 
 //------------------------------------------
