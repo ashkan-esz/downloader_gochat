@@ -4,6 +4,7 @@ package main
 //todo : connect to main server
 
 //todo : error handling
+//todo : add sentry
 //todo : write swagger document
 //todo : add validation for request bodies and api params
 

@@ -31,6 +31,7 @@ type IUserService interface {
 	GetUserFollowings(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
 	GetUserSettings(userId int64, settingName model.SettingName) (*model.UserSettingsRes, error)
 	UpdateUserSettings(userId int64, settingName model.SettingName, settings *model.UserSettingsRes) error
+	UpdateUserFavoriteGenres(userId int64, genresArray []string) error
 }
 
 type UserService struct {
@@ -341,6 +342,14 @@ func (s *UserService) UpdateUserSettings(userId int64, settingName model.Setting
 	default:
 		return errors.New("invalid settingName")
 	}
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (s *UserService) UpdateUserFavoriteGenres(userId int64, genresArray []string) error {
+	err := s.userRepo.UpdateUserFavoriteGenres(userId, genresArray)
+	return err
 }
 
 //------------------------------------------

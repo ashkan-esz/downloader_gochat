@@ -248,6 +248,41 @@ paths:
       summary: Show the status of server.
       tags:
       - System
+  /v1/user/UpdateUserFavoriteGenres/:genres:
+    put:
+      description: maximum number of genres is 6, (error code 409).
+      parameters:
+      - description: 'Array of String joined by ''-'', Example: action-sci_fi-drama'
+        in: path
+        name: genres
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Update Favorite Genres
+      tags:
+      - User
   /v1/user/follow/:followId:
     post:
       description: Add followId user to your following list

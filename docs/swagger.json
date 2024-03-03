@@ -39,6 +39,61 @@
                 }
             }
         },
+        "/v1/user/UpdateUserFavoriteGenres/:genres": {
+            "put": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "maximum number of genres is 6, (error code 409).",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Update Favorite Genres",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "Array of String joined by '-', Example: action-sci_fi-drama",
+                        "name": "genres",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseOKModel"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/follow/:followId": {
             "post": {
                 "security": [

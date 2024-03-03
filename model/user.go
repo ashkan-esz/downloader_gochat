@@ -7,24 +7,25 @@ import (
 	"time"
 
 	"github.com/badoux/checkmail"
+	"github.com/lib/pq"
 )
 
 type User struct {
-	Bio                            string    `gorm:"column:bio;type:text;not null;default:\"\";"`
-	DefaultProfile                 string    `gorm:"column:defaultProfile;type:text;not null;default:\"\";"`
-	EmailVerified                  bool      `gorm:"column:emailVerified;type:boolean;not null;default:false;"`
-	FavoriteGenres                 []string  `gorm:"column:favoriteGenres;type:text[];"`
-	Password                       string    `gorm:"column:password;type:text;not null;"`
-	PublicName                     string    `gorm:"column:publicName;type:text;not null;"`
-	RawUsername                    string    `gorm:"column:rawUsername;type:text;not null;"`
-	RegistrationDate               time.Time `gorm:"column:registrationDate;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
-	Role                           UserRole  `gorm:"column:role;type:\"userRole\";not null;default:\"user\";"`
-	MbtiType                       MbtiType  `gorm:"column:mbtiType;type:\"MbtiType\";"`
-	ComputedStatsLastUpdate        int64     `gorm:"column:ComputedStatsLastUpdate;type:bigint;not null;default:0;"`
-	EmailVerifyToken               string    `gorm:"column:emailVerifyToken;type:text;not null;default:\"\";"`
-	EmailVerifyTokenExpire         int64     `gorm:"column:emailVerifyToken_expire;type:bigint;not null;default:0;"`
-	DeleteAccountVerifyToken       string    `gorm:"column:deleteAccountVerifyToken;type:text;not null;default:'';"`
-	DeleteAccountVerifyTokenExpire int64     `gorm:"column:deleteAccountVerifyToken_expire;type:bigint;not null;default:0;"`
+	Bio                            string         `gorm:"column:bio;type:text;not null;default:\"\";"`
+	DefaultProfile                 string         `gorm:"column:defaultProfile;type:text;not null;default:\"\";"`
+	EmailVerified                  bool           `gorm:"column:emailVerified;type:boolean;not null;default:false;"`
+	FavoriteGenres                 pq.StringArray `gorm:"column:favoriteGenres;type:text[];" swaggertype:"array,string"`
+	Password                       string         `gorm:"column:password;type:text;not null;"`
+	PublicName                     string         `gorm:"column:publicName;type:text;not null;"`
+	RawUsername                    string         `gorm:"column:rawUsername;type:text;not null;"`
+	RegistrationDate               time.Time      `gorm:"column:registrationDate;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
+	Role                           UserRole       `gorm:"column:role;type:\"userRole\";not null;default:\"user\";"`
+	MbtiType                       MbtiType       `gorm:"column:mbtiType;type:\"MbtiType\";"`
+	ComputedStatsLastUpdate        int64          `gorm:"column:ComputedStatsLastUpdate;type:bigint;not null;default:0;"`
+	EmailVerifyToken               string         `gorm:"column:emailVerifyToken;type:text;not null;default:\"\";"`
+	EmailVerifyTokenExpire         int64          `gorm:"column:emailVerifyToken_expire;type:bigint;not null;default:0;"`
+	DeleteAccountVerifyToken       string         `gorm:"column:deleteAccountVerifyToken;type:text;not null;default:'';"`
+	DeleteAccountVerifyTokenExpire int64          `gorm:"column:deleteAccountVerifyToken_expire;type:bigint;not null;default:0;"`
 	//-----------------------------------
 	//-----------------------------------
 	UserId   int64  `gorm:"column:userId;type:serial;autoIncrement;primaryKey;uniqueIndex:User_userId_key;"`

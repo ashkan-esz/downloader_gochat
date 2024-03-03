@@ -35,6 +35,7 @@ type IUserRepository interface {
 	UpdateUserDownloadLinkSettings(userId int64, settings model.DownloadLinksSettings) error
 	UpdateUserNotificationSettings(userId int64, settings model.NotificationSettings) error
 	UpdateUserMovieSettings(userId int64, settings model.MovieSettings) error
+	UpdateUserFavoriteGenres(userId int64, genresArray []string) error
 }
 
 type UserRepository struct {
@@ -430,6 +431,18 @@ func (r *UserRepository) UpdateUserMovieSettings(userId int64, settings model.Mo
 			"includeAnime":  settings.IncludeAnime,
 			"includeHentai": settings.IncludeHentai,
 		}).
+		Error
+	return err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (r *UserRepository) UpdateUserFavoriteGenres(userId int64, genresArray []string) error {
+	err := r.db.
+		Model(&model.User{}).
+		Where("\"userId\" = ?", userId).
+		UpdateColumn("favoriteGenres", pq.StringArray(genresArray)).
 		Error
 	return err
 }

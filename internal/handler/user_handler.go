@@ -7,6 +7,7 @@ import (
 	"downloader_gochat/pkg/response"
 	"downloader_gochat/util"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -27,6 +28,7 @@ type IUserHandler interface {
 	GetUserNotifications(c *fiber.Ctx) error
 	GetUserSettings(c *fiber.Ctx) error
 	UpdateUserSettings(c *fiber.Ctx) error
+	UpdateUserFavoriteGenres(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -479,6 +481,44 @@ func (h *UserHandler) UpdateUserSettings(c *fiber.Ctx) error {
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
 	err = h.userService.UpdateUserSettings(jwtUserData.UserId, model.SettingName(settingName), &settings)
 	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOK(c, "")
+}
+
+// UpdateUserFavoriteGenres godoc
+//
+//	@Summary		Update Favorite Genres
+//	@Description	maximum number of genres is 6, (error code 409).
+//	@Tags			User
+//	@Param			genres			path		string	true	"Array of String joined by '-', Example: action-sci_fi-drama"
+//	@Success		200				{object}	response.ResponseOKModel
+//	@Failure		400,404,409,500	{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/UpdateUserFavoriteGenres/:genres [put]
+func (h *UserHandler) UpdateUserFavoriteGenres(c *fiber.Ctx) error {
+	genres := c.Params("genres", "")
+	if strings.ToLower(genres) == ":genres" {
+		return response.ResponseError(c, "Invalid value for genres", fiber.StatusBadRequest)
+	}
+
+	genresArray := strings.Split(genres, "-")
+	for i := range genresArray {
+		genresArray[i] = strings.ReplaceAll(genresArray[i], "_", "-")
+		genresArray[i] = strings.TrimSpace(strings.ToLower(genresArray[i]))
+	}
+	genresArray = slices.Compact(genresArray)
+
+	if len(genresArray) > 6 {
+		return response.ResponseError(c, response.ExceedGenres, fiber.StatusConflict)
+	}
+
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err := h.userService.UpdateUserFavoriteGenres(jwtUserData.UserId, genresArray)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.UserNotFound, fiber.StatusNotFound)
+		}
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 	return response.ResponseOK(c, "")
