@@ -20,6 +20,9 @@ type IUserRepository interface {
 	GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error)
 	GetUserMetaData(id int64) (*model.UserDataModel, error)
 	EditUserProfile(userId int64, editFields *model.EditProfileReq, updateFields map[string]interface{}) error
+	UpdateUserPassword(userId int64, passwords *model.UpdatePasswordReq) error
+	SaveUserEmailToken(userId int64, token string, expire int64) error
+	VerifyUserEmailToken(userId int64, token string) error
 	AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) error
 	UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) (bool, error)
 	UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string, ipLocation string) (*model.ActiveSession, error)
@@ -251,6 +254,62 @@ func (r *UserRepository) EditUserProfile(userId int64, editFields *model.EditPro
 		Where("\"userId\" = ?", userId).
 		Limit(1).
 		Updates(updateFields)
+
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func (r *UserRepository) UpdateUserPassword(userId int64, passwords *model.UpdatePasswordReq) error {
+	res := r.db.
+		Model(&model.User{}).
+		Where("\"userId\" = ?", userId).
+		Limit(1).
+		UpdateColumn("password", passwords.NewPassword)
+
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func (r *UserRepository) SaveUserEmailToken(userId int64, token string, expire int64) error {
+	res := r.db.
+		Model(&model.User{}).
+		Where("\"userId\" = ?", userId).
+		Limit(1).
+		Updates(map[string]interface{}{
+			"emailVerifyToken":        token,
+			"emailVerifyToken_expire": expire,
+		})
+
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func (r *UserRepository) VerifyUserEmailToken(userId int64, token string) error {
+	res := r.db.
+		Model(&model.User{}).
+		Where("\"userId\" = ? AND \"emailVerifyToken\" = ? AND \"emailVerifyToken_expire\" >= ? ",
+			userId, token, time.Now().UnixMilli()).
+		Limit(1).
+		Updates(map[string]interface{}{
+			"emailVerifyToken":        "",
+			"emailVerifyToken_expire": 0,
+			"emailVerified":           true,
+		})
 
 	if res.Error != nil {
 		return res.Error

@@ -36,7 +36,7 @@ func NewMediaHandler(mediaService service.IMediaService) *MediaHandler {
 //
 //	@Summary		Upload File
 //	@Description	upload and share media files in chats
-//	@Tags			User
+//	@Tags			User-Chat
 //	@Param			user		body		model.UploadMediaReq	true	"upload file data"
 //	@Success		200			{object}	model.MediaFile
 //	@Failure		400,401,404	{object}	response.ResponseErrorModel

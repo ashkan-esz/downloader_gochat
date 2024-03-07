@@ -261,6 +261,13 @@ definitions:
       refreshToken:
         type: string
     type: object
+  model.UpdatePasswordReq:
+    properties:
+      newPassword:
+        type: string
+      oldPassword:
+        type: string
+    type: object
   model.UploadMediaReq:
     properties:
       content:
@@ -718,7 +725,7 @@ paths:
       - BearerAuth: []
       summary: Upload File
       tags:
-      - User
+      - User-Chat
   /v1/user/notifications/:skip/:limit:
     get:
       description: get user followers/followings events
@@ -853,6 +860,36 @@ paths:
       summary: Profile Data
       tags:
       - User
+  /v1/user/sendVerifyEmail:
+    get:
+      description: |-
+        send an email with an activation link. the link will expire after 6 hour.
+        maybe email goes to spam folder.
+        limited to 2 call per minute
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Send Verify Email
+      tags:
+      - User
   /v1/user/setNotifToken:
     put:
       description: send device token as Notification token
@@ -942,6 +979,40 @@ paths:
       summary: UnFollow User
       tags:
       - User-Follow
+  /v1/user/updatePassword:
+    put:
+      description: Update User Password.
+      parameters:
+      - description: old/new passwords
+        in: body
+        name: passwords
+        required: true
+        schema:
+          $ref: '#/definitions/model.UpdatePasswordReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Update Password
+      tags:
+      - User
   /v1/user/updateUserSettings/:settingName:
     put:
       description: Change user settings based on settingName.
@@ -1027,6 +1098,42 @@ paths:
       summary: Get User Settings
       tags:
       - User-Setting
+  /v1/user/verifyEmail/:userId/:token:
+    get:
+      description: |-
+        verify given email token. create activation link on server side.
+        limited to 2 call per minute
+      parameters:
+      - description: userId
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: email verify token
+        in: path
+        name: token
+        required: true
+        type: integer
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Verify Email (Internal Usage)
+      tags:
+      - User
 schemes:
 - http
 securityDefinitions:

@@ -176,6 +176,11 @@ type UserProfileReq struct {
 	RefreshToken               string `json:"refreshToken"`
 }
 
+type UpdatePasswordReq struct {
+	OldPassword string `json:"oldPassword"`
+	NewPassword string `json:"newPassword"`
+}
+
 type UserProfileRes struct {
 	UserId                  int64                             `gorm:"column:userId" json:"userId"`
 	Username                string                            `gorm:"column:username" json:"username"`

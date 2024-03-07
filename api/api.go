@@ -5,6 +5,7 @@ import (
 	"downloader_gochat/api/middleware"
 	_ "downloader_gochat/docs"
 	"downloader_gochat/internal/handler"
+	"downloader_gochat/pkg/response"
 	"errors"
 	"time"
 
@@ -12,6 +13,7 @@ import (
 	"github.com/gofiber/fiber/v2/middleware/compress"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/gofiber/fiber/v2/middleware/helmet"
+	"github.com/gofiber/fiber/v2/middleware/limiter"
 	"github.com/gofiber/fiber/v2/middleware/monitor"
 	"github.com/gofiber/fiber/v2/middleware/recover"
 	"github.com/gofiber/swagger"
@@ -31,6 +33,14 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 	// router.Use(logger.New())
 	router.Use(compress.New())
 
+	limiterMiddleware := limiter.New(limiter.Config{
+		Max:        6,
+		Expiration: 60 * time.Second,
+		LimitReached: func(c *fiber.Ctx) error {
+			return response.ResponseError(c, "Wait for 1 min before retry", fiber.StatusTooManyRequests)
+		},
+	})
+
 	userRoutes := router.Group("v1/user")
 	{
 		userRoutes.Post("/signup", middleware.CORSMiddleware, userHandler.RegisterUser)
@@ -48,6 +58,9 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 		userRoutes.Get("/activeSessions", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetActiveSessions)
 		userRoutes.Get("/profile", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.GetUserProfile)
 		userRoutes.Post("/editProfile", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.EditUserProfile)
+		userRoutes.Put("/updatePassword", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UpdateUserPassword)
+		userRoutes.Get("/sendVerifyEmail", limiterMiddleware, middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.SendVerifyEmail)
+		userRoutes.Get("/verifyEmail/:userId/:token", limiterMiddleware, middleware.CORSMiddleware, userHandler.VerifyEmail)
 		userRoutes.Get("/notifications/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.GetUserNotifications)
 		userRoutes.Put("/notifications/batchUpdateStatus/:id/:entityTypeId/:status", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.BatchUpdateUserNotificationStatus)
 		userRoutes.Post("/media/upload", middleware.CORSMiddleware, middleware.AuthMiddleware, mediaHandler.UploadFile)

@@ -8,6 +8,7 @@ import (
 	"downloader_gochat/model"
 	"downloader_gochat/pkg/email"
 	"downloader_gochat/pkg/geoip"
+	"downloader_gochat/pkg/response"
 	"downloader_gochat/rabbitmq"
 	"downloader_gochat/util"
 	"errors"
@@ -36,6 +37,9 @@ type IUserService interface {
 	GetActiveSessions(userId int64, refreshToken string) (*model.ActiveSessionRes, error)
 	GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error)
 	EditUserProfile(userId int64, editFields *model.EditProfileReq) (*model.UserDataModel, error)
+	UpdateUserPassword(userId int64, passwords *model.UpdatePasswordReq) error
+	SendVerifyEmail(userId int64) error
+	VerifyEmail(userId int64, token string) error
 }
 
 type UserService struct {
@@ -426,6 +430,61 @@ func (s *UserService) EditUserProfile(userId int64, editFields *model.EditProfil
 
 	err = s.userRepo.EditUserProfile(userId, editFields, updateFields)
 	return searchResult, err
+}
+
+func (s *UserService) UpdateUserPassword(userId int64, passwords *model.UpdatePasswordReq) error {
+	searchResult, err := s.userRepo.GetUserMetaData(userId)
+	if err != nil {
+		return err
+	}
+
+	err = util.CheckPassword(passwords.NewPassword, searchResult.Password)
+	if err != nil {
+		return errors.New(response.OldPassNotMatch)
+	}
+
+	hashedNewPassword, err := util.HashPassword(passwords.NewPassword)
+	if err != nil {
+		return err
+	}
+	passwords.NewPassword = hashedNewPassword
+
+	err = s.userRepo.UpdateUserPassword(userId, passwords)
+
+	if err == nil && searchResult.Email != "" {
+		// send email
+		_ = email.AddUpdatePasswordEmail(searchResult.Email, 4)
+	}
+
+	return err
+}
+
+func (s *UserService) SendVerifyEmail(userId int64) error {
+	searchResult, err := s.userRepo.GetUserMetaData(userId)
+	if err != nil {
+		return err
+	}
+
+	hashToken, err := util.HashPassword(uuid.NewString())
+	if err != nil {
+		return err
+	}
+	verifyToken := strings.ReplaceAll(hashToken, "/", "")
+	verifyTokenExpire := time.Now().Add(6 * time.Hour).UnixMilli()
+
+	err = s.userRepo.SaveUserEmailToken(userId, verifyToken, verifyTokenExpire)
+	if err != nil {
+		return err
+	}
+
+	err = email.AddVerifyEmail(searchResult.UserId, searchResult.Email, verifyToken, searchResult.Username, 1)
+
+	return err
+}
+
+func (s *UserService) VerifyEmail(userId int64, token string) error {
+	err := s.userRepo.VerifyUserEmailToken(userId, token)
+	return err
 }
 
 //------------------------------------------

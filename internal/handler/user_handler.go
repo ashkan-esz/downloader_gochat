@@ -32,6 +32,9 @@ type IUserHandler interface {
 	GetActiveSessions(c *fiber.Ctx) error
 	GetUserProfile(c *fiber.Ctx) error
 	EditUserProfile(c *fiber.Ctx) error
+	UpdateUserPassword(c *fiber.Ctx) error
+	SendVerifyEmail(c *fiber.Ctx) error
+	VerifyEmail(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -644,4 +647,86 @@ func (h *UserHandler) EditUserProfile(c *fiber.Ctx) error {
 	}
 
 	return response.ResponseOK(c, "")
+}
+
+// UpdateUserPassword godoc
+//
+//	@Summary		Update Password
+//	@Description	Update User Password.
+//	@Tags			User
+//	@Param			passwords		body		model.UpdatePasswordReq	true	"old/new passwords"
+//	@Success		200				{object}	response.ResponseOKModel
+//	@Failure		400,404,409,500	{object}	response.ResponseErrorModel
+//	@Router			/v1/user/updatePassword [put]
+func (h *UserHandler) UpdateUserPassword(c *fiber.Ctx) error {
+	var passwords model.UpdatePasswordReq
+	err := c.BodyParser(&passwords)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err = h.userService.UpdateUserPassword(jwtUserData.UserId, &passwords)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.UserNotFound, fiber.StatusNotFound)
+		} else if err.Error() == response.OldPassNotMatch {
+			return response.ResponseError(c, response.OldPassNotMatch, fiber.StatusConflict)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	return response.ResponseOK(c, "")
+}
+
+// SendVerifyEmail godoc
+//
+//	@Summary		Send Verify Email
+//	@Description	send an email with an activation link. the link will expire after 6 hour.
+//	@Description	maybe email goes to spam folder.
+//	@Description	limited to 2 call per minute
+//	@Tags			User
+//	@Success		200				{object}	response.ResponseOKModel
+//	@Failure		400,404,409,500	{object}	response.ResponseErrorModel
+//	@Router			/v1/user/sendVerifyEmail [get]
+func (h *UserHandler) SendVerifyEmail(c *fiber.Ctx) error {
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err := h.userService.SendVerifyEmail(jwtUserData.UserId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.UserNotFound, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	return response.ResponseOK(c, "")
+}
+
+// VerifyEmail godoc
+//
+//	@Summary		Verify Email (Internal Usage)
+//	@Description	verify given email token. create activation link on server side.
+//	@Description	limited to 2 call per minute
+//	@Tags			User
+//	@Param			userId		path		integer	true	"userId"
+//	@Param			token		path		integer	true	"email verify token"
+//	@Success		200			{object}	response.ResponseOKModel
+//	@Failure		400,404,500	{object}	response.ResponseErrorModel
+//	@Router			/v1/user/verifyEmail/:userId/:token [get]
+func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
+	userId, err := c.ParamsInt("userId", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	token := c.Params("token", "")
+
+	err = h.userService.VerifyEmail(int64(userId), token)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.InvalidToken, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	return response.ResponseOK(c, "email verified")
 }
