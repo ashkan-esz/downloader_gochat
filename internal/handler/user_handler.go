@@ -7,6 +7,8 @@ import (
 	"downloader_gochat/pkg/response"
 	"downloader_gochat/util"
 	"errors"
+	"fmt"
+	"path/filepath"
 	"slices"
 	"strings"
 	"time"
@@ -35,6 +37,8 @@ type IUserHandler interface {
 	UpdateUserPassword(c *fiber.Ctx) error
 	SendVerifyEmail(c *fiber.Ctx) error
 	VerifyEmail(c *fiber.Ctx) error
+	UploadProfileImage(c *fiber.Ctx) error
+	RemoveProfileImage(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -729,4 +733,107 @@ func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
 	}
 
 	return response.ResponseOK(c, "email verified")
+}
+
+//------------------------------------------
+//------------------------------------------
+
+// UploadProfileImage godoc
+//
+//	@Summary		Upload Profile Image
+//	@Description	send image as formData with key 'profileImage' and don't forget to set contentType. returns new profileImages array .
+//	@Tags			User
+//	@Success		200				{object}	[]model.ProfileImageDataModel
+//	@Failure		400,404,409,500	{object}	response.ResponseErrorModel
+//	@Router			/v1/user/uploadProfileImage [post]
+func (h *UserHandler) UploadProfileImage(c *fiber.Ctx) error {
+	file, err := c.FormFile("profileImage")
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+
+	contentType := file.Header["Content-Type"][0]
+
+	//---------------------------------------------
+	dbconfig := configs.GetDbConfigs()
+	if file.Size == 0 {
+		return response.ResponseError(c, "File is empty", fiber.StatusBadRequest)
+	}
+
+	if file.Size > dbconfig.ProfileFileSizeLimit*1024*1024 {
+		return response.ResponseError(c, fmt.Sprintf("File size exceeds the limit (%vmb)", dbconfig.ProfileFileSizeLimit), fiber.StatusBadRequest)
+	}
+
+	allowedExts := strings.Split(dbconfig.ProfileImageExtensionLimit, ",")
+	ext := filepath.Ext(file.Filename)
+	validExtension := false
+	for _, allowedExt := range allowedExts {
+		if ext == "."+strings.TrimSpace(allowedExt) {
+			validExtension = true
+			break
+		}
+	}
+	if !validExtension {
+		return response.ResponseError(c, "Invalid file extension: "+dbconfig.ProfileImageExtensionLimit, fiber.StatusBadRequest)
+	}
+	ext = strings.Split(contentType, "/")[1]
+	validExtension = false
+	for _, allowedExt := range allowedExts {
+		if ext == strings.TrimSpace(allowedExt) {
+			validExtension = true
+			break
+		}
+	}
+	if !validExtension {
+		return response.ResponseError(c, "Invalid file extension: "+dbconfig.ProfileImageExtensionLimit, fiber.StatusBadRequest)
+	}
+	//---------------------------------------------
+
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	profileImagesCount, err := h.userService.GetProfileImagesCount(jwtUserData.UserId)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	if profileImagesCount >= dbconfig.ProfileImageCountLimit {
+		return response.ResponseError(c, response.ExceedProfileImage, fiber.StatusConflict)
+	}
+
+	buffer, err := file.Open()
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	defer buffer.Close()
+
+	result, err := h.userService.UploadProfileImage(jwtUserData.UserId, contentType, file.Size, buffer)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOKWithData(c, result)
+}
+
+// RemoveProfileImage godoc
+//
+//	@Summary		Remove Profile Image
+//	@Description	Returns new profileImages array
+//	@Tags			User
+//	@Param			fileName	path		string	true	"file name of profile image"
+//	@Success		200			{object}	[]model.ProfileImageDataModel
+//	@Failure		400,404,500	{object}	response.ResponseErrorModel
+//	@Router			/v1/user/removeProfileImage/:fileName [delete]
+func (h *UserHandler) RemoveProfileImage(c *fiber.Ctx) error {
+	fileName := c.Params("fileName", "")
+	if fileName == "" {
+		return response.ResponseError(c, "invalid filename", fiber.StatusBadRequest)
+	}
+
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	images, err := h.userService.RemoveProfileImage(jwtUserData.UserId, fileName)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.ProfileImageNotFound, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	return response.ResponseOKWithData(c, images)
 }

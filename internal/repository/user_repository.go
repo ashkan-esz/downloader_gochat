@@ -4,6 +4,7 @@ import (
 	"downloader_gochat/configs"
 	"downloader_gochat/model"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/lib/pq"
@@ -23,6 +24,10 @@ type IUserRepository interface {
 	UpdateUserPassword(userId int64, passwords *model.UpdatePasswordReq) error
 	SaveUserEmailToken(userId int64, token string, expire int64) error
 	VerifyUserEmailToken(userId int64, token string) error
+	GetProfileImagesCount(userId int64) (int64, error)
+	GetProfileImages(userId int64) (*[]model.ProfileImageDataModel, error)
+	SaveProfileImageData(profileImage *model.ProfileImage) error
+	RemoveProfileImageData(userId int64, fileName string) error
 	AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) error
 	UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) (bool, error)
 	UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string, ipLocation string) (*model.ActiveSession, error)
@@ -311,6 +316,55 @@ func (r *UserRepository) VerifyUserEmailToken(userId int64, token string) error 
 			"emailVerified":           true,
 		})
 
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (r *UserRepository) GetProfileImagesCount(userId int64) (int64, error) {
+	var result int64
+	err := r.db.
+		Model(&model.ProfileImage{}).
+		Where("\"userId\" = ?", userId).
+		Count(&result).
+		Error
+
+	if err != nil {
+		return 0, err
+	}
+	return result, nil
+}
+
+func (r *UserRepository) GetProfileImages(userId int64) (*[]model.ProfileImageDataModel, error) {
+	var result []model.ProfileImageDataModel
+	err := r.db.
+		Model(&model.ProfileImage{}).
+		Where("\"userId\" = ?", userId).
+		Order("\"addDate\" DESC").
+		Find(&result).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	return &result, nil
+}
+
+func (r *UserRepository) SaveProfileImageData(profileImage *model.ProfileImage) error {
+	err := r.db.Create(profileImage).Error
+	return err
+}
+
+func (r *UserRepository) RemoveProfileImageData(userId int64, fileName string) error {
+	queryStr := fmt.Sprintf("\"userId\" = %v AND url ~ '/%v$' ", userId, fileName)
+	res := r.db.Where(queryStr).Delete(&model.ProfileImage{})
 	if res.Error != nil {
 		return res.Error
 	}

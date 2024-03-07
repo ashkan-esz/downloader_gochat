@@ -745,6 +745,53 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/user/removeProfileImage/:fileName": {
+            "delete": {
+                "description": "Returns new profileImages array",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Remove Profile Image",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "file name of profile image",
+                        "name": "fileName",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.ProfileImageDataModel"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/sendVerifyEmail": {
             "get": {
                 "description": "send an email with an activation link. the link will expire after 6 hour.\nmaybe email goes to spam folder.\nlimited to 2 call per minute",
@@ -1052,6 +1099,50 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/user/uploadProfileImage": {
+            "post": {
+                "description": "send image as formData with key 'profileImage' and don't forget to set contentType. returns new profileImages array .",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Upload Profile Image",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.ProfileImageDataModel"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/userSettings/:settingName": {
             "get": {
                 "security": [
@@ -1289,6 +1380,9 @@ const docTemplate = `{
         "model.FollowListProfileImageDataModel": {
             "type": "object",
             "properties": {
+                "blurHash": {
+                    "type": "string"
+                },
                 "size": {
                     "type": "integer"
                 },
@@ -1495,8 +1589,34 @@ const docTemplate = `{
                 "addDate": {
                     "type": "string"
                 },
+                "blurHash": {
+                    "type": "string"
+                },
                 "originalSize": {
                     "type": "integer"
+                },
+                "size": {
+                    "type": "integer"
+                },
+                "thumbnail": {
+                    "type": "string"
+                },
+                "url": {
+                    "type": "string"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.ProfileImageDataModel": {
+            "type": "object",
+            "properties": {
+                "addDate": {
+                    "type": "string"
+                },
+                "blurHash": {
+                    "type": "string"
                 },
                 "size": {
                     "type": "integer"

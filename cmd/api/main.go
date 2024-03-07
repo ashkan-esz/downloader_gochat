@@ -61,7 +61,7 @@ func main() {
 	cloudStorageSvc := cloudStorage.StartS3StorageService()
 
 	userRep := repository.NewUserRepository(dbConn.GetDB(), mongoDB.GetDB())
-	userSvc := service.NewUserService(userRep, rabbit)
+	userSvc := service.NewUserService(userRep, rabbit, cloudStorageSvc)
 	userHandler := handler.NewUserHandler(userSvc)
 
 	wsRep := repository.NewWsRepository(dbConn.GetDB(), mongoDB.GetDB())

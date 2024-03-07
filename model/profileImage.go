@@ -8,6 +8,7 @@ type ProfileImage struct {
 	OriginalSize int64     `gorm:"column:originalSize;type:integer;not null;"`
 	Size         int64     `gorm:"column:size;type:integer;not null;"`
 	Thumbnail    string    `gorm:"column:thumbnail;type:text;not null;"`
+	BlurHash     string    `gorm:"column:blurHash;type:text;not null;"`
 	UserId       int64     `gorm:"column:userId;type:integer;not null;"`
 }
 
@@ -23,6 +24,7 @@ type ProfileImageDataModel struct {
 	Url       string    `gorm:"column:url;" json:"url"`
 	Size      int64     `gorm:"column:size;" json:"size"`
 	Thumbnail string    `gorm:"column:thumbnail;" json:"thumbnail"`
+	BlurHash  string    `gorm:"column:blurHash;" json:"blurHash"`
 	UserId    int64     `gorm:"column:userId;" json:"userId"`
 }
 
@@ -31,6 +33,7 @@ type FollowListProfileImageDataModel struct {
 	Url       string    `gorm:"column:url;" json:"url"`
 	Size      int64     `gorm:"column:size;" json:"size"`
 	Thumbnail string    `gorm:"column:thumbnail;" json:"thumbnail"`
+	BlurHash  string    `gorm:"column:blurHash;" json:"blurHash"`
 	UserId    int64     `gorm:"column:userId;" json:"-"`
 }
 

@@ -85,6 +85,8 @@ definitions:
     type: object
   model.FollowListProfileImageDataModel:
     properties:
+      blurHash:
+        type: string
       size:
         type: integer
       thumbnail:
@@ -230,8 +232,25 @@ definitions:
     properties:
       addDate:
         type: string
+      blurHash:
+        type: string
       originalSize:
         type: integer
+      size:
+        type: integer
+      thumbnail:
+        type: string
+      url:
+        type: string
+      userId:
+        type: integer
+    type: object
+  model.ProfileImageDataModel:
+    properties:
+      addDate:
+        type: string
+      blurHash:
+        type: string
       size:
         type: integer
       thumbnail:
@@ -860,6 +879,37 @@ paths:
       summary: Profile Data
       tags:
       - User
+  /v1/user/removeProfileImage/:fileName:
+    delete:
+      description: Returns new profileImages array
+      parameters:
+      - description: file name of profile image
+        in: path
+        name: fileName
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.ProfileImageDataModel'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Remove Profile Image
+      tags:
+      - User
   /v1/user/sendVerifyEmail:
     get:
       description: |-
@@ -1063,6 +1113,36 @@ paths:
       summary: Change user settings based on settingName.
       tags:
       - User-Setting
+  /v1/user/uploadProfileImage:
+    post:
+      description: send image as formData with key 'profileImage' and don't forget
+        to set contentType. returns new profileImages array .
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.ProfileImageDataModel'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Upload Profile Image
+      tags:
+      - User
   /v1/user/userSettings/:settingName:
     get:
       description: Returns user settings for movies, downloadLinks and notifications.

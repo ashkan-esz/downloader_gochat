@@ -150,7 +150,7 @@ func createThumbnailAndBlurHash(contentType string, fileBuffer multipart.File) (
 	dstImage := imaging.Thumbnail(img, 128, 128, imaging.Linear)
 
 	switch contentType {
-	case "image/jpeg", "image/png":
+	case "image/jpeg", "image/jpg", "image/png":
 		newbuf := new(bytes.Buffer)
 		//err = jpeg.Encode(newbuf, dstImage, &jpeg.Options{Quality: 20})
 		options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 30)

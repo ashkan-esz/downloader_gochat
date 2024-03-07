@@ -12,18 +12,21 @@ import (
 )
 
 type DbConfigData struct {
-	Id                        primitive.ObjectID `bson:"_id"`
-	Title                     string             `bson:"title"`
-	CorsAllowedOrigins        []string           `bson:"corsAllowedOrigins"`
-	DisableTestUserRequests   bool               `bson:"disableTestUserRequests"`
-	DisableCrawlerForDuration int                `bson:"disableCrawlerForDuration"`
-	DisableCrawlerStart       int                `bson:"disableCrawlerStart"`
-	CrawlerDisabled           bool               `bson:"crawlerDisabled"`
-	DisableCrawler            bool               `bson:"disableCrawler"`
-	DevelopmentFaze           bool               `bson:"developmentFaze"`
-	DevelopmentFazeStart      int                `bson:"developmentFazeStart"`
-	MediaFileSizeLimit        int64              `bson:"mediaFileSizeLimit"`
-	MediaFileExtensionLimit   string             `bson:"mediaFileExtensionLimit"`
+	Id                         primitive.ObjectID `bson:"_id"`
+	Title                      string             `bson:"title"`
+	CorsAllowedOrigins         []string           `bson:"corsAllowedOrigins"`
+	DisableTestUserRequests    bool               `bson:"disableTestUserRequests"`
+	DisableCrawlerForDuration  int                `bson:"disableCrawlerForDuration"`
+	DisableCrawlerStart        int                `bson:"disableCrawlerStart"`
+	CrawlerDisabled            bool               `bson:"crawlerDisabled"`
+	DisableCrawler             bool               `bson:"disableCrawler"`
+	DevelopmentFaze            bool               `bson:"developmentFaze"`
+	DevelopmentFazeStart       int                `bson:"developmentFazeStart"`
+	MediaFileSizeLimit         int64              `bson:"mediaFileSizeLimit"`
+	ProfileFileSizeLimit       int64              `bson:"profileFileSizeLimit"`
+	ProfileImageCountLimit     int64              `bson:"profileImageCountLimit"`
+	MediaFileExtensionLimit    string             `bson:"mediaFileExtensionLimit"`
+	ProfileImageExtensionLimit string             `bson:"profileImageExtensionLimit"`
 }
 
 var rwm sync.RWMutex
@@ -47,7 +50,10 @@ func LoadDbConfigs(mongodb *mongo.Database) {
 func load(mongodb *mongo.Database) {
 	rwm.Lock()
 	defer rwm.Unlock()
-	err := mongodb.Collection("configs").FindOne(context.Background(), bson.D{{"title", "server configs"}}).Decode(&dbConfigs)
+	err := mongodb.
+		Collection("configs").
+		FindOne(context.Background(), bson.D{{"title", "server configs"}}).
+		Decode(&dbConfigs)
 	if err != nil {
 		fmt.Printf("could not get dbConfig from mongodb: %s\n", err)
 		//log.Fatalf("could not get dbConfig from mongodb: %s", err)

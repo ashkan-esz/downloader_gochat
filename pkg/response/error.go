@@ -3,7 +3,7 @@ package response
 const (
 	ServerError = "Server error, try again later"
 	//----------------------
-	ExceedProfileImage = "Exceeded 20 profile image"
+	ExceedProfileImage = "Exceeded profile image counts"
 	ExceedGenres       = "Exceeded number of genres limit (6)"
 	//----------------------
 	MovieSourcesNotFound      = "Movie sources not found"

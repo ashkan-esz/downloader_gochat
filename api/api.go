@@ -61,6 +61,8 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 		userRoutes.Put("/updatePassword", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UpdateUserPassword)
 		userRoutes.Get("/sendVerifyEmail", limiterMiddleware, middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.SendVerifyEmail)
 		userRoutes.Get("/verifyEmail/:userId/:token", limiterMiddleware, middleware.CORSMiddleware, userHandler.VerifyEmail)
+		userRoutes.Post("/uploadProfileImage", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UploadProfileImage)
+		userRoutes.Delete("/removeProfileImage/:fileName", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.RemoveProfileImage)
 		userRoutes.Get("/notifications/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.GetUserNotifications)
 		userRoutes.Put("/notifications/batchUpdateStatus/:id/:entityTypeId/:status", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.BatchUpdateUserNotificationStatus)
 		userRoutes.Post("/media/upload", middleware.CORSMiddleware, middleware.AuthMiddleware, mediaHandler.UploadFile)

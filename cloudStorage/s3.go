@@ -14,10 +14,12 @@ import (
 type IS3Storage interface {
 	UploadFile(bucketName string, fileName string, file multipart.File) (*s3.PutObjectOutput, error)
 	UploadLargeFile(bucketName string, fileName string, file multipart.File) (*manager.UploadOutput, error)
+	RemoveFile(bucketName string, fileName string) error
 }
 
 type S3Storage struct {
-	client *s3.Client
+	client  *s3.Client
+	Configs *configs.ConfigStruct
 }
 
 func StartS3StorageService() *S3Storage {
@@ -29,20 +31,32 @@ func StartS3StorageService() *S3Storage {
 	}
 
 	return &S3Storage{
-		client: s3.NewFromConfig(options),
+		client:  s3.NewFromConfig(options),
+		Configs: &config,
 	}
 }
 
 const (
-	MediaFileBucketName       = "media-file"
-	partMiBs            int64 = 5
-	publicReadACL             = "public-read"
+	MediaFileBucketName               = "media-file"
+	DownloadAppBucketName             = "download-app"
+	ProfileImageBucketName            = "profile-image"
+	DownloadTrailerBucketName         = "download-trailer"
+	PosterBucketName                  = "poster"
+	DownloadSubtitleBucketName        = "download-subtitle"
+	CastBucketName                    = "cast"
+	ServerStaticFilesBucketName       = "serverstatic"
+	partMiBs                    int64 = 5
+	publicReadACL                     = "public-read"
 )
 
 //------------------------------------------
 //------------------------------------------
 
 func (s *S3Storage) UploadFile(bucketName string, fileName string, file multipart.File) (*s3.PutObjectOutput, error) {
+	if s.Configs.CloudStorageBucketNamePrefix != "" {
+		bucketName = s.Configs.CloudStorageBucketNamePrefix + bucketName
+	}
+
 	result, err := s.client.PutObject(context.TODO(), &s3.PutObjectInput{
 		Bucket: aws.String(bucketName),
 		Key:    aws.String(fileName),
@@ -54,6 +68,10 @@ func (s *S3Storage) UploadFile(bucketName string, fileName string, file multipar
 }
 
 func (s *S3Storage) UploadLargeFile(bucketName string, fileName string, file multipart.File) (*manager.UploadOutput, error) {
+	if s.Configs.CloudStorageBucketNamePrefix != "" {
+		bucketName = s.Configs.CloudStorageBucketNamePrefix + bucketName
+	}
+
 	uploader := manager.NewUploader(s.client, func(u *manager.Uploader) {
 		u.PartSize = partMiBs * 1024 * 1024
 	})
@@ -65,4 +83,17 @@ func (s *S3Storage) UploadLargeFile(bucketName string, fileName string, file mul
 	})
 
 	return result, err
+}
+
+func (s *S3Storage) RemoveFile(bucketName string, fileName string) error {
+	if s.Configs.CloudStorageBucketNamePrefix != "" {
+		bucketName = s.Configs.CloudStorageBucketNamePrefix + bucketName
+	}
+
+	_, err := s.client.DeleteObject(context.TODO(), &s3.DeleteObjectInput{
+		Bucket: aws.String(bucketName),
+		Key:    aws.String(fileName),
+	})
+
+	return err
 }

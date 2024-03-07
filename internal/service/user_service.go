@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"downloader_gochat/cloudStorage"
 	"downloader_gochat/configs"
 	"downloader_gochat/db/redis"
 	"downloader_gochat/internal/repository"
@@ -12,6 +13,8 @@ import (
 	"downloader_gochat/rabbitmq"
 	"downloader_gochat/util"
 	"errors"
+	"fmt"
+	"mime/multipart"
 	"slices"
 	"strconv"
 	"strings"
@@ -40,19 +43,24 @@ type IUserService interface {
 	UpdateUserPassword(userId int64, passwords *model.UpdatePasswordReq) error
 	SendVerifyEmail(userId int64) error
 	VerifyEmail(userId int64, token string) error
+	GetProfileImagesCount(userId int64) (int64, error)
+	UploadProfileImage(userId int64, contentType string, fileSize int64, fileBuffer multipart.File) (*[]model.ProfileImageDataModel, error)
+	RemoveProfileImage(userId int64, fileName string) (*[]model.ProfileImageDataModel, error)
 }
 
 type UserService struct {
-	userRepo repository.IUserRepository
-	rabbitmq rabbitmq.RabbitMQ
-	timeout  time.Duration
+	userRepo     repository.IUserRepository
+	rabbitmq     rabbitmq.RabbitMQ
+	cloudStorage cloudStorage.IS3Storage
+	timeout      time.Duration
 }
 
-func NewUserService(userRepo repository.IUserRepository, rabbit rabbitmq.RabbitMQ) *UserService {
+func NewUserService(userRepo repository.IUserRepository, rabbit rabbitmq.RabbitMQ, cloudStorage cloudStorage.IS3Storage) *UserService {
 	return &UserService{
-		userRepo: userRepo,
-		rabbitmq: rabbit,
-		timeout:  time.Duration(2) * time.Second,
+		userRepo:     userRepo,
+		rabbitmq:     rabbit,
+		cloudStorage: cloudStorage,
+		timeout:      time.Duration(2) * time.Second,
 	}
 }
 
@@ -489,3 +497,55 @@ func (s *UserService) VerifyEmail(userId int64, token string) error {
 
 //------------------------------------------
 //------------------------------------------
+
+func (s *UserService) GetProfileImagesCount(userId int64) (int64, error) {
+	result, err := s.userRepo.GetProfileImagesCount(userId)
+	return result, err
+}
+
+func (s *UserService) UploadProfileImage(userId int64, contentType string, fileSize int64, fileBuffer multipart.File) (*[]model.ProfileImageDataModel, error) {
+	saveType := "jpg"
+	if contentType == "image/png" {
+		saveType = "png"
+	}
+	savingFileName := fmt.Sprintf("user-%v-%v.%v", userId, time.Now().UnixMilli(), saveType)
+	result, err := s.cloudStorage.UploadLargeFile(cloudStorage.ProfileImageBucketName, savingFileName, fileBuffer)
+	if err != nil {
+		return nil, err
+	}
+
+	profileImage := model.ProfileImage{
+		UserId:       userId,
+		AddDate:      time.Now().UTC(),
+		Url:          result.Location,
+		OriginalSize: fileSize,
+		Size:         fileSize,
+		Thumbnail:    "",
+		BlurHash:     "",
+	}
+	profileImage.Thumbnail, profileImage.BlurHash = createThumbnailAndBlurHash(contentType, fileBuffer)
+
+	err = s.userRepo.SaveProfileImageData(&profileImage)
+	if err != nil {
+		_ = s.cloudStorage.RemoveFile(cloudStorage.ProfileImageBucketName, savingFileName)
+		return nil, err
+	}
+
+	images, err := s.userRepo.GetProfileImages(userId)
+	return images, err
+}
+
+func (s *UserService) RemoveProfileImage(userId int64, fileName string) (*[]model.ProfileImageDataModel, error) {
+	err := s.userRepo.RemoveProfileImageData(userId, fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	err = s.cloudStorage.RemoveFile(cloudStorage.ProfileImageBucketName, fileName)
+	if err != nil {
+		return nil, err
+	}
+
+	images, err := s.userRepo.GetProfileImages(userId)
+	return images, err
+}
