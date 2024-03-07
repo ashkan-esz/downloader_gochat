@@ -1,6 +1,8 @@
 package model
 
-import "database/sql/driver"
+import (
+	"database/sql/driver"
+)
 
 type TitleRelation string
 type UserRole string
@@ -46,7 +48,7 @@ const (
 )
 
 func (tl *TitleRelation) Scan(value interface{}) error {
-	*tl = TitleRelation(value.([]byte))
+	*tl = TitleRelation(value.(string))
 	return nil
 }
 
@@ -55,7 +57,7 @@ func (tl TitleRelation) Value() (driver.Value, error) {
 }
 
 func (ur *UserRole) Scan(value interface{}) error {
-	*ur = UserRole(value.([]byte))
+	*ur = UserRole(value.(string))
 	return nil
 }
 
@@ -64,7 +66,7 @@ func (ur UserRole) Value() (driver.Value, error) {
 }
 
 func (l *LikeDislike) Scan(value interface{}) error {
-	*l = LikeDislike(value.([]byte))
+	*l = LikeDislike(value.(string))
 	return nil
 }
 
@@ -73,7 +75,7 @@ func (l LikeDislike) Value() (driver.Value, error) {
 }
 
 func (m *MbtiType) Scan(value interface{}) error {
-	*m = MbtiType(value.([]byte))
+	*m = MbtiType(value.(string))
 	return nil
 }
 

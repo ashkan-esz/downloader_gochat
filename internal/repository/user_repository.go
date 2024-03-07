@@ -16,7 +16,7 @@ type IUserRepository interface {
 	AddUser(user *model.User) (*model.User, error)
 	GetDetailUser(int64) (*model.UserWithImageDataModel, error)
 	GetUserByUsernameEmail(username string, email string) (*model.UserDataModel, error)
-	UpdateUser(*model.User) (*model.User, error)
+	GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error)
 	AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) error
 	UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) (bool, error)
 	UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string, ipLocation string) (*model.ActiveSession, error)
@@ -146,13 +146,70 @@ func (r *UserRepository) GetUserByUsernameEmail(username string, email string) (
 	return &userDataModel, nil
 }
 
-func (r *UserRepository) UpdateUser(user *model.User) (*model.User, error) {
-	err := r.db.Save(&user).Error
-	if err != nil {
-		return nil, err
+func (r *UserRepository) GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error) {
+	var result model.UserProfileRes
+
+	query := r.db.Debug().Model(&model.User{}).
+		Where("\"userId\" = ?", requestParams.UserId).
+		Limit(1)
+
+	if requestParams.LoadProfileImages {
+		query = query.Preload("ProfileImages", func(db *gorm.DB) *gorm.DB {
+			return db.Order("\"addDate\" DESC")
+		})
 	}
 
-	return user, nil
+	if requestParams.IsSelfProfile {
+		if requestParams.LoadComputedFavoriteGenres {
+			query = query.Preload("ComputedFavoriteGenres", func(db *gorm.DB) *gorm.DB {
+				return db.Order("\"percent\" DESC")
+			})
+		}
+
+		if requestParams.LoadSettings {
+			query = query.Preload("NotificationSettings").
+				Preload("DownloadLinksSettings").
+				Preload("MovieSettings")
+		}
+		if requestParams.RefreshToken != "" {
+			query = query.Preload("ThisDevice", "\"refreshToken\" = ?", requestParams.RefreshToken)
+		}
+	}
+
+	err := query.Find(&result).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if result.UserId == 0 {
+		return nil, nil
+	}
+
+	if requestParams.LoadFollowersCount {
+		type countRes struct {
+			FollowersCount  int64 `gorm:"column:f1;"`
+			FollowingsCount int64 `gorm:"column:f2;"`
+		}
+		var res countRes
+
+		err := r.db.
+			Raw("SELECT count(1) filter ( where \"followingId\" = ? ) as f1, count(1) filter ( where \"followerId\" = ? ) as f2 FROM \"Follow\"",
+				requestParams.UserId, requestParams.UserId).
+			Scan(&res).
+			Error
+
+		if err == nil {
+			result.FollowersCount = res.FollowersCount
+			result.FollowingsCount = res.FollowingsCount
+		}
+	}
+	if !requestParams.IsSelfProfile {
+		result.ComputedStatsLastUpdate = 0
+	}
+
+	return &result, nil
 }
 
 //------------------------------------------

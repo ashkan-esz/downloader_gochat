@@ -29,6 +29,17 @@ definitions:
       thisDevice:
         $ref: '#/definitions/model.ActiveSessionDataModel'
     type: object
+  model.ComputedFavoriteGenres:
+    properties:
+      count:
+        type: string
+      genre:
+        type: string
+      percent:
+        type: number
+      userId:
+        type: integer
+    type: object
   model.DeviceInfo:
     properties:
       appName:
@@ -94,6 +105,42 @@ definitions:
       username_email:
         type: string
     type: object
+  model.MbtiType:
+    enum:
+    - ISTJ
+    - ISFJ
+    - INFJ
+    - INTJ
+    - ISTP
+    - ISFP
+    - INFP
+    - INTP
+    - ESTP
+    - ESFP
+    - ENFP
+    - ENTP
+    - ESTJ
+    - ESFJ
+    - ENFJ
+    - ENTJ
+    type: string
+    x-enum-varnames:
+    - ISTJ
+    - ISFJ
+    - INFJ
+    - INTJ
+    - ISTP
+    - ISFP
+    - INFP
+    - INTP
+    - ESTP
+    - ESFP
+    - ENFP
+    - ENTP
+    - ESTJ
+    - ESFJ
+    - ENFJ
+    - ENTJ
   model.MediaFile:
     properties:
       blurHash:
@@ -214,6 +261,69 @@ definitions:
       uuid:
         type: string
     type: object
+  model.UserProfileRes:
+    properties:
+      MovieSettings:
+        $ref: '#/definitions/model.MovieSettings'
+      bio:
+        type: string
+      computedFavoriteGenres:
+        items:
+          $ref: '#/definitions/model.ComputedFavoriteGenres'
+        type: array
+      computedStatsLastUpdate:
+        type: integer
+      defaultProfile:
+        type: string
+      downloadLinksSettings:
+        $ref: '#/definitions/model.DownloadLinksSettings'
+      email:
+        type: string
+      emailVerified:
+        type: boolean
+      favoriteGenres:
+        items:
+          type: string
+        type: array
+      followersCount:
+        type: integer
+      followingsCount:
+        type: integer
+      mbtiType:
+        $ref: '#/definitions/model.MbtiType'
+      notificationSettings:
+        $ref: '#/definitions/model.NotificationSettings'
+      profileImages:
+        items:
+          $ref: '#/definitions/model.FollowListProfileImageDataModel'
+        type: array
+      publicName:
+        type: string
+      rawUsername:
+        type: string
+      registrationDate:
+        type: string
+      role:
+        $ref: '#/definitions/model.UserRole'
+      thisDevice:
+        $ref: '#/definitions/model.ActiveSessionDataModel'
+      userId:
+        type: integer
+      username:
+        type: string
+    type: object
+  model.UserRole:
+    enum:
+    - test_user
+    - user
+    - dev
+    - admin
+    type: string
+    x-enum-varnames:
+    - TEST_USER
+    - USER
+    - DEV
+    - ADMIN
   model.UserSettingsRes:
     properties:
       downloadLinksSettings:
@@ -647,6 +757,52 @@ paths:
       summary: Notification Status update
       tags:
       - User-Notifications
+  /v1/user/profile:
+    get:
+      description: Return users current session and other active sections.
+      parameters:
+      - description: userId
+        in: query
+        name: userId
+        type: integer
+      - description: loadSettings
+        in: query
+        name: loadSettings
+        type: boolean
+      - description: loadFollowersCount
+        in: query
+        name: loadFollowersCount
+        type: boolean
+      - description: loadDevice
+        in: query
+        name: loadDevice
+        type: boolean
+      - description: loadProfileImages
+        in: query
+        name: loadProfileImages
+        type: boolean
+      - description: loadComputedFavoriteGenres
+        in: query
+        name: loadComputedFavoriteGenres
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserProfileRes'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Active Sessions
+      tags:
+      - User
   /v1/user/setNotifToken:
     put:
       description: send device token as Notification token

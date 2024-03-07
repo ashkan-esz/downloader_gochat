@@ -34,6 +34,7 @@ type IUserService interface {
 	UpdateUserSettings(userId int64, settingName model.SettingName, settings *model.UserSettingsRes) error
 	UpdateUserFavoriteGenres(userId int64, genresArray []string) error
 	GetActiveSessions(userId int64, refreshToken string) (*model.ActiveSessionRes, error)
+	GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error)
 }
 
 type UserService struct {
@@ -375,6 +376,14 @@ func (s *UserService) GetActiveSessions(userId int64, refreshToken string) (*mod
 	}
 
 	return &result, err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (s *UserService) GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error) {
+	result, err := s.userRepo.GetUserProfile(requestParams)
+	return result, err
 }
 
 //------------------------------------------

@@ -30,6 +30,7 @@ type IUserHandler interface {
 	UpdateUserSettings(c *fiber.Ctx) error
 	UpdateUserFavoriteGenres(c *fiber.Ctx) error
 	GetActiveSessions(c *fiber.Ctx) error
+	GetUserProfile(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -538,6 +539,59 @@ func (h *UserHandler) GetActiveSessions(c *fiber.Ctx) error {
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
 	refreshToken := c.Locals("refreshToken").(string)
 	result, err := h.userService.GetActiveSessions(jwtUserData.UserId, refreshToken)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.SessionNotFound, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOKWithData(c, result)
+}
+
+// GetUserProfile godoc
+//
+//	@Summary		Profile Data
+//	@Description	Return users profile data. if dont provide userId, return current user profile
+//	@Tags			User
+//	@Param			userId						query		integer	false	"userId"
+//	@Param			loadSettings				query		bool	false	"loadSettings"
+//	@Param			loadFollowersCount			query		bool	false	"loadFollowersCount"
+//	@Param			loadDevice					query		bool	false	"loadDevice"
+//	@Param			loadProfileImages			query		bool	false	"loadProfileImages"
+//	@Param			loadComputedFavoriteGenres	query		bool	false	"loadComputedFavoriteGenres"
+//	@Success		200							{object}	model.UserProfileRes
+//	@Failure		404,500						{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/profile [get]
+func (h *UserHandler) GetUserProfile(c *fiber.Ctx) error {
+	userId := int64(c.QueryInt("userId", 0))
+	loadSettings := c.QueryBool("loadSettings", false)
+	loadFollowersCount := c.QueryBool("loadFollowersCount", false)
+	loadDevice := c.QueryBool("loadDevice", false)
+	loadProfileImages := c.QueryBool("loadProfileImages", false)
+	loadComputedFavoriteGenres := c.QueryBool("loadComputedFavoriteGenres", false)
+
+	isSelfProfile := false
+	refreshToken := ""
+	if userId <= 0 {
+		jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+		userId = jwtUserData.UserId
+		isSelfProfile = true
+		if loadDevice {
+			refreshToken = c.Locals("refreshToken").(string)
+		}
+	}
+
+	requestParams := model.UserProfileReq{
+		UserId:                     userId,
+		IsSelfProfile:              isSelfProfile,
+		LoadSettings:               loadSettings,
+		LoadFollowersCount:         loadFollowersCount,
+		LoadProfileImages:          loadProfileImages,
+		LoadComputedFavoriteGenres: loadComputedFavoriteGenres,
+		RefreshToken:               refreshToken,
+	}
+	result, err := h.userService.GetUserProfile(&requestParams)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return response.ResponseError(c, response.SessionNotFound, fiber.StatusNotFound)

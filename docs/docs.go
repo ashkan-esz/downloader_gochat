@@ -615,6 +615,78 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/user/profile": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Return users current session and other active sections.",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Active Sessions",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "userId",
+                        "name": "userId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadSettings",
+                        "name": "loadSettings",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadFollowersCount",
+                        "name": "loadFollowersCount",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadDevice",
+                        "name": "loadDevice",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadProfileImages",
+                        "name": "loadProfileImages",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadComputedFavoriteGenres",
+                        "name": "loadComputedFavoriteGenres",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UserProfileRes"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/setNotifToken": {
             "put": {
                 "security": [
@@ -929,6 +1001,23 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ComputedFavoriteGenres": {
+            "type": "object",
+            "properties": {
+                "count": {
+                    "type": "string"
+                },
+                "genre": {
+                    "type": "string"
+                },
+                "percent": {
+                    "type": "number"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.DeviceInfo": {
             "type": "object",
             "properties": {
@@ -1028,6 +1117,45 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "model.MbtiType": {
+            "type": "string",
+            "enum": [
+                "ISTJ",
+                "ISFJ",
+                "INFJ",
+                "INTJ",
+                "ISTP",
+                "ISFP",
+                "INFP",
+                "INTP",
+                "ESTP",
+                "ESFP",
+                "ENFP",
+                "ENTP",
+                "ESTJ",
+                "ESFJ",
+                "ENFJ",
+                "ENTJ"
+            ],
+            "x-enum-varnames": [
+                "ISTJ",
+                "ISFJ",
+                "INFJ",
+                "INTJ",
+                "ISTP",
+                "ISFP",
+                "INFP",
+                "INTP",
+                "ESTP",
+                "ESFP",
+                "ENFP",
+                "ENTP",
+                "ESTJ",
+                "ESFJ",
+                "ENFJ",
+                "ENTJ"
+            ]
         },
         "model.MediaFile": {
             "type": "object",
@@ -1212,6 +1340,98 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
+        },
+        "model.UserProfileRes": {
+            "type": "object",
+            "properties": {
+                "MovieSettings": {
+                    "$ref": "#/definitions/model.MovieSettings"
+                },
+                "bio": {
+                    "type": "string"
+                },
+                "computedFavoriteGenres": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ComputedFavoriteGenres"
+                    }
+                },
+                "computedStatsLastUpdate": {
+                    "type": "integer"
+                },
+                "defaultProfile": {
+                    "type": "string"
+                },
+                "downloadLinksSettings": {
+                    "$ref": "#/definitions/model.DownloadLinksSettings"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "emailVerified": {
+                    "type": "boolean"
+                },
+                "favoriteGenres": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "followersCount": {
+                    "type": "integer"
+                },
+                "followingsCount": {
+                    "type": "integer"
+                },
+                "mbtiType": {
+                    "$ref": "#/definitions/model.MbtiType"
+                },
+                "notificationSettings": {
+                    "$ref": "#/definitions/model.NotificationSettings"
+                },
+                "profileImages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.FollowListProfileImageDataModel"
+                    }
+                },
+                "publicName": {
+                    "type": "string"
+                },
+                "rawUsername": {
+                    "type": "string"
+                },
+                "registrationDate": {
+                    "type": "string"
+                },
+                "role": {
+                    "$ref": "#/definitions/model.UserRole"
+                },
+                "thisDevice": {
+                    "$ref": "#/definitions/model.ActiveSessionDataModel"
+                },
+                "userId": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.UserRole": {
+            "type": "string",
+            "enum": [
+                "test_user",
+                "user",
+                "dev",
+                "admin"
+            ],
+            "x-enum-varnames": [
+                "TEST_USER",
+                "USER",
+                "DEV",
+                "ADMIN"
+            ]
         },
         "model.UserSettingsRes": {
             "type": "object",

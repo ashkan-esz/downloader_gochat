@@ -157,6 +157,43 @@ type UserMetaWithImageDataModel struct {
 //---------------------------------------
 //---------------------------------------
 
+type UserProfileReq struct {
+	UserId                     int64  `json:"userId"`
+	IsSelfProfile              bool   `json:"isSelfProfile"`
+	LoadSettings               bool   `json:"loadSettings"`
+	LoadFollowersCount         bool   `json:"loadFollowersCount"`
+	LoadProfileImages          bool   `json:"loadProfileImages"`
+	LoadComputedFavoriteGenres bool   `json:"loadComputedFavoriteGenres"`
+	RefreshToken               string `json:"refreshToken"`
+}
+
+type UserProfileRes struct {
+	UserId                  int64                             `gorm:"column:userId" json:"userId"`
+	Username                string                            `gorm:"column:username" json:"username"`
+	RawUsername             string                            `gorm:"column:rawUsername" json:"rawUsername"`
+	PublicName              string                            `gorm:"column:publicName" json:"publicName"`
+	Email                   string                            `gorm:"column:email" json:"email"`
+	EmailVerified           bool                              `gorm:"column:emailVerified" json:"emailVerified"`
+	Bio                     string                            `gorm:"column:bio" json:"bio"`
+	RegistrationDate        time.Time                         `gorm:"column:registrationDate;" json:"registrationDate"`
+	DefaultProfile          string                            `gorm:"column:defaultProfile" json:"defaultProfile"`
+	ComputedStatsLastUpdate int64                             `gorm:"column:ComputedStatsLastUpdate;" json:"computedStatsLastUpdate"`
+	FavoriteGenres          pq.StringArray                    `gorm:"column:favoriteGenres;type:text[];" json:"favoriteGenres" swaggertype:"array,string"`
+	Role                    UserRole                          `gorm:"column:role;" json:"role"`
+	MbtiType                MbtiType                          `gorm:"column:mbtiType" json:"mbtiType"`
+	ProfileImages           []FollowListProfileImageDataModel `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
+	ComputedFavoriteGenres  []ComputedFavoriteGenres          `gorm:"foreignKey:UserId;references:UserId;" json:"computedFavoriteGenres"`
+	NotificationSettings    *NotificationSettings             `gorm:"foreignKey:UserId;references:UserId;" json:"notificationSettings"`
+	DownloadLinksSettings   *DownloadLinksSettings            `gorm:"foreignKey:UserId;references:UserId;" json:"downloadLinksSettings"`
+	MovieSettings           *MovieSettings                    `gorm:"foreignKey:UserId;references:UserId;" json:"MovieSettings"`
+	ThisDevice              *ActiveSessionDataModel           `gorm:"foreignKey:UserId;references:UserId;" json:"thisDevice"`
+	FollowersCount          int64                             `gorm:"-" json:"followersCount"`
+	FollowingsCount         int64                             `gorm:"-" json:"followingsCount"`
+}
+
+//---------------------------------------
+//---------------------------------------
+
 func (u *User) EncryptPassword(password string) error {
 	hashPassword, err := util.HashPassword(password)
 	if err != nil {
