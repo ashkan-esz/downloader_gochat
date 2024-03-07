@@ -85,7 +85,7 @@ type TokenViewModel struct {
 type RegisterViewModel struct {
 	Username        string     `json:"username"`
 	Email           string     `json:"email"`
-	Password        string     `json:"password"`
+	Password        string     `json:"-"`
 	ConfirmPassword string     `json:"confirmPassword"`
 	DeviceInfo      DeviceInfo `json:"deviceInfo"`
 }
@@ -145,6 +145,7 @@ type UserMetaDataModel struct {
 	UserId     int64  `db:"userId" gorm:"column:userId" json:"userId"`
 	Username   string `db:"username" gorm:"column:username" json:"username"`
 	PublicName string `db:"publicName" gorm:"column:publicName" json:"publicName"`
+	Email      string `db:"email" gorm:"column:email" json:"email"`
 }
 
 type UserMetaWithImageDataModel struct {
@@ -156,6 +157,14 @@ type UserMetaWithImageDataModel struct {
 
 //---------------------------------------
 //---------------------------------------
+
+type EditProfileReq struct {
+	Username   string   `gorm:"column:username" json:"username"`
+	PublicName string   `gorm:"column:publicName" json:"publicName"`
+	Bio        string   `gorm:"column:bio" json:"bio"`
+	Email      string   `gorm:"column:email" json:"email"`
+	MbtiType   MbtiType `gorm:"column:mbtiType" json:"mbtiType"`
+}
 
 type UserProfileReq struct {
 	UserId                     int64  `json:"userId"`

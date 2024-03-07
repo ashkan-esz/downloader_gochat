@@ -70,6 +70,19 @@ definitions:
       userId:
         type: integer
     type: object
+  model.EditProfileReq:
+    properties:
+      bio:
+        type: string
+      email:
+        type: string
+      mbtiType:
+        $ref: '#/definitions/model.MbtiType'
+      publicName:
+        type: string
+      username:
+        type: string
+    type: object
   model.FollowListProfileImageDataModel:
     properties:
       size:
@@ -235,8 +248,6 @@ definitions:
       deviceInfo:
         $ref: '#/definitions/model.DeviceInfo'
       email:
-        type: string
-      password:
         type: string
       username:
         type: string
@@ -441,6 +452,44 @@ paths:
       security:
       - BearerAuth: []
       summary: Active Sessions
+      tags:
+      - User
+  /v1/user/editUserProfile:
+    post:
+      description: Edit profile data.
+      parameters:
+      - description: update fields
+        in: body
+        name: user
+        required: true
+        schema:
+          $ref: '#/definitions/model.EditProfileReq'
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "401":
+          description: Unauthorized
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "409":
+          description: Conflict
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Edit Profile
       tags:
       - User
   /v1/user/follow/:followId:
@@ -759,7 +808,8 @@ paths:
       - User-Notifications
   /v1/user/profile:
     get:
-      description: Return users current session and other active sections.
+      description: Return users profile data. if dont provide userId, return current
+        user profile
       parameters:
       - description: userId
         in: query
@@ -800,7 +850,7 @@ paths:
             $ref: '#/definitions/response.ResponseErrorModel'
       security:
       - BearerAuth: []
-      summary: Active Sessions
+      summary: Profile Data
       tags:
       - User
   /v1/user/setNotifToken:

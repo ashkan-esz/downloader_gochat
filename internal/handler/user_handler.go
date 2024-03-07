@@ -31,6 +31,7 @@ type IUserHandler interface {
 	UpdateUserFavoriteGenres(c *fiber.Ctx) error
 	GetActiveSessions(c *fiber.Ctx) error
 	GetUserProfile(c *fiber.Ctx) error
+	EditUserProfile(c *fiber.Ctx) error
 }
 
 type UserHandler struct {
@@ -415,6 +416,9 @@ func (h *UserHandler) GetUserFollowings(c *fiber.Ctx) error {
 	return response.ResponseOKWithData(c, result)
 }
 
+//------------------------------------------
+//------------------------------------------
+
 // GetUserSettings godoc
 //
 //	@Summary		Get User Settings
@@ -488,6 +492,9 @@ func (h *UserHandler) UpdateUserSettings(c *fiber.Ctx) error {
 	return response.ResponseOK(c, "")
 }
 
+//------------------------------------------
+//------------------------------------------
+
 // UpdateUserFavoriteGenres godoc
 //
 //	@Summary		Update Favorite Genres
@@ -548,6 +555,9 @@ func (h *UserHandler) GetActiveSessions(c *fiber.Ctx) error {
 	return response.ResponseOKWithData(c, result)
 }
 
+//------------------------------------------
+//------------------------------------------
+
 // GetUserProfile godoc
 //
 //	@Summary		Profile Data
@@ -599,4 +609,39 @@ func (h *UserHandler) GetUserProfile(c *fiber.Ctx) error {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 	return response.ResponseOKWithData(c, result)
+}
+
+// EditUserProfile godoc
+//
+//	@Summary		Edit Profile
+//	@Description	Edit profile data.
+//	@Tags			User
+//	@Param			user				body		model.EditProfileReq	true	"update fields"
+//	@Success		200					{object}	response.ResponseOKModel
+//	@Failure		400,401,404,409,500	{object}	response.ResponseErrorModel
+//	@Router			/v1/user/editUserProfile [post]
+func (h *UserHandler) EditUserProfile(c *fiber.Ctx) error {
+	var editFields model.EditProfileReq
+	err := c.BodyParser(&editFields)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	result, err := h.userService.EditUserProfile(jwtUserData.UserId, &editFields)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	if result == nil {
+		return response.ResponseError(c, response.UserNotFound, fiber.StatusNotFound)
+	}
+	if result.UserId == 0 {
+		if result.Username == strings.ToLower(editFields.Username) {
+			return response.ResponseError(c, response.UsernameAlreadyExist, fiber.StatusConflict)
+		} else {
+			return response.ResponseError(c, response.EmailAlreadyExist, fiber.StatusConflict)
+		}
+	}
+
+	return response.ResponseOK(c, "")
 }

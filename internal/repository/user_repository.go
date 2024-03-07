@@ -16,7 +16,10 @@ type IUserRepository interface {
 	AddUser(user *model.User) (*model.User, error)
 	GetDetailUser(int64) (*model.UserWithImageDataModel, error)
 	GetUserByUsernameEmail(username string, email string) (*model.UserDataModel, error)
+	GetUserByUsernameEmailAndUserId(userId int64, username string, email string) (*model.UserDataModel, error)
 	GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error)
+	GetUserMetaData(id int64) (*model.UserDataModel, error)
+	EditUserProfile(userId int64, editFields *model.EditProfileReq, updateFields map[string]interface{}) error
 	AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) error
 	UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) (bool, error)
 	UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string, ipLocation string) (*model.ActiveSession, error)
@@ -146,10 +149,25 @@ func (r *UserRepository) GetUserByUsernameEmail(username string, email string) (
 	return &userDataModel, nil
 }
 
+func (r *UserRepository) GetUserByUsernameEmailAndUserId(userId int64, username string, email string) (*model.UserDataModel, error) {
+	var userDataModel model.UserDataModel
+	err := r.db.Where("\"userId\" != ? AND ((username != '' AND username = ?) OR (email != '' AND email = ?))", userId, username, email).Model(&model.User{}).Limit(1).Find(&userDataModel).Error
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, nil
+		}
+		return nil, err
+	}
+	if userDataModel.UserId == 0 {
+		return nil, nil
+	}
+	return &userDataModel, nil
+}
+
 func (r *UserRepository) GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error) {
 	var result model.UserProfileRes
 
-	query := r.db.Debug().Model(&model.User{}).
+	query := r.db.Model(&model.User{}).
 		Where("\"userId\" = ?", requestParams.UserId).
 		Limit(1)
 
@@ -207,9 +225,40 @@ func (r *UserRepository) GetUserProfile(requestParams *model.UserProfileReq) (*m
 	}
 	if !requestParams.IsSelfProfile {
 		result.ComputedStatsLastUpdate = 0
+		result.Email = ""
 	}
 
 	return &result, nil
+}
+
+func (r *UserRepository) GetUserMetaData(id int64) (*model.UserDataModel, error) {
+	var userDataModel model.UserDataModel
+	err := r.db.Where("\"userId\" = ?", id).
+		Model(&model.User{}).
+		Limit(1).
+		Find(&userDataModel).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	return &userDataModel, nil
+}
+
+func (r *UserRepository) EditUserProfile(userId int64, editFields *model.EditProfileReq, updateFields map[string]interface{}) error {
+	res := r.db.
+		Model(&model.User{}).
+		Where("\"userId\" = ?", userId).
+		Limit(1).
+		Updates(updateFields)
+
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
 }
 
 //------------------------------------------

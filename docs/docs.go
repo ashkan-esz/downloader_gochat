@@ -131,6 +131,64 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/user/editUserProfile": {
+            "post": {
+                "description": "Edit profile data.",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Edit Profile",
+                "parameters": [
+                    {
+                        "description": "update fields",
+                        "name": "user",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.EditProfileReq"
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseOKModel"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "401": {
+                        "description": "Unauthorized",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "409": {
+                        "description": "Conflict",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/follow/:followId": {
             "post": {
                 "security": [
@@ -622,11 +680,11 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Return users current session and other active sections.",
+                "description": "Return users profile data. if dont provide userId, return current user profile",
                 "tags": [
                     "User"
                 ],
-                "summary": "Active Sessions",
+                "summary": "Profile Data",
                 "parameters": [
                     {
                         "type": "integer",
@@ -1064,6 +1122,26 @@ const docTemplate = `{
                 }
             }
         },
+        "model.EditProfileReq": {
+            "type": "object",
+            "properties": {
+                "bio": {
+                    "type": "string"
+                },
+                "email": {
+                    "type": "string"
+                },
+                "mbtiType": {
+                    "$ref": "#/definitions/model.MbtiType"
+                },
+                "publicName": {
+                    "type": "string"
+                },
+                "username": {
+                    "type": "string"
+                }
+            }
+        },
         "model.FollowListProfileImageDataModel": {
             "type": "object",
             "properties": {
@@ -1300,9 +1378,6 @@ const docTemplate = `{
                     "$ref": "#/definitions/model.DeviceInfo"
                 },
                 "email": {
-                    "type": "string"
-                },
-                "password": {
                     "type": "string"
                 },
                 "username": {

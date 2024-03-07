@@ -35,6 +35,7 @@ type IUserService interface {
 	UpdateUserFavoriteGenres(userId int64, genresArray []string) error
 	GetActiveSessions(userId int64, refreshToken string) (*model.ActiveSessionRes, error)
 	GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error)
+	EditUserProfile(userId int64, editFields *model.EditProfileReq) (*model.UserDataModel, error)
 }
 
 type UserService struct {
@@ -384,6 +385,47 @@ func (s *UserService) GetActiveSessions(userId int64, refreshToken string) (*mod
 func (s *UserService) GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error) {
 	result, err := s.userRepo.GetUserProfile(requestParams)
 	return result, err
+}
+
+func (s *UserService) EditUserProfile(userId int64, editFields *model.EditProfileReq) (*model.UserDataModel, error) {
+	searchResult, err := s.userRepo.GetUserByUsernameEmailAndUserId(userId, editFields.Username, editFields.Email)
+	if err != nil {
+		return nil, err
+	}
+	if searchResult != nil {
+		// email or username already taken by another user
+		return &model.UserDataModel{
+			UserId:   0,
+			Username: searchResult.Username,
+			Email:    searchResult.Email,
+		}, nil
+	} else {
+		searchResult, err = s.userRepo.GetUserMetaData(userId)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	updateFields := map[string]interface{}{
+		"username":   editFields.Username,
+		"publicName": editFields.PublicName,
+		"email":      editFields.Email,
+		"bio":        editFields.Bio,
+		"mbtiType":   editFields.MbtiType,
+	}
+	if searchResult.Username != editFields.Username {
+		updateFields["username"] = strings.ToLower(editFields.Username)
+		updateFields["rawUsername"] = editFields.Username
+	}
+	if searchResult.Email != editFields.Email {
+		updateFields["email"] = editFields.Email
+		updateFields["emailVerified"] = false
+		updateFields["emailVerifyToken"] = ""
+		updateFields["emailVerifyToken_expire"] = 0
+	}
+
+	err = s.userRepo.EditUserProfile(userId, editFields, updateFields)
+	return searchResult, err
 }
 
 //------------------------------------------
