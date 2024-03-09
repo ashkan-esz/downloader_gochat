@@ -23,11 +23,15 @@ type IUserRepository interface {
 	EditUserProfile(userId int64, editFields *model.EditProfileReq, updateFields map[string]interface{}) error
 	UpdateUserPassword(userId int64, passwords *model.UpdatePasswordReq) error
 	SaveUserEmailToken(userId int64, token string, expire int64) error
+	SaveDeleteAccountToken(userId int64, token string, expire int64) error
 	VerifyUserEmailToken(userId int64, token string) error
+	VerifyDeleteAccountToken(userId int64, token string) error
+	DeleteUserAndRelatedData(userId int64) error
 	GetProfileImagesCount(userId int64) (int64, error)
 	GetProfileImages(userId int64) (*[]model.ProfileImageDataModel, error)
 	SaveProfileImageData(profileImage *model.ProfileImage) error
 	RemoveProfileImageData(userId int64, fileName string) error
+	RemoveAllProfileImageData(userId int64) ([]model.ProfileImage, error)
 	AddSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) error
 	UpdateSession(device *model.DeviceInfo, deviceId string, userId int64, refreshToken string, ipLocation string) (bool, error)
 	UpdateSessionRefreshToken(device *model.DeviceInfo, userId int64, refreshToken string, prevRefreshToken string, ipLocation string) (*model.ActiveSession, error)
@@ -285,6 +289,9 @@ func (r *UserRepository) UpdateUserPassword(userId int64, passwords *model.Updat
 	return nil
 }
 
+//------------------------------------------
+//------------------------------------------
+
 func (r *UserRepository) SaveUserEmailToken(userId int64, token string, expire int64) error {
 	res := r.db.
 		Model(&model.User{}).
@@ -293,6 +300,25 @@ func (r *UserRepository) SaveUserEmailToken(userId int64, token string, expire i
 		Updates(map[string]interface{}{
 			"emailVerifyToken":        token,
 			"emailVerifyToken_expire": expire,
+		})
+
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+func (r *UserRepository) SaveDeleteAccountToken(userId int64, token string, expire int64) error {
+	res := r.db.
+		Model(&model.User{}).
+		Where("\"userId\" = ?", userId).
+		Limit(1).
+		Updates(map[string]interface{}{
+			"deleteAccountVerifyToken":        token,
+			"deleteAccountVerifyToken_expire": expire,
 		})
 
 	if res.Error != nil {
@@ -322,6 +348,326 @@ func (r *UserRepository) VerifyUserEmailToken(userId int64, token string) error 
 	if res.RowsAffected == 0 {
 		return gorm.ErrRecordNotFound
 	}
+	return nil
+}
+
+func (r *UserRepository) VerifyDeleteAccountToken(userId int64, token string) error {
+	res := r.db.
+		Model(&model.User{}).
+		Where("\"userId\" = ? AND \"deleteAccountVerifyToken\" = ? AND \"deleteAccountVerifyToken_expire\" >= ? ",
+			userId, token, time.Now().UnixMilli()).
+		Limit(1).
+		Updates(map[string]interface{}{
+			"deleteAccountVerifyToken":        "",
+			"deleteAccountVerifyToken_expire": 0,
+		})
+
+	if res.Error != nil {
+		return res.Error
+	}
+	if res.RowsAffected == 0 {
+		return gorm.ErrRecordNotFound
+	}
+	return nil
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (r *UserRepository) DeleteUserAndRelatedData(userId int64) error {
+	err := r.db.Transaction(func(tx *gorm.DB) error {
+		//handle movie counts decrement
+		err := deleteUserAndRelatedData_LikeDislikeMovies(tx, userId)
+		if err != nil {
+			return err
+		}
+		err = deleteUserAndRelatedData_WatchedMovies(tx, userId)
+		if err != nil {
+			return err
+		}
+		err = deleteUserAndRelatedData_FollowMovies(tx, userId)
+		if err != nil {
+			return err
+		}
+		err = deleteUserAndRelatedData_WatchListMovies(tx, userId)
+		//----------------------------
+		if err != nil {
+			return err
+		}
+		err = deleteUserAndRelatedData_LikeDislikeStaff(tx, userId)
+		if err != nil {
+			return err
+		}
+		err = deleteUserAndRelatedData_FollowStaff(tx, userId)
+		if err != nil {
+			return err
+		}
+		//----------------------------
+		err = deleteUserAndRelatedData_LikeDislikeCharacter(tx, userId)
+		if err != nil {
+			return err
+		}
+		err = deleteUserAndRelatedData_FavoriteCharacter(tx, userId)
+		if err != nil {
+			return err
+		}
+		//----------------------------
+
+		// delete user data from User table
+		err = tx.
+			Where("\"userId\" = ? AND role != ?", userId, model.ADMIN).
+			Delete(&model.User{}).
+			Error
+		if err != nil {
+			// rollback
+			return err
+		}
+
+		// return nil will commit the whole transaction
+		return nil
+	})
+
+	return err
+}
+
+func deleteUserAndRelatedData_LikeDislikeMovies(tx *gorm.DB, userId int64) error {
+	var rows []model.LikeDislikeMovie
+	err := tx.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "movieId"}, {Name: "type"}}}).
+		Where("\"userId\" = ?", userId).
+		Delete(&rows).
+		Error
+	if err != nil {
+		return err
+	}
+
+	likes := []string{}
+	dislikes := []string{}
+	for _, row := range rows {
+		if row.Type == model.LIKE {
+			likes = append(likes, row.MovieId)
+		} else {
+			dislikes = append(dislikes, row.MovieId)
+		}
+	}
+
+	err = tx.Exec("update \"Movie\" set likes_count = likes_count - 1 where \"movieId\" IN ?", likes).Error
+	if err != nil {
+		return err
+	}
+
+	err = tx.Exec("update \"Movie\" set dislikes_count = dislikes_count - 1 where \"movieId\" IN ?", dislikes).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteUserAndRelatedData_WatchedMovies(tx *gorm.DB, userId int64) error {
+	var rows []model.WatchedMovie
+	err := tx.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "movieId"}, {Name: "dropped"}, {Name: "favorite"}}}).
+		Where("\"userId\" = ?", userId).
+		Delete(&rows).
+		Error
+	if err != nil {
+		return err
+	}
+
+	dropps := []string{}
+	finishes := []string{}
+	favorites := []string{}
+	for _, row := range rows {
+		if row.Dropped {
+			dropps = append(dropps, row.MovieId)
+		} else {
+			finishes = append(finishes, row.MovieId)
+		}
+		if row.Favorite {
+			favorites = append(favorites, row.MovieId)
+		}
+	}
+
+	err = tx.Exec("update \"Movie\" set dropped_count = dropped_count - 1 where \"movieId\" IN ?", dropps).Error
+	if err != nil {
+		return err
+	}
+
+	err = tx.Exec("update \"Movie\" set finished_count = finished_count - 1 where \"movieId\" IN ?", finishes).Error
+	if err != nil {
+		return err
+	}
+
+	err = tx.Exec("update \"Movie\" set favorite_count = favorite_count - 1 where \"movieId\" IN ?", favorites).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteUserAndRelatedData_FollowMovies(tx *gorm.DB, userId int64) error {
+	var rows []model.FollowMovie
+	err := tx.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "movieId"}}}).
+		Where("\"userId\" = ?", userId).
+		Delete(&rows).
+		Error
+	if err != nil {
+		return err
+	}
+
+	follows := []string{}
+	for _, row := range rows {
+		follows = append(follows, row.MovieId)
+	}
+
+	err = tx.Exec("update \"Movie\" set follow_count = follow_count - 1 where \"movieId\" IN ?", follows).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteUserAndRelatedData_WatchListMovies(tx *gorm.DB, userId int64) error {
+	var rows []model.WatchListMovie
+	err := tx.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "movieId"}}}).
+		Where("\"userId\" = ?", userId).
+		Delete(&rows).
+		Error
+	if err != nil {
+		return err
+	}
+
+	watchLists := []string{}
+	for _, row := range rows {
+		watchLists = append(watchLists, row.MovieId)
+	}
+
+	err = tx.Exec("update \"Movie\" set watchlist_count = watchlist_count - 1 where \"movieId\" IN ?", watchLists).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteUserAndRelatedData_LikeDislikeStaff(tx *gorm.DB, userId int64) error {
+	var rows []model.LikeDislikeStaff
+	err := tx.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "staffId"}, {Name: "type"}}}).
+		Where("\"userId\" = ?", userId).
+		Delete(&rows).
+		Error
+	if err != nil {
+		return err
+	}
+
+	likes := []int64{}
+	dislikes := []int64{}
+	for _, row := range rows {
+		if row.Type == model.LIKE {
+			likes = append(likes, row.StaffId)
+		} else {
+			dislikes = append(dislikes, row.StaffId)
+		}
+	}
+
+	err = tx.Exec("update \"Staff\" set likes_count = likes_count - 1 where \"id\" IN ?", likes).Error
+	if err != nil {
+		return err
+	}
+
+	err = tx.Exec("update \"Staff\" set dislikes_count = dislikes_count - 1 where \"id\" IN ?", dislikes).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteUserAndRelatedData_FollowStaff(tx *gorm.DB, userId int64) error {
+	var rows []model.FollowStaff
+	err := tx.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "staffId"}}}).
+		Where("\"userId\" = ?", userId).
+		Delete(&rows).
+		Error
+	if err != nil {
+		return err
+	}
+
+	follows := []int64{}
+	for _, row := range rows {
+		follows = append(follows, row.StaffId)
+	}
+
+	err = tx.Exec("update \"Staff\" set follow_count = follow_count - 1 where \"id\" IN ?", follows).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteUserAndRelatedData_LikeDislikeCharacter(tx *gorm.DB, userId int64) error {
+	var rows []model.LikeDislikeCharacter
+	err := tx.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "characterId"}, {Name: "type"}}}).
+		Where("\"userId\" = ?", userId).
+		Delete(&rows).
+		Error
+	if err != nil {
+		return err
+	}
+
+	likes := []int64{}
+	dislikes := []int64{}
+	for _, row := range rows {
+		if row.Type == model.LIKE {
+			likes = append(likes, row.CharacterId)
+		} else {
+			dislikes = append(dislikes, row.CharacterId)
+		}
+	}
+
+	err = tx.Exec("update \"Character\" set likes_count = likes_count - 1 where \"id\" IN ?", likes).Error
+	if err != nil {
+		return err
+	}
+
+	err = tx.Exec("update \"Character\" set dislikes_count = dislikes_count - 1 where \"id\" IN ?", dislikes).Error
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func deleteUserAndRelatedData_FavoriteCharacter(tx *gorm.DB, userId int64) error {
+	var rows []model.FavoriteCharacter
+	err := tx.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "characterId"}}}).
+		Where("\"userId\" = ?", userId).
+		Delete(&rows).
+		Error
+	if err != nil {
+		return err
+	}
+
+	follows := []int64{}
+	for _, row := range rows {
+		follows = append(follows, row.CharacterId)
+	}
+
+	err = tx.Exec("update \"Character\" set favorite_count = favorite_count - 1 where \"id\" IN ?", follows).Error
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 
@@ -372,6 +718,15 @@ func (r *UserRepository) RemoveProfileImageData(userId int64, fileName string) e
 		return gorm.ErrRecordNotFound
 	}
 	return nil
+}
+
+func (r *UserRepository) RemoveAllProfileImageData(userId int64) ([]model.ProfileImage, error) {
+	var result []model.ProfileImage
+	res := r.db.Where("\"userId\" = ?", userId).Delete(&result)
+	if res.Error != nil {
+		return nil, res.Error
+	}
+	return result, nil
 }
 
 //------------------------------------------

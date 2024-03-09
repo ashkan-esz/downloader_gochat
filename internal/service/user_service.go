@@ -43,6 +43,8 @@ type IUserService interface {
 	UpdateUserPassword(userId int64, passwords *model.UpdatePasswordReq) error
 	SendVerifyEmail(userId int64) error
 	VerifyEmail(userId int64, token string) error
+	SendDeleteAccount(userId int64) error
+	DeleteUserAccount(userId int64, token string) error
 	GetProfileImagesCount(userId int64) (int64, error)
 	UploadProfileImage(userId int64, contentType string, fileSize int64, fileBuffer multipart.File) (*[]model.ProfileImageDataModel, error)
 	RemoveProfileImage(userId int64, fileName string) (*[]model.ProfileImageDataModel, error)
@@ -467,6 +469,9 @@ func (s *UserService) UpdateUserPassword(userId int64, passwords *model.UpdatePa
 	return err
 }
 
+//------------------------------------------
+//------------------------------------------
+
 func (s *UserService) SendVerifyEmail(userId int64) error {
 	searchResult, err := s.userRepo.GetUserMetaData(userId)
 	if err != nil {
@@ -493,6 +498,66 @@ func (s *UserService) SendVerifyEmail(userId int64) error {
 func (s *UserService) VerifyEmail(userId int64, token string) error {
 	err := s.userRepo.VerifyUserEmailToken(userId, token)
 	return err
+}
+
+func (s *UserService) SendDeleteAccount(userId int64) error {
+	searchResult, err := s.userRepo.GetUserMetaData(userId)
+	if err != nil {
+		return err
+	}
+
+	hashToken, err := util.HashPassword(uuid.NewString())
+	if err != nil {
+		return err
+	}
+	verifyToken := strings.ReplaceAll(hashToken, "/", "")
+	verifyTokenExpire := time.Now().Add(10 * time.Minute).UnixMilli()
+
+	err = s.userRepo.SaveDeleteAccountToken(userId, verifyToken, verifyTokenExpire)
+	if err != nil {
+		return err
+	}
+
+	err = email.AddDeleteAccountEmail(searchResult.UserId, searchResult.Email, verifyToken, searchResult.Username, 1)
+
+	return err
+}
+
+func (s *UserService) DeleteUserAccount(userId int64, token string) error {
+	err := s.userRepo.VerifyDeleteAccountToken(userId, token)
+	if err != nil {
+		return err
+	}
+
+	profileImages, err := s.userRepo.RemoveAllProfileImageData(userId)
+	if err != nil {
+		return err
+	}
+	for i := range profileImages {
+		temp := strings.Split(profileImages[i].Url, "/")
+		filename := temp[len(temp)-1]
+		_ = s.cloudStorage.RemoveFile(cloudStorage.ProfileImageBucketName, filename)
+	}
+
+	activeSessions, err := s.userRepo.GetActiveSessions(userId)
+	if err != nil {
+		return err
+	}
+
+	err = s.userRepo.DeleteUserAndRelatedData(userId)
+	if err != nil {
+		return err
+	}
+
+	accessTokenExpireHour := configs.GetConfigs().AccessTokenExpireHour
+	for i := range activeSessions {
+		_ = redis.SetRedis(context.Background(),
+			"jwtKey:"+activeSessions[i].RefreshToken,
+			"deleteAccount",
+			time.Duration(accessTokenExpireHour)*time.Hour)
+	}
+
+	return nil
 }
 
 //------------------------------------------

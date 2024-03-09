@@ -480,6 +480,65 @@ paths:
       summary: Active Sessions
       tags:
       - User
+  /v1/user/deleteAccount:
+    delete:
+      description: |-
+        remove user account. email the user with a link, if user open it, account gets removed.
+        the link expires in 10 minutes.
+        maybe email goes to spam folder.
+        limited to 2 call per minute
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Delete Account
+      tags:
+      - User
+  /v1/user/deleteAccount/:userId/:token:
+    get:
+      description: |-
+        remove account link created on server and send to user by email, if user click this link the account will start to remove.
+        limited to 2 call per minute
+      parameters:
+      - description: userId
+        in: path
+        name: userId
+        required: true
+        type: integer
+      - description: delete account verify token
+        in: path
+        name: token
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Delete Account (Internal Usage)
+      tags:
+      - User
   /v1/user/editUserProfile:
     post:
       description: Edit profile data.
@@ -921,10 +980,6 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/response.ResponseOKModel'
-        "400":
-          description: Bad Request
-          schema:
-            $ref: '#/definitions/response.ResponseErrorModel'
         "404":
           description: Not Found
           schema:
@@ -1193,7 +1248,7 @@ paths:
         in: path
         name: token
         required: true
-        type: integer
+        type: string
       responses:
         "200":
           description: OK

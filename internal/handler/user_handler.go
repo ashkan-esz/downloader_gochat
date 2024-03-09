@@ -37,6 +37,8 @@ type IUserHandler interface {
 	UpdateUserPassword(c *fiber.Ctx) error
 	SendVerifyEmail(c *fiber.Ctx) error
 	VerifyEmail(c *fiber.Ctx) error
+	SendDeleteAccount(c *fiber.Ctx) error
+	DeleteUserAccount(c *fiber.Ctx) error
 	UploadProfileImage(c *fiber.Ctx) error
 	RemoveProfileImage(c *fiber.Ctx) error
 }
@@ -683,6 +685,9 @@ func (h *UserHandler) UpdateUserPassword(c *fiber.Ctx) error {
 	return response.ResponseOK(c, "")
 }
 
+//------------------------------------------
+//------------------------------------------
+
 // SendVerifyEmail godoc
 //
 //	@Summary		Send Verify Email
@@ -690,8 +695,8 @@ func (h *UserHandler) UpdateUserPassword(c *fiber.Ctx) error {
 //	@Description	maybe email goes to spam folder.
 //	@Description	limited to 2 call per minute
 //	@Tags			User
-//	@Success		200				{object}	response.ResponseOKModel
-//	@Failure		400,404,409,500	{object}	response.ResponseErrorModel
+//	@Success		200			{object}	response.ResponseOKModel
+//	@Failure		404,409,500	{object}	response.ResponseErrorModel
 //	@Router			/v1/user/sendVerifyEmail [get]
 func (h *UserHandler) SendVerifyEmail(c *fiber.Ctx) error {
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
@@ -713,7 +718,7 @@ func (h *UserHandler) SendVerifyEmail(c *fiber.Ctx) error {
 //	@Description	limited to 2 call per minute
 //	@Tags			User
 //	@Param			userId		path		integer	true	"userId"
-//	@Param			token		path		integer	true	"email verify token"
+//	@Param			token		path		string	true	"email verify token"
 //	@Success		200			{object}	response.ResponseOKModel
 //	@Failure		400,404,500	{object}	response.ResponseErrorModel
 //	@Router			/v1/user/verifyEmail/:userId/:token [get]
@@ -733,6 +738,71 @@ func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
 	}
 
 	return response.ResponseOK(c, "email verified")
+}
+
+// SendDeleteAccount godoc
+//
+//	@Summary		Delete Account
+//	@Description	remove user account. email the user with a link, if user open it, account gets removed.
+//	@Description	the link expires in 10 minutes.
+//	@Description	maybe email goes to spam folder.
+//	@Description	limited to 2 call per minute
+//	@Tags			User
+//	@Success		200		{object}	response.ResponseOKModel
+//	@Failure		404,500	{object}	response.ResponseErrorModel
+//	@Router			/v1/user/deleteAccount [delete]
+func (h *UserHandler) SendDeleteAccount(c *fiber.Ctx) error {
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err := h.userService.SendDeleteAccount(jwtUserData.UserId)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.UserNotFound, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	return response.ResponseOK(c, "")
+}
+
+// DeleteUserAccount godoc
+//
+//	@Summary		Delete Account (Internal Usage)
+//	@Description	remove account link created on server and send to user by email, if user click this link the account will start to remove.
+//	@Description	limited to 2 call per minute
+//	@Tags			User
+//	@Param			userId		path		integer	true	"userId"
+//	@Param			token		path		string	true	"delete account verify token"
+//	@Success		200			{object}	response.ResponseOKModel
+//	@Failure		400,404,500	{object}	response.ResponseErrorModel
+//	@Router			/v1/user/deleteAccount/:userId/:token [get]
+func (h *UserHandler) DeleteUserAccount(c *fiber.Ctx) error {
+	userId, err := c.ParamsInt("userId", 0)
+	if err != nil {
+		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	token := c.Params("token", "")
+
+	err = h.userService.DeleteUserAccount(int64(userId), token)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.InvalidToken, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	c.Cookie(&fiber.Cookie{
+		Name:        "refreshToken",
+		Value:       "",
+		Path:        "/",
+		MaxAge:      -1,
+		Expires:     time.Now(),
+		Secure:      true,
+		HTTPOnly:    true,
+		SameSite:    "none",
+		SessionOnly: false,
+	})
+
+	return response.ResponseOK(c, "")
 }
 
 //------------------------------------------

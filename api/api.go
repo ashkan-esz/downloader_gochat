@@ -61,6 +61,8 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 		userRoutes.Put("/updatePassword", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UpdateUserPassword)
 		userRoutes.Get("/sendVerifyEmail", limiterMiddleware, middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.SendVerifyEmail)
 		userRoutes.Get("/verifyEmail/:userId/:token", limiterMiddleware, middleware.CORSMiddleware, userHandler.VerifyEmail)
+		userRoutes.Delete("/deleteAccount", limiterMiddleware, middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.SendDeleteAccount)
+		userRoutes.Get("/deleteAccount/:userId/:token", limiterMiddleware, middleware.CORSMiddleware, userHandler.DeleteUserAccount)
 		userRoutes.Post("/uploadProfileImage", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UploadProfileImage)
 		userRoutes.Delete("/removeProfileImage/:fileName", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.RemoveProfileImage)
 		userRoutes.Get("/notifications/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.GetUserNotifications)
