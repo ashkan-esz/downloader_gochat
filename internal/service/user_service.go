@@ -29,6 +29,8 @@ type IUserService interface {
 	LoginUser(loginVM *model.LoginViewModel, ip string) (*model.UserViewModel, error)
 	GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool, ip string) (*model.UserViewModel, *util.TokenDetail, error)
 	LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRefreshToken string) error
+	ForceLogoutDevice(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, refreshToken string, deviceId string) error
+	ForceLogoutAll(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, refreshToken string) error
 	SetNotifToken(jwtUserData *util.MyJwtClaims, refreshToken string, notifToken string) error
 	FollowUser(jwtUserData *util.MyJwtClaims, followId int64) error
 	UnFollowUser(jwtUserData *util.MyJwtClaims, followId int64) error
@@ -251,6 +253,41 @@ func (s *UserService) LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRe
 	err = redis.SetRedis(c.Context(), "jwtKey:"+prevRefreshToken, "logout", time.Duration(remainingTime)*time.Millisecond)
 	if err != nil {
 		return err
+	}
+
+	return nil
+}
+
+func (s *UserService) ForceLogoutDevice(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, refreshToken string, deviceId string) error {
+	result, err := s.userRepo.RemoveAuthSession(jwtUserData.UserId, refreshToken, deviceId)
+	if err != nil {
+		return err
+	}
+
+	remainingTime := configs.GetConfigs().AccessTokenExpireHour
+	err = redis.SetRedis(c.Context(),
+		"jwtKey:"+result.RefreshToken,
+		"logout",
+		time.Duration(remainingTime)*time.Hour)
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (s *UserService) ForceLogoutAll(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, refreshToken string) error {
+	result, err := s.userRepo.RemoveAllAuthSession(jwtUserData.UserId, refreshToken)
+	if err != nil {
+		return err
+	}
+
+	remainingTime := configs.GetConfigs().AccessTokenExpireHour
+	for i := range result {
+		_ = redis.SetRedis(c.Context(),
+			"jwtKey:"+result[i].RefreshToken,
+			"logout",
+			time.Duration(remainingTime)*time.Hour)
 	}
 
 	return nil

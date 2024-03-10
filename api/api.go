@@ -65,6 +65,8 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 		userRoutes.Get("/deleteAccount/:userId/:token", limiterMiddleware, middleware.CORSMiddleware, userHandler.DeleteUserAccount)
 		userRoutes.Post("/uploadProfileImage", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.UploadProfileImage)
 		userRoutes.Delete("/removeProfileImage/:fileName", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.RemoveProfileImage)
+		userRoutes.Put("/forceLogout/:deviceId", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.ForceLogoutDevice)
+		userRoutes.Put("/forceLogoutAll", middleware.CORSMiddleware, middleware.AuthMiddleware, userHandler.ForceLogoutAll)
 		userRoutes.Get("/notifications/:skip/:limit", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.GetUserNotifications)
 		userRoutes.Put("/notifications/batchUpdateStatus/:id/:entityTypeId/:status", middleware.CORSMiddleware, middleware.AuthMiddleware, notifHandler.BatchUpdateUserNotificationStatus)
 		userRoutes.Post("/media/upload", middleware.CORSMiddleware, middleware.AuthMiddleware, mediaHandler.UploadFile)

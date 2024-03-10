@@ -39,6 +39,8 @@ type IUserRepository interface {
 	GetUserActiveSessions(userId int64) ([]model.ActiveSession, error)
 	RemoveSession(userId int64, prevRefreshToken string) error
 	RemoveSessions(userId int64, prevRefreshTokens []string) error
+	RemoveAuthSession(userId int64, refreshToken string, deviceId string) (*model.ActiveSession, error)
+	RemoveAllAuthSession(userId int64, refreshToken string) ([]model.ActiveSession, error)
 	AddUserFollow(userId int64, followId int64) error
 	RemoveUserFollow(userId int64, followId int64) error
 	GetUserFollowers(userId int64, skip int, limit int) ([]model.FollowUserDataModel, error)
@@ -845,6 +847,60 @@ func (r *UserRepository) RemoveSessions(userId int64, prevRefreshTokens []string
 		return err
 	}
 	return nil
+}
+
+func (r *UserRepository) RemoveAuthSession(userId int64, refreshToken string, deviceId string) (*model.ActiveSession, error) {
+	var searchResult model.ActiveSession
+	err := r.db.
+		Model(&model.ActiveSession{}).
+		Where("\"userId\" = ? AND \"refreshToken\" = ?", userId, refreshToken).
+		Limit(1).
+		Find(&searchResult).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	var result []model.ActiveSession
+	err = r.db.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "refreshToken"}}}).
+		Where("\"userId\" = ? AND \"deviceId\" = ?", userId, deviceId).
+		Delete(&result).
+		Error
+
+	if err != nil {
+		return nil, err
+	}
+	if len(result) == 0 {
+		return nil, gorm.ErrRecordNotFound
+	}
+
+	return &result[0], nil
+}
+
+func (r *UserRepository) RemoveAllAuthSession(userId int64, refreshToken string) ([]model.ActiveSession, error) {
+	var searchResult model.ActiveSession
+	err := r.db.
+		Model(&model.ActiveSession{}).
+		Where("\"userId\" = ? AND \"refreshToken\" = ?", userId, refreshToken).
+		Limit(1).
+		Find(&searchResult).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	var result []model.ActiveSession
+	err = r.db.
+		Clauses(clause.Returning{Columns: []clause.Column{{Name: "refreshToken"}}}).
+		Where("\"userId\" = ? AND \"refreshToken\" != ?", userId, refreshToken).
+		Delete(&result).
+		Error
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
 }
 
 //------------------------------------------

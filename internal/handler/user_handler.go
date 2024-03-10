@@ -22,6 +22,8 @@ type IUserHandler interface {
 	Login(c *fiber.Ctx) error
 	GetToken(c *fiber.Ctx) error
 	LogOut(c *fiber.Ctx) error
+	ForceLogoutDevice(c *fiber.Ctx) error
+	ForceLogoutAll(c *fiber.Ctx) error
 	SetNotifToken(c *fiber.Ctx) error
 	FollowUser(c *fiber.Ctx) error
 	UnFollowUser(c *fiber.Ctx) error
@@ -268,6 +270,59 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 		SameSite:    "none",
 		SessionOnly: false,
 	})
+
+	return response.ResponseOK(c, "")
+}
+
+// ForceLogoutDevice godoc
+//
+//	@Summary		Force Logout
+//	@Description	Logout selected device
+//	@Tags			User-Auth
+//	@Param			deviceId			path		string	true	"unique id of the device"
+//	@Success		200					{object}	response.ResponseOKModel
+//	@Failure		400,401,403,404,500	{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/forceLogout/:deviceId [put]
+func (h *UserHandler) ForceLogoutDevice(c *fiber.Ctx) error {
+	deviceId := c.Params("deviceId", "")
+	if deviceId == "" || deviceId == ":deviceId" {
+		return response.ResponseError(c, response.InvalidDeviceId, fiber.StatusBadRequest)
+	}
+	refreshToken := c.Locals("refreshToken").(string)
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err := h.userService.ForceLogoutDevice(c, jwtUserData, refreshToken, deviceId)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.SessionNotFound, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+
+	return response.ResponseOK(c, "")
+}
+
+// ForceLogoutAll godoc
+//
+//	@Summary		Force Logout All
+//	@Description	force logout all session except current session
+//	@Tags			User-Auth
+//	@Success		200					{object}	response.ResponseOKModel
+//	@Failure		400,401,403,404,500	{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/forceLogoutAll [put]
+func (h *UserHandler) ForceLogoutAll(c *fiber.Ctx) error {
+	refreshToken := c.Locals("refreshToken").(string)
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err := h.userService.ForceLogoutAll(c, jwtUserData, refreshToken)
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, "Cannot find device", fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
 
 	return response.ResponseOK(c, "")
 }
