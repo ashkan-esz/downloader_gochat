@@ -479,7 +479,7 @@ paths:
       - BearerAuth: []
       summary: Active Sessions
       tags:
-      - User
+      - User-Auth
   /v1/user/deleteAccount:
     delete:
       description: |-

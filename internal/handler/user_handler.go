@@ -601,7 +601,7 @@ func (h *UserHandler) UpdateUserFavoriteGenres(c *fiber.Ctx) error {
 //
 //	@Summary		Active Sessions
 //	@Description	Return users current session and other active sections.
-//	@Tags			User
+//	@Tags			User-Auth
 //	@Success		200		{object}	model.ActiveSessionRes
 //	@Failure		404,500	{object}	response.ResponseErrorModel
 //	@Security		BearerAuth

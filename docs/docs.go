@@ -106,7 +106,7 @@ const docTemplate = `{
                 ],
                 "description": "Return users current session and other active sections.",
                 "tags": [
-                    "User"
+                    "User-Auth"
                 ],
                 "summary": "Active Sessions",
                 "responses": {
