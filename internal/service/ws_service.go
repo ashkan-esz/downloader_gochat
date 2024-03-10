@@ -258,18 +258,19 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				}
 			}
 		}
-	case model.OnlineStatusAction:
-		req := channelMessage.OnlineStatusReq
-		res := model.OnlineStatusRes{
-			UserIds: []int64{},
+	case model.UserStatusAction:
+		req := channelMessage.UserStatusReq
+		res := model.UserStatusRes{
+			OnlineUserIds: []int64{},
+			Type:          model.UserStatusOnlineUsers,
 		}
 		for _, id := range req.UserIds {
 			cl, ok := wsSvc.hub.Clients[id]
 			if ok && cl != nil {
-				res.UserIds = append(res.UserIds, id)
+				res.OnlineUserIds = append(res.OnlineUserIds, id)
 			}
 		}
-		m := model.CreateSendOnlineStatusAction(&res)
+		m := model.CreateSendUserStatusAction(&res)
 		if user, ok := wsSvc.hub.Clients[req.UserId]; ok {
 			user.Message <- m
 		}
@@ -526,8 +527,8 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 				clientMessage.MessageRead.Date,
 				2, false)
 			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
-		case model.OnlineStatusAction:
-			message := model.CreateGetOnlineStatusAction(clientMessage.OnlineStatusReq)
+		case model.UserStatusAction:
+			message := model.CreateGetUserStatusAction(clientMessage.UserStatusReq)
 			rabbit.Publish(ctx, message, conf, cc.UserId)
 		}
 

@@ -22,7 +22,13 @@ const UpdateProfileAction = "update-profile"
 const SingleChatsListAction = "single-chats-list"
 const SingleChatMessagesAction = "single-chat-messages"
 const NotificationSettingsAction = "notification-settings"
-const OnlineStatusAction = "online-status"
+const UserStatusAction = "user-status"
+
+type UserStatusResultType string
+
+const (
+	UserStatusOnlineUsers UserStatusResultType = "onlineUsers"
+)
 
 type ClientMessage struct {
 	Action          string               `json:"action,omitempty"`
@@ -30,7 +36,7 @@ type ClientMessage struct {
 	MessageRead     *MessageRead         `json:"messageRead,omitempty"`
 	ChatMessagesReq GetSingleMessagesReq `json:"chatMessagesReq,omitempty"`
 	ChatsListReq    GetSingleChatListReq `json:"chatsListReq,omitempty"`
-	OnlineStatusReq *OnlineStatusReq     `json:"onlineStatusReq,omitempty"`
+	UserStatusReq   *UserStatusReq       `json:"userStatusReq,omitempty"`
 }
 
 type ChannelMessage struct {
@@ -47,8 +53,8 @@ type ChannelMessage struct {
 	NotificationSettings *NotificationSettings       `json:"notificationSettings,omitempty"`
 	ProfileImages        *[]ProfileImageDataModel    `json:"profileImages,omitempty"`
 	EditProfile          *EditProfileReq             `json:"editProfile,omitempty"`
-	OnlineStatusReq      *OnlineStatusReq            `json:"onlineStatusReq,omitempty"`
-	OnlineStatusRes      *OnlineStatusRes            `json:"onlineStatusRes,omitempty"`
+	UserStatusReq        *UserStatusReq              `json:"userStatusReq,omitempty"`
+	UserStatusRes        *UserStatusRes              `json:"userStatusRes,omitempty"`
 }
 
 //------------------------------------------
@@ -95,13 +101,14 @@ type MessageRead struct {
 	Date       time.Time `json:"date"`
 }
 
-type OnlineStatusReq struct {
+type UserStatusReq struct {
 	UserId  int64   `json:"userId"`
 	UserIds []int64 `json:"userIds"`
 }
 
-type OnlineStatusRes struct {
-	UserIds []int64 `json:"userIds"`
+type UserStatusRes struct {
+	Type          UserStatusResultType `json:"type"`
+	OnlineUserIds []int64              `json:"onlineUserIds"`
 }
 
 type ActionError struct {
@@ -343,11 +350,11 @@ func CreateUpdateProfileAction(editProfile *EditProfileReq) *ChannelMessage {
 	}
 }
 
-func CreateGetOnlineStatusAction(onlineStatusReq *OnlineStatusReq) *ChannelMessage {
+func CreateGetUserStatusAction(userStatusReq *UserStatusReq) *ChannelMessage {
 	return &ChannelMessage{
-		Action:               OnlineStatusAction,
-		OnlineStatusReq:      onlineStatusReq,
-		OnlineStatusRes:      nil,
+		Action:               UserStatusAction,
+		UserStatusReq:        userStatusReq,
+		UserStatusRes:        nil,
 		EditProfile:          nil,
 		ProfileImages:        nil,
 		NotificationSettings: nil,
@@ -363,11 +370,11 @@ func CreateGetOnlineStatusAction(onlineStatusReq *OnlineStatusReq) *ChannelMessa
 	}
 }
 
-func CreateSendOnlineStatusAction(onlineStatusRes *OnlineStatusRes) *ChannelMessage {
+func CreateSendUserStatusAction(userStatusRes *UserStatusRes) *ChannelMessage {
 	return &ChannelMessage{
-		Action:               OnlineStatusAction,
-		OnlineStatusRes:      onlineStatusRes,
-		OnlineStatusReq:      nil,
+		Action:               UserStatusAction,
+		UserStatusRes:        userStatusRes,
+		UserStatusReq:        nil,
 		EditProfile:          nil,
 		ProfileImages:        nil,
 		NotificationSettings: nil,
