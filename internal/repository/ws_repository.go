@@ -208,7 +208,7 @@ func (w *WsRepository) GetSingleChatList(params *model.GetSingleChatListReq) ([]
 	//    JOIN LATERAL (
 	//        SELECT *
 	//        FROM "Message" t_all
-	//        WHERE t_all."creatorId" = t_groups."creatorId" and t_all."receiverId" = 4
+	//        WHERE t_all."creatorId" = t_groups."creatorId" and (t_all."receiverId" = 6 OR t_groups."creatorId" = 6)
 	//        ORDER BY t_all.date desc
 	//        offset 0
 	//        LIMIT 2
@@ -217,7 +217,8 @@ func (w *WsRepository) GetSingleChatList(params *model.GetSingleChatListReq) ([]
 
 	queryStr := "SELECT t_limited.*, \"User\".\"publicName\", \"User\".username, \"User\".\"userId\", \"User\".role, \"MediaFile\".* " +
 		"FROM ( ( SELECT DISTINCT \"creatorId\" FROM \"Message\" offset @chatskip limit @chatlimit) as t_groups " +
-		"JOIN LATERAL (SELECT * FROM \"Message\" t_all WHERE t_all.\"creatorId\" = t_groups.\"creatorId\" and t_all.\"receiverId\" = @receiverid " +
+		"JOIN LATERAL (SELECT * FROM \"Message\" t_all WHERE t_all.\"creatorId\" = t_groups.\"creatorId\" and " +
+		" (t_all.\"receiverId\" = @receiverid OR t_groups.\"creatorId\" = @receiverid) " +
 		"ORDER BY t_all.date desc Offset @messageskip LIMIT @messagelimit) " +
 		"as t_limited ON t_limited.state = @messagestate AND t_limited.\"roomId\" IS NULL) JOIN \"User\" ON t_limited.\"creatorId\" = \"User\".\"userId\" LEFT JOIN \"MediaFile\" ON t_limited.id = \"MediaFile\".\"messageId\";"
 	if params.MessageState == 0 {

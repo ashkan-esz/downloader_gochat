@@ -103,6 +103,7 @@ type ChatsCompressedDataModel struct {
 	ProfileImages       []ProfileImageDataModel `json:"profileImages"`
 	Messages            []MessageDataModel      `json:"messages"`
 	UnreadMessagesCount int                     `json:"unreadMessagesCount"`
+	IsOnline            bool                    `json:"isOnline"`
 }
 
 type MessagesCountDataModel struct {

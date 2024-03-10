@@ -22,6 +22,7 @@ const UpdateProfileAction = "update-profile"
 const SingleChatsListAction = "single-chats-list"
 const SingleChatMessagesAction = "single-chat-messages"
 const NotificationSettingsAction = "notification-settings"
+const OnlineStatusAction = "online-status"
 
 type ClientMessage struct {
 	Action          string               `json:"action,omitempty"`
@@ -29,6 +30,7 @@ type ClientMessage struct {
 	MessageRead     *MessageRead         `json:"messageRead,omitempty"`
 	ChatMessagesReq GetSingleMessagesReq `json:"chatMessagesReq,omitempty"`
 	ChatsListReq    GetSingleChatListReq `json:"chatsListReq,omitempty"`
+	OnlineStatusReq *OnlineStatusReq     `json:"onlineStatusReq,omitempty"`
 }
 
 type ChannelMessage struct {
@@ -45,6 +47,8 @@ type ChannelMessage struct {
 	NotificationSettings *NotificationSettings       `json:"notificationSettings,omitempty"`
 	ProfileImages        *[]ProfileImageDataModel    `json:"profileImages,omitempty"`
 	EditProfile          *EditProfileReq             `json:"editProfile,omitempty"`
+	OnlineStatusReq      *OnlineStatusReq            `json:"onlineStatusReq,omitempty"`
+	OnlineStatusRes      *OnlineStatusRes            `json:"onlineStatusRes,omitempty"`
 }
 
 //------------------------------------------
@@ -89,6 +93,15 @@ type MessageRead struct {
 	ReceiverId int64     `json:"receiverId"`
 	State      int       `json:"state"`
 	Date       time.Time `json:"date"`
+}
+
+type OnlineStatusReq struct {
+	UserId  int64   `json:"userId"`
+	UserIds []int64 `json:"userIds"`
+}
+
+type OnlineStatusRes struct {
+	UserIds []int64 `json:"userIds"`
 }
 
 type ActionError struct {
@@ -316,6 +329,46 @@ func CreateUpdateProfileAction(editProfile *EditProfileReq) *ChannelMessage {
 	return &ChannelMessage{
 		Action:               UpdateProfileAction,
 		EditProfile:          editProfile,
+		ProfileImages:        nil,
+		NotificationSettings: nil,
+		NotificationData:     nil,
+		ReceiveNewMessage:    nil,
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
+		MessageRead:          nil,
+		ActionError:          nil,
+	}
+}
+
+func CreateGetOnlineStatusAction(onlineStatusReq *OnlineStatusReq) *ChannelMessage {
+	return &ChannelMessage{
+		Action:               OnlineStatusAction,
+		OnlineStatusReq:      onlineStatusReq,
+		OnlineStatusRes:      nil,
+		EditProfile:          nil,
+		ProfileImages:        nil,
+		NotificationSettings: nil,
+		NotificationData:     nil,
+		ReceiveNewMessage:    nil,
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
+		MessageRead:          nil,
+		ActionError:          nil,
+	}
+}
+
+func CreateSendOnlineStatusAction(onlineStatusRes *OnlineStatusRes) *ChannelMessage {
+	return &ChannelMessage{
+		Action:               OnlineStatusAction,
+		OnlineStatusRes:      onlineStatusRes,
+		OnlineStatusReq:      nil,
+		EditProfile:          nil,
 		ProfileImages:        nil,
 		NotificationSettings: nil,
 		NotificationData:     nil,

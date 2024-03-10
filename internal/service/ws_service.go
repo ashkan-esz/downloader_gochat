@@ -258,6 +258,21 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				}
 			}
 		}
+	case model.OnlineStatusAction:
+		req := channelMessage.OnlineStatusReq
+		res := model.OnlineStatusRes{
+			UserIds: []int64{},
+		}
+		for _, id := range req.UserIds {
+			cl, ok := wsSvc.hub.Clients[id]
+			if ok && cl != nil {
+				res.UserIds = append(res.UserIds, id)
+			}
+		}
+		m := model.CreateSendOnlineStatusAction(&res)
+		if user, ok := wsSvc.hub.Clients[req.UserId]; ok {
+			user.Message <- m
+		}
 	}
 
 	if err = d.Ack(false); err != nil {
@@ -511,6 +526,9 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 				clientMessage.MessageRead.Date,
 				2, false)
 			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
+		case model.OnlineStatusAction:
+			message := model.CreateGetOnlineStatusAction(clientMessage.OnlineStatusReq)
+			rabbit.Publish(ctx, message, conf, cc.UserId)
 		}
 
 	}
@@ -686,13 +704,18 @@ func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]mo
 			}
 		}
 		if !exist {
+			chatUserId := chat.UserId
+			if chatUserId == params.UserId {
+				chatUserId = m.ReceiverId
+			}
 			cChat := model.ChatsCompressedDataModel{
-				UserId:        chat.UserId,
+				UserId:        chatUserId,
 				Username:      chat.Username,
 				PublicName:    chat.PublicName,
 				Role:          chat.Role,
 				ProfileImages: filterProfileImages(profileImages, chat.UserId),
 				Messages:      []model.MessageDataModel{m},
+				IsOnline:      false,
 			}
 			for i := range counts {
 				if counts[i].CreatorId == cChat.UserId {
@@ -708,6 +731,8 @@ func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]mo
 		slices.SortFunc(compressedChats[i].Messages, func(a, b model.MessageDataModel) int {
 			return b.Date.Compare(a.Date)
 		})
+		cl, ok := w.hub.Clients[compressedChats[i].UserId]
+		compressedChats[i].IsOnline = ok && cl != nil
 
 		for i2 := range compressedChats[i].Messages {
 			slices.SortFunc(compressedChats[i].Messages[i2].Medias, func(a, b model.MediaFile) int {

@@ -19,8 +19,9 @@ package main
 
 //todo : share lists, collections
 //todo : share movie
-//todo : security
 
 //todo : handle auth for message apis
+//todo : security
+
+//todo : user last seen
 //todo : user isTyping status
-//todo : user online/offline status
