@@ -85,7 +85,7 @@ type TokenViewModel struct {
 type RegisterViewModel struct {
 	Username        string     `json:"username"`
 	Email           string     `json:"email"`
-	Password        string     `json:"-"`
+	Password        string     `json:"password"`
 	ConfirmPassword string     `json:"confirmPassword"`
 	DeviceInfo      DeviceInfo `json:"deviceInfo"`
 }
@@ -124,11 +124,11 @@ type UserWithImageDataModel struct {
 }
 
 type UserMetaWithNotificationSettings struct {
-	UserId         int64           `gorm:"column:userId" json:"userId"`
-	Username       string          `gorm:"column:username" json:"username"`
-	PublicName     string          `gorm:"column:publicName" json:"publicName"`
-	ProfileImages  []ProfileImage  `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
-	ActiveSessions []ActiveSession `gorm:"foreignKey:UserId;references:UserId;" json:"activeSessions"`
+	UserId         int64                   `gorm:"column:userId" json:"userId"`
+	Username       string                  `gorm:"column:username" json:"username"`
+	PublicName     string                  `gorm:"column:publicName" json:"publicName"`
+	ProfileImages  []ProfileImageDataModel `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
+	ActiveSessions []ActiveSession         `gorm:"foreignKey:UserId;references:UserId;" json:"activeSessions"`
 	//NotificationSettings NotificationSettings `gorm:"foreignKey:UserId;references:UserId;" json:"notificationSettings"`
 	NewFollower               bool `gorm:"column:newFollower;" json:"newFollower"`
 	NewMessage                bool `gorm:"column:newMessage;" json:"newMessage"`
@@ -149,10 +149,10 @@ type UserMetaDataModel struct {
 }
 
 type UserMetaWithImageDataModel struct {
-	UserId        int64          `gorm:"column:userId" json:"userId"`
-	Username      string         `gorm:"column:username" json:"username"`
-	PublicName    string         `gorm:"column:publicName" json:"publicName"`
-	ProfileImages []ProfileImage `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
+	UserId        int64                   `gorm:"column:userId" json:"userId"`
+	Username      string                  `gorm:"column:username" json:"username"`
+	PublicName    string                  `gorm:"column:publicName" json:"publicName"`
+	ProfileImages []ProfileImageDataModel `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
 }
 
 //---------------------------------------

@@ -15,6 +15,8 @@ const ReceiveMessageStateAction = "receive-message-state"
 const ErrorAction = "action-error"
 const FollowNotifAction = "new-follow-notification"
 const NewMessageNotifAction = "new-message-notification"
+const UpdateProfileImagesAction = "update-profile-images"
+const UpdateProfileAction = "update-profile"
 
 // both way
 const SingleChatsListAction = "single-chats-list"
@@ -41,6 +43,8 @@ type ChannelMessage struct {
 	ActionError          *ActionError                `json:"actionError,omitempty"`
 	NotificationData     *NotificationDataModel      `json:"notificationData,omitempty"`
 	NotificationSettings *NotificationSettings       `json:"notificationSettings,omitempty"`
+	ProfileImages        *[]ProfileImageDataModel    `json:"profileImages,omitempty"`
+	EditProfile          *EditProfileReq             `json:"editProfile,omitempty"`
 }
 
 //------------------------------------------
@@ -279,6 +283,41 @@ func CreateNotificationSettingsAction(notificationSettings *NotificationSettings
 	return &ChannelMessage{
 		Action:               NotificationSettingsAction,
 		NotificationSettings: notificationSettings,
+		NotificationData:     nil,
+		ReceiveNewMessage:    nil,
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
+		MessageRead:          nil,
+		ActionError:          nil,
+	}
+}
+
+func CreateUpdateProfileImagesAction(profileImages *[]ProfileImageDataModel) *ChannelMessage {
+	return &ChannelMessage{
+		Action:               UpdateProfileImagesAction,
+		ProfileImages:        profileImages,
+		NotificationSettings: nil,
+		NotificationData:     nil,
+		ReceiveNewMessage:    nil,
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
+		MessageRead:          nil,
+		ActionError:          nil,
+	}
+}
+
+func CreateUpdateProfileAction(editProfile *EditProfileReq) *ChannelMessage {
+	return &ChannelMessage{
+		Action:               UpdateProfileAction,
+		EditProfile:          editProfile,
+		ProfileImages:        nil,
+		NotificationSettings: nil,
 		NotificationData:     nil,
 		ReceiveNewMessage:    nil,
 		ChatsListReq:         nil,

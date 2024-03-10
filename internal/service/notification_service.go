@@ -241,7 +241,7 @@ func generateNotificationMessage(notificationData *model.NotificationDataModel, 
 	return message
 }
 
-func addCreatorImageToNotification(profileImages []model.ProfileImage) string {
+func addCreatorImageToNotification(profileImages []model.ProfileImageDataModel) string {
 	if len(profileImages) > 0 {
 		if profileImages[0].Url != "" {
 			return profileImages[0].Url

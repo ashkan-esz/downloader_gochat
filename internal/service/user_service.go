@@ -273,6 +273,10 @@ func (s *UserService) ForceLogoutDevice(c *fiber.Ctx, jwtUserData *util.MyJwtCla
 		return err
 	}
 
+	if result.NotifToken != "" {
+		_ = removeNotifTokenFromCachedUserData(jwtUserData.UserId, result.NotifToken)
+	}
+
 	return nil
 }
 
@@ -288,6 +292,9 @@ func (s *UserService) ForceLogoutAll(c *fiber.Ctx, jwtUserData *util.MyJwtClaims
 			"jwtKey:"+result[i].RefreshToken,
 			"logout",
 			time.Duration(remainingTime)*time.Hour)
+		if result[i].NotifToken != "" {
+			_ = removeNotifTokenFromCachedUserData(jwtUserData.UserId, result[i].NotifToken)
+		}
 	}
 
 	return nil
@@ -295,6 +302,9 @@ func (s *UserService) ForceLogoutAll(c *fiber.Ctx, jwtUserData *util.MyJwtClaims
 
 func (s *UserService) SetNotifToken(jwtUserData *util.MyJwtClaims, refreshToken string, notifToken string) error {
 	err := s.userRepo.UpdateSessionNotifToken(jwtUserData.UserId, refreshToken, notifToken)
+	if err == nil && notifToken != "" {
+		_ = addNotifTokenToCachedUserData(jwtUserData.UserId, notifToken)
+	}
 	return err
 }
 
@@ -387,6 +397,13 @@ func (s *UserService) UpdateUserSettings(userId int64, settingName model.Setting
 	switch settingName {
 	case model.NotificationSettingsName:
 		err := s.userRepo.UpdateUserNotificationSettings(userId, *settings.NotificationSettings)
+		if err == nil {
+			_ = updateNotificationSettingsOfCachedUserData(userId, *settings.NotificationSettings)
+			client, ok := getClientFromHub(userId)
+			if ok {
+				client.Message <- model.CreateNotificationSettingsAction(settings.NotificationSettings)
+			}
+		}
 		return err
 	case model.DownloadSettingsName:
 		err := s.userRepo.UpdateUserDownloadLinkSettings(userId, *settings.DownloadLinksSettings)
@@ -467,6 +484,7 @@ func (s *UserService) EditUserProfile(userId int64, editFields *model.EditProfil
 	if searchResult.Username != editFields.Username {
 		updateFields["username"] = strings.ToLower(editFields.Username)
 		updateFields["rawUsername"] = editFields.Username
+		editFields.Username = strings.ToLower(editFields.Username)
 	}
 	if searchResult.Email != editFields.Email {
 		updateFields["email"] = editFields.Email
@@ -476,6 +494,15 @@ func (s *UserService) EditUserProfile(userId int64, editFields *model.EditProfil
 	}
 
 	err = s.userRepo.EditUserProfile(userId, editFields, updateFields)
+
+	if err == nil {
+		_ = updateProfileDataOfCachedUserData(userId, strings.ToLower(editFields.Username), editFields.PublicName)
+		client, ok := getClientFromHub(userId)
+		if ok {
+			client.Message <- model.CreateUpdateProfileAction(editFields)
+		}
+	}
+
 	return searchResult, err
 }
 
@@ -634,6 +661,15 @@ func (s *UserService) UploadProfileImage(userId int64, contentType string, fileS
 	}
 
 	images, err := s.userRepo.GetProfileImages(userId)
+
+	if err == nil {
+		_ = updateProfileImageOfCachedUserData(userId, images)
+		client, ok := getClientFromHub(userId)
+		if ok {
+			client.Message <- model.CreateUpdateProfileImagesAction(images)
+		}
+	}
+
 	return images, err
 }
 
@@ -649,5 +685,14 @@ func (s *UserService) RemoveProfileImage(userId int64, fileName string) (*[]mode
 	}
 
 	images, err := s.userRepo.GetProfileImages(userId)
+
+	if err == nil {
+		_ = updateProfileImageOfCachedUserData(userId, images)
+		client, ok := getClientFromHub(userId)
+		if ok {
+			client.Message <- model.CreateUpdateProfileImagesAction(images)
+		}
+	}
+
 	return images, err
 }

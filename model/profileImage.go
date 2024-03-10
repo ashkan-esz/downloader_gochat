@@ -28,6 +28,10 @@ type ProfileImageDataModel struct {
 	UserId    int64     `gorm:"column:userId;" json:"userId"`
 }
 
+func (ProfileImageDataModel) TableName() string {
+	return "ProfileImage"
+}
+
 type FollowListProfileImageDataModel struct {
 	AddDate   time.Time `gorm:"column:addDate;" json:"-"`
 	Url       string    `gorm:"column:url;" json:"url"`
