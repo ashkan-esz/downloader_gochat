@@ -328,6 +328,8 @@ definitions:
         type: integer
       followingsCount:
         type: integer
+      lastSeenDate:
+        type: string
       mbtiType:
         $ref: '#/definitions/model.MbtiType'
       notificationSettings:

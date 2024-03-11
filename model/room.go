@@ -74,17 +74,18 @@ type MessageDataModel struct {
 }
 
 type ChatsDataModel struct {
-	UserId     int64     `gorm:"column:userId;" json:"userId"`
-	Username   string    `gorm:"column:username;" json:"username"`
-	PublicName string    `gorm:"column:publicName;" json:"publicName"`
-	Role       string    `gorm:"column:role;" json:"role"`
-	Id         int64     `gorm:"column:id" json:"id"`
-	Content    string    `gorm:"column:content" json:"content"`
-	Date       time.Time `gorm:"column:date" json:"date"`
-	State      int       `gorm:"column:state" json:"state"`
-	RoomId     *int64    `gorm:"column:roomId" json:"roomId"`
-	CreatorId  int64     `gorm:"column:creatorId" json:"creatorId"`
-	ReceiverId int64     `gorm:"column:receiverId" json:"receiverId"`
+	UserId       int64     `gorm:"column:userId;" json:"userId"`
+	Username     string    `gorm:"column:username;" json:"username"`
+	PublicName   string    `gorm:"column:publicName;" json:"publicName"`
+	Role         string    `gorm:"column:role;" json:"role"`
+	LastSeenDate time.Time `gorm:"column:lastSeenDate;" json:"lastSeenDate"`
+	Id           int64     `gorm:"column:id" json:"id"`
+	Content      string    `gorm:"column:content" json:"content"`
+	Date         time.Time `gorm:"column:date" json:"date"`
+	State        int       `gorm:"column:state" json:"state"`
+	RoomId       *int64    `gorm:"column:roomId" json:"roomId"`
+	CreatorId    int64     `gorm:"column:creatorId" json:"creatorId"`
+	ReceiverId   int64     `gorm:"column:receiverId" json:"receiverId"`
 	//Medias     []MediaFile `gorm:"foreignKey:MessageId;references:Id;" json:"medias"`
 	MediaFileId   int64     `gorm:"column:id;" json:"mediaFileId"`
 	MediaFileDate time.Time `gorm:"column:date;" json:"mediaFileDate"`
@@ -100,6 +101,7 @@ type ChatsCompressedDataModel struct {
 	Username            string                  `json:"username"`
 	PublicName          string                  `json:"publicName"`
 	Role                string                  `json:"role"`
+	LastSeenDate        time.Time               `json:"lastSeenDate"`
 	ProfileImages       []ProfileImageDataModel `json:"profileImages"`
 	Messages            []MessageDataModel      `json:"messages"`
 	UnreadMessagesCount int                     `json:"unreadMessagesCount"`

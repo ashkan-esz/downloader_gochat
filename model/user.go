@@ -19,6 +19,7 @@ type User struct {
 	PublicName                     string         `gorm:"column:publicName;type:text;not null;"`
 	RawUsername                    string         `gorm:"column:rawUsername;type:text;not null;"`
 	RegistrationDate               time.Time      `gorm:"column:registrationDate;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
+	LastSeenDate                   time.Time      `gorm:"column:lastSeenDate;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
 	Role                           UserRole       `gorm:"column:role;type:\"userRole\";not null;default:\"user\";"`
 	MbtiType                       MbtiType       `gorm:"column:mbtiType;type:\"MbtiType\";"`
 	ComputedStatsLastUpdate        int64          `gorm:"column:ComputedStatsLastUpdate;type:bigint;not null;default:0;"`
@@ -190,6 +191,7 @@ type UserProfileRes struct {
 	EmailVerified           bool                              `gorm:"column:emailVerified" json:"emailVerified"`
 	Bio                     string                            `gorm:"column:bio" json:"bio"`
 	RegistrationDate        time.Time                         `gorm:"column:registrationDate;" json:"registrationDate"`
+	LastSeenDate            time.Time                         `gorm:"column:lastSeenDate;" json:"lastSeenDate"`
 	DefaultProfile          string                            `gorm:"column:defaultProfile" json:"defaultProfile"`
 	ComputedStatsLastUpdate int64                             `gorm:"column:ComputedStatsLastUpdate;" json:"computedStatsLastUpdate"`
 	FavoriteGenres          pq.StringArray                    `gorm:"column:favoriteGenres;type:text[];" json:"favoriteGenres" swaggertype:"array,string"`

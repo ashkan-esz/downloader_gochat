@@ -20,6 +20,7 @@ type IWsRepository interface {
 	BatchUpdateMessageState(mid int64, roomId int64, creatorId int64, receiverId int64, state int) error
 	UpdateUserReceivedMessageTime(userId int64) error
 	UpdateUserReadMessageTime(userId int64, readTime time.Time) error
+	UpdateUserLastSeenTime(userId int64, time time.Time) error
 	GetSingleChatMessages(params *model.GetSingleMessagesReq) (*[]model.MessageDataModel, error)
 	GetSingleChatList(params *model.GetSingleChatListReq) ([]model.ChatsDataModel, []model.ProfileImageDataModel, error)
 	GetSingleChatsMessageCount(creatorIds []int64, receiverId int64, messageState int) ([]model.MessagesCountDataModel, error)
@@ -156,6 +157,20 @@ func (w *WsRepository) UpdateUserReadMessageTime(userId int64, readTime time.Tim
 	return nil
 }
 
+func (w *WsRepository) UpdateUserLastSeenTime(userId int64, time time.Time) error {
+	result := w.db.Model(&model.User{}).
+		Where("\"userId\" = ?", userId).
+		UpdateColumn("\"lastSeenDate\"", time)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil
+		}
+		return result.Error
+	}
+
+	return nil
+}
+
 //------------------------------------------
 //------------------------------------------
 
@@ -197,7 +212,7 @@ func (w *WsRepository) GetSingleChatMessages(params *model.GetSingleMessagesReq)
 func (w *WsRepository) GetSingleChatList(params *model.GetSingleChatListReq) ([]model.ChatsDataModel, []model.ProfileImageDataModel, error) {
 	var chats []model.ChatsDataModel
 
-	//SELECT t_limited.*, "User"."publicName", "User".username, "User"."userId", "User".role, "MediaFile".*
+	//SELECT t_limited.*, "User"."publicName", "User".username, "User"."userId", "User".role, "User"."lastSeenDate", "MediaFile".*
 	//FROM (
 	//    (
 	//         SELECT DISTINCT "creatorId"
@@ -215,7 +230,7 @@ func (w *WsRepository) GetSingleChatList(params *model.GetSingleChatListReq) ([]
 	//    ) as t_limited ON t_limited.state = 1 and t_limited."roomId" IS NULL
 	//) join "User" on t_limited."creatorId" = "User"."userId" left join "MediaFile" on t_limited.id = "MediaFile"."messageId";
 
-	queryStr := "SELECT t_limited.*, \"User\".\"publicName\", \"User\".username, \"User\".\"userId\", \"User\".role, \"MediaFile\".* " +
+	queryStr := "SELECT t_limited.*, \"User\".\"publicName\", \"User\".username, \"User\".\"userId\", \"User\".role, \"User\".\"lastSeenDate\", \"MediaFile\".* " +
 		"FROM ( ( SELECT DISTINCT \"creatorId\" FROM \"Message\" offset @chatskip limit @chatlimit) as t_groups " +
 		"JOIN LATERAL (SELECT * FROM \"Message\" t_all WHERE t_all.\"creatorId\" = t_groups.\"creatorId\" and " +
 		" (t_all.\"receiverId\" = @receiverid OR t_groups.\"creatorId\" = @receiverid) " +

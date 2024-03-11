@@ -16,6 +16,7 @@ model User {
   publicName                      String
   rawUsername                     String
   registrationDate                DateTime                 @default(now())
+  lastSeenDate                    DateTime                 @default(now())
   role                            userRole                 @default(user)
   username                        String                   @unique
   bio                             String                   @default("")
@@ -468,7 +469,7 @@ model UserMessageRead {
   lastTimeRead        DateTime @default(now())
   lastMessageReceived DateTime @default(now())
 
-  user                User     @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  user User @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
 }
 
 // ----------------------------------------------------------------

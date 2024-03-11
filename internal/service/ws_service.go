@@ -469,7 +469,7 @@ func (c *ClientConnection) WriteMessage(cc *Client) {
 	}
 }
 
-func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.RabbitMQ) {
+func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.RabbitMQ, wsRepo repository.IWsRepository) {
 	defer func() {
 		//hub.UnRegister <- c  //it just offline, didnt left
 		c.Conn.Close()
@@ -481,6 +481,7 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 			for _, room := range hub.Rooms {
 				delete(room.Clients, cc.UserId)
 			}
+			_ = wsRepo.UpdateUserLastSeenTime(cc.UserId, time.Now().UTC())
 		}
 	}()
 	c.Conn.SetReadLimit(maxMessageSize)
@@ -599,6 +600,8 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 			go connection.WriteMessage(cl)
 		}
 
+		_ = w.wsRepo.UpdateUserLastSeenTime(userId, time.Now().UTC())
+
 		chatsListReq := &model.GetSingleChatListReq{
 			UserId:               userId,
 			MessagePerChatLimit:  2,
@@ -641,7 +644,7 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 			client.Message <- model.CreateNotificationSettingsAction(&cacheData.NotificationSettings)
 		}
 
-		connection.ReadMessage(client, w.hub, w.rabbitmq)
+		connection.ReadMessage(client, w.hub, w.rabbitmq, w.wsRepo)
 	})
 
 	return err
@@ -733,6 +736,7 @@ func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]mo
 				Username:      chat.Username,
 				PublicName:    chat.PublicName,
 				Role:          chat.Role,
+				LastSeenDate:  chat.LastSeenDate,
 				ProfileImages: filterProfileImages(profileImages, chat.UserId),
 				Messages:      []model.MessageDataModel{m},
 				IsOnline:      false,

@@ -1923,6 +1923,9 @@ const docTemplate = `{
                 "followingsCount": {
                     "type": "integer"
                 },
+                "lastSeenDate": {
+                    "type": "string"
+                },
                 "mbtiType": {
                     "$ref": "#/definitions/model.MbtiType"
                 },

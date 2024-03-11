@@ -22,6 +22,3 @@ package main
 
 //todo : handle auth for message apis
 //todo : security
-
-//todo : user last seen
-//todo : user isTyping status
