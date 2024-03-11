@@ -258,22 +258,6 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				}
 			}
 		}
-	case model.UserStatusAction:
-		req := channelMessage.UserStatusReq
-		res := model.UserStatusRes{
-			OnlineUserIds: []int64{},
-			Type:          model.UserStatusOnlineUsers,
-		}
-		for _, id := range req.UserIds {
-			cl, ok := wsSvc.hub.Clients[id]
-			if ok && cl != nil {
-				res.OnlineUserIds = append(res.OnlineUserIds, id)
-			}
-		}
-		m := model.CreateSendUserStatusAction(&res)
-		if user, ok := wsSvc.hub.Clients[req.UserId]; ok {
-			user.Message <- m
-		}
 	}
 
 	if err = d.Ack(false); err != nil {
@@ -322,6 +306,36 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 					channelMessage.MessageRead.Date,
 					channelMessage.MessageRead.State, true)
 				messageCreator.Message <- message
+			}
+		}
+	case model.UserStatusAction:
+		req := channelMessage.UserStatusReq
+		res := model.UserStatusRes{
+			Type:          model.UserStatusOnlineUsers,
+			OnlineUserIds: []int64{},
+		}
+		for _, id := range req.UserIds {
+			cl, ok := wsSvc.hub.Clients[id]
+			if ok && cl != nil {
+				res.OnlineUserIds = append(res.OnlineUserIds, id)
+			}
+		}
+		m := model.CreateSendUserStatusAction(&res)
+		if user, ok := wsSvc.hub.Clients[req.UserId]; ok {
+			user.Message <- m
+		}
+	case model.UserIsTypingAction:
+		req := channelMessage.UserStatusReq
+		for _, id := range req.UserIds {
+			cl, ok := wsSvc.hub.Clients[id]
+			if ok && cl != nil {
+				res := model.UserStatusRes{
+					Type:            req.Type,
+					IsTypingUserIds: []int64{},
+				}
+				res.IsTypingUserIds = []int64{req.UserId}
+				m := model.CreateSendUserStatusAction(&res)
+				cl.Message <- m
 			}
 		}
 	}
@@ -528,8 +542,13 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 				2, false)
 			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
 		case model.UserStatusAction:
+			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
 			message := model.CreateGetUserStatusAction(clientMessage.UserStatusReq)
-			rabbit.Publish(ctx, message, conf, cc.UserId)
+			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
+		case model.UserIsTypingAction:
+			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
+			message := model.CreateSendUserIsTypingAction(clientMessage.UserStatusReq)
+			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
 		}
 
 	}

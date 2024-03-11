@@ -23,11 +23,14 @@ const SingleChatsListAction = "single-chats-list"
 const SingleChatMessagesAction = "single-chat-messages"
 const NotificationSettingsAction = "notification-settings"
 const UserStatusAction = "user-status"
+const UserIsTypingAction = "user-status-isTyping"
 
 type UserStatusResultType string
 
 const (
 	UserStatusOnlineUsers UserStatusResultType = "onlineUsers"
+	UserStatusIsTyping    UserStatusResultType = "isTyping"
+	UserStatusStopTyping  UserStatusResultType = "stopTyping"
 )
 
 type ClientMessage struct {
@@ -102,13 +105,15 @@ type MessageRead struct {
 }
 
 type UserStatusReq struct {
-	UserId  int64   `json:"userId"`
-	UserIds []int64 `json:"userIds"`
+	Type    UserStatusResultType `json:"type"`
+	UserId  int64                `json:"userId"`
+	UserIds []int64              `json:"userIds"`
 }
 
 type UserStatusRes struct {
-	Type          UserStatusResultType `json:"type"`
-	OnlineUserIds []int64              `json:"onlineUserIds"`
+	Type            UserStatusResultType `json:"type"`
+	OnlineUserIds   []int64              `json:"onlineUserIds"`
+	IsTypingUserIds []int64              `json:"isTypingUserIds"`
 }
 
 type ActionError struct {
@@ -375,6 +380,26 @@ func CreateSendUserStatusAction(userStatusRes *UserStatusRes) *ChannelMessage {
 		Action:               UserStatusAction,
 		UserStatusRes:        userStatusRes,
 		UserStatusReq:        nil,
+		EditProfile:          nil,
+		ProfileImages:        nil,
+		NotificationSettings: nil,
+		NotificationData:     nil,
+		ReceiveNewMessage:    nil,
+		ChatsListReq:         nil,
+		ChatMessages:         nil,
+		ChatMessagesReq:      nil,
+		NewMessageSendResult: nil,
+		Chats:                nil,
+		MessageRead:          nil,
+		ActionError:          nil,
+	}
+}
+
+func CreateSendUserIsTypingAction(userStatusReq *UserStatusReq) *ChannelMessage {
+	return &ChannelMessage{
+		Action:               UserIsTypingAction,
+		UserStatusReq:        userStatusReq,
+		UserStatusRes:        nil,
 		EditProfile:          nil,
 		ProfileImages:        nil,
 		NotificationSettings: nil,
