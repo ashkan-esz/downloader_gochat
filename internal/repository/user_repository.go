@@ -69,7 +69,6 @@ func NewUserRepository(db *gorm.DB, mongodb *mongo.Database) *UserRepository {
 //------------------------------------------
 
 func (r *UserRepository) AddUser(user *model.User) (*model.User, error) {
-	//todo : need optimization
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		// do some database operations in the transaction (use 'tx' from this point, not 'db')
 		if err := tx.Create(&user).Error; err != nil {

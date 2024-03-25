@@ -99,15 +99,6 @@ func NewWsService(WsRepo repository.IWsRepository, userRep repository.IUserRepos
 	return &wsSvc
 }
 
-type Hub struct {
-	//todo : handle concurrency sharing maps
-	Clients    map[int64]*Client
-	Rooms      map[int64]*Room
-	Register   chan *model.ChannelMessage
-	UnRegister chan *model.ChannelMessage
-	Broadcast  chan *model.ChannelMessage
-}
-
 type Room struct {
 	ID      int64             `json:"id"`
 	Clients map[int64]*Client `json:"clients"`
@@ -125,19 +116,9 @@ type ClientConnection struct {
 	DeviceId string
 }
 
-//todo : need to limit parallel db operations
-
-func NewHub() *Hub {
-	return &Hub{
-		Clients:    make(map[int64]*Client, avgClients),
-		Rooms:      make(map[int64]*Room),
-		Register:   make(chan *model.ChannelMessage),
-		UnRegister: make(chan *model.ChannelMessage),
-		Broadcast:  make(chan *model.ChannelMessage, 5),
-	}
-}
-
 func getClientFromHub(userId int64) (*Client, bool) {
+	globalHub.ClientsRwLock.RLock()
+	defer globalHub.ClientsRwLock.RUnlock()
 	cl, ok := globalHub.Clients[userId]
 	return cl, ok
 }
@@ -151,15 +132,15 @@ func (h *Hub) RunGroupHandler() {
 	for {
 		select {
 		case chd := <-h.Register:
-			if room, ok := h.Rooms[chd.ReceiveNewMessage.RoomId]; ok {
-				if _, ok := room.Clients[chd.ReceiveNewMessage.UserId]; !ok {
-					client, _ := h.Clients[chd.ReceiveNewMessage.UserId]
-					room.Clients[chd.ReceiveNewMessage.UserId] = client
+			if room, ok := h.getRoom(chd.ReceiveNewMessage.RoomId); ok {
+				if _, ok := h.getRoomClient(room, chd.ReceiveNewMessage.UserId); !ok {
+					client, _, _ := h.getClient(chd.ReceiveNewMessage.UserId)
+					h.addClientToRoom(room, chd.ReceiveNewMessage.UserId, client)
 				}
 			}
 		case chd := <-h.UnRegister:
-			if room, ok := h.Rooms[chd.ReceiveNewMessage.RoomId]; ok {
-				if _, ok := room.Clients[chd.ReceiveNewMessage.UserId]; ok {
+			if room, ok := h.getRoom(chd.ReceiveNewMessage.RoomId); ok {
+				if _, ok := h.getRoomClient(room, chd.ReceiveNewMessage.UserId); ok {
 					// Broadcast a message saying that the client left the room
 					if len(room.Clients) != 0 {
 						message := &model.ReceiveNewMessage{
@@ -177,8 +158,8 @@ func (h *Hub) RunGroupHandler() {
 						h.Broadcast <- receiveMessage
 					}
 
-					delete(room.Clients, chd.ReceiveNewMessage.UserId)
-					if client, ok := h.Clients[chd.ReceiveNewMessage.UserId]; ok {
+					h.removeClientFromRoom(room, chd.ReceiveNewMessage.UserId)
+					if client, ok, _ := h.getClient(chd.ReceiveNewMessage.UserId); ok {
 						close(client.Message)
 					}
 				}
@@ -230,30 +211,30 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			if err = d.Nack(false, true); err != nil {
 				log.Printf("error nacking message: %s\n", err)
 			}
-			//if sender, ok := wsSvc.hub.Clients[channelMessage.ChatMessagesReq.UserId]; ok {
+			//if sender, ok, _ := wsSvc.hub.getClient(channelMessage.ChatMessagesReq.UserId); ok {
 			//	errorData := model.CreateActionError(500, err.Error(), model.SingleChatMessagesAction, channelMessage.ChatMessagesReq)
 			//	sender.Message <- errorData
 			//}
 		} else {
 			m := model.CreateReturnChatMessagesAction(chatMessages)
-			if sender, ok := wsSvc.hub.Clients[channelMessage.ChatMessagesReq.UserId]; ok {
+			if sender, ok, _ := wsSvc.hub.getClient(channelMessage.ChatMessagesReq.UserId); ok {
 				sender.Message <- m
 			}
 		}
 	case model.SingleChatsListAction:
-		if _, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
+		if _, ok, _ := wsSvc.hub.getClient(channelMessage.ChatsListReq.UserId); ok {
 			chatMessages, err := wsSvc.GetSingleChatList(channelMessage.ChatsListReq)
 			if err != nil {
 				if err = d.Nack(false, true); err != nil {
 					log.Printf("error nacking message: %s\n", err)
 				}
-				//if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
+				//if sender, ok, _ := wsSvc.hub.getClient(channelMessage.ChatsListReq.UserId); ok {
 				//	errorData := model.CreateActionError(500, err.Error(), model.SingleChatsListAction, channelMessage.ChatsListReq)
 				//	sender.Message <- errorData
 				//}
 			} else {
 				m := model.CreateReturnChatListAction(chatMessages)
-				if sender, ok := wsSvc.hub.Clients[channelMessage.ChatsListReq.UserId]; ok {
+				if sender, ok, _ := wsSvc.hub.getClient(channelMessage.ChatsListReq.UserId); ok {
 					sender.Message <- m
 				}
 			}
@@ -284,7 +265,7 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			channelMessage.MessageRead.ReceiverId,
 			channelMessage.MessageRead.State)
 		if err != nil {
-			if messageReceiver, ok := wsSvc.hub.Clients[channelMessage.MessageRead.ReceiverId]; ok {
+			if messageReceiver, ok, _ := wsSvc.hub.getClient(channelMessage.MessageRead.ReceiverId); ok {
 				if err.Error() == "notfound" {
 					errorData := model.CreateActionError(404, "message not found", model.MessageReadAction, channelMessage.MessageRead)
 					messageReceiver.Message <- errorData
@@ -297,7 +278,7 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				}
 			}
 		} else {
-			if messageCreator, ok := wsSvc.hub.Clients[channelMessage.MessageRead.UserId]; ok {
+			if messageCreator, ok, _ := wsSvc.hub.getClient(channelMessage.MessageRead.UserId); ok {
 				message := model.CreateMessageReadAction(
 					channelMessage.MessageRead.Id,
 					channelMessage.MessageRead.RoomId,
@@ -315,19 +296,19 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			OnlineUserIds: []int64{},
 		}
 		for _, id := range req.UserIds {
-			cl, ok := wsSvc.hub.Clients[id]
+			cl, ok, _ := wsSvc.hub.getClient(id)
 			if ok && cl != nil {
 				res.OnlineUserIds = append(res.OnlineUserIds, id)
 			}
 		}
 		m := model.CreateSendUserStatusAction(&res)
-		if user, ok := wsSvc.hub.Clients[req.UserId]; ok {
+		if user, ok, _ := wsSvc.hub.getClient(req.UserId); ok {
 			user.Message <- m
 		}
 	case model.UserIsTypingAction:
 		req := channelMessage.UserStatusReq
 		for _, id := range req.UserIds {
-			cl, ok := wsSvc.hub.Clients[id]
+			cl, ok, _ := wsSvc.hub.getClient(id)
 			if ok && cl != nil {
 				res := model.UserStatusRes{
 					Type:            req.Type,
@@ -346,7 +327,7 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 }
 
 func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *WsService) error {
-	sender, senderExist := wsSvc.hub.Clients[receiveNewMessage.UserId]
+	sender, senderExist, _ := wsSvc.hub.getClient(receiveNewMessage.UserId)
 	mid, err := wsSvc.wsRepo.SaveMessage(receiveNewMessage)
 	if err != nil {
 		if errors.Is(err, gorm.ErrForeignKeyViolated) {
@@ -379,7 +360,7 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 			}
 		}
 	} else {
-		cl, receiverExist := wsSvc.hub.Clients[receiveNewMessage.ReceiverId]
+		cl, receiverExist, _ := wsSvc.hub.getClient(receiveNewMessage.ReceiverId)
 		if receiverExist {
 			//receiver is online
 			receiveNewMessage.Id = mid
@@ -583,9 +564,11 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 			DeviceId: deviceId,
 		}
 
-		client, ok := w.hub.Clients[userId]
+		client, ok, clientRwLock := w.hub.getClient(userId)
 		if ok {
+			clientRwLock.Lock()
 			client.Connections = append(client.Connections, connection)
+			clientRwLock.Unlock()
 		} else {
 			cl := &Client{
 				Connections: []*ClientConnection{connection},
@@ -594,7 +577,7 @@ func (w *WsService) AddClient(ctx *fasthttp.RequestCtx, userId int64, username s
 				Username:    username,
 			}
 
-			w.hub.Clients[userId] = cl
+			w.hub.addClientToHub(userId, cl)
 			client = cl
 
 			go connection.WriteMessage(cl)
@@ -755,7 +738,7 @@ func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]mo
 		slices.SortFunc(compressedChats[i].Messages, func(a, b model.MessageDataModel) int {
 			return b.Date.Compare(a.Date)
 		})
-		cl, ok := w.hub.Clients[compressedChats[i].UserId]
+		cl, ok, _ := w.hub.getClient(compressedChats[i].UserId)
 		compressedChats[i].IsOnline = ok && cl != nil
 
 		for i2 := range compressedChats[i].Messages {
