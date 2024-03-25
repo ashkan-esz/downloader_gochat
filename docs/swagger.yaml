@@ -29,6 +29,31 @@ definitions:
       thisDevice:
         $ref: '#/definitions/model.ActiveSessionDataModel'
     type: object
+  model.ChatsCompressedDataModel:
+    properties:
+      isOnline:
+        type: boolean
+      lastSeenDate:
+        type: string
+      messages:
+        items:
+          $ref: '#/definitions/model.MessageDataModel'
+        type: array
+      profileImages:
+        items:
+          $ref: '#/definitions/model.ProfileImageDataModel'
+        type: array
+      publicName:
+        type: string
+      role:
+        type: string
+      unreadMessagesCount:
+        type: integer
+      userId:
+        type: integer
+      username:
+        type: string
+    type: object
   model.ComputedFavoriteGenres:
     properties:
       count:
@@ -174,6 +199,27 @@ definitions:
         type: string
       url:
         type: string
+    type: object
+  model.MessageDataModel:
+    properties:
+      content:
+        type: string
+      creatorId:
+        type: integer
+      date:
+        type: string
+      id:
+        type: integer
+      medias:
+        items:
+          $ref: '#/definitions/model.MediaFile'
+        type: array
+      receiverId:
+        type: integer
+      roomId:
+        type: integer
+      state:
+        type: integer
     type: object
   model.MovieSettings:
     properties:
@@ -1345,6 +1391,107 @@ paths:
       summary: Verify Email (Internal Usage)
       tags:
       - User
+  /v1/ws/addClient:
+    get:
+      description: start websocket connection
+      parameters:
+      - description: unique id of the device
+        in: path
+        name: deviceId
+        required: true
+        type: string
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/response.ResponseOKModel'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Connect websocket
+      tags:
+      - User-Websocket
+  /v1/ws/singleChat/list:
+    get:
+      description: get list of conversations
+      parameters:
+      - description: chatsSkip
+        in: query
+        name: chatsSkip
+        type: integer
+      - description: chatsLimit
+        in: query
+        name: chatsLimit
+        type: integer
+      - description: messagePerChatSkip
+        in: query
+        name: messagePerChatSkip
+        type: integer
+      - description: messagePerChatLimit
+        in: query
+        name: messagePerChatLimit
+        type: integer
+      - description: messageState
+        in: query
+        name: messageState
+        type: integer
+      - description: includeProfileImages
+        in: query
+        name: includeProfileImages
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.ChatsCompressedDataModel'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Chats List
+      tags:
+      - User-Websocket
+  /v1/ws/singleChat/messages:
+    get:
+      description: get messages of users chat
+      parameters:
+      - description: receiverId
+        in: query
+        name: receiverId
+        type: integer
+      - description: skip
+        in: query
+        name: skip
+        type: integer
+      - description: limit
+        in: query
+        name: limit
+        type: integer
+      - description: messageState
+        in: query
+        name: messageState
+        type: integer
+      - description: reverseOrder
+        in: query
+        name: reverseOrder
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/model.MessageDataModel'
+            type: array
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Chat Messages
+      tags:
+      - User-Websocket
 schemes:
 - http
 securityDefinitions:

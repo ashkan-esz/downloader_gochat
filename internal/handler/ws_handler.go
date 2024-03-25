@@ -4,6 +4,7 @@ import (
 	"downloader_gochat/internal/service"
 	"downloader_gochat/model"
 	"downloader_gochat/pkg/response"
+	"downloader_gochat/util"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -27,12 +28,23 @@ func NewWsHandler(wsService service.IWsService) *WsHandler {
 //------------------------------------------
 //------------------------------------------
 
+// AddClient godoc
+//
+//	@Summary		Connect websocket
+//	@Description	start websocket connection
+//	@Tags			User-Websocket
+//	@Param			deviceId	path		string	true	"unique id of the device"
+//	@Success		200			{object}	response.ResponseOKModel
+//	@Failure		400			{object}	response.ResponseErrorModel
+//	@Router			/v1/ws/addClient [get]
 func (w *WsHandler) AddClient(c *fiber.Ctx) error {
-	userId := c.QueryInt("userId")
-	username := c.Query("username")
-	deviceId := c.Query("deviceId")
+	deviceId := c.Params("deviceId", "")
+	if deviceId == "" || deviceId == ":deviceId" {
+		return response.ResponseError(c, response.InvalidDeviceId, fiber.StatusBadRequest)
+	}
 
-	err := w.wsService.AddClient(c.Context(), int64(userId), username, deviceId)
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	err := w.wsService.AddClient(c.Context(), jwtUserData.UserId, jwtUserData.Username, deviceId)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
@@ -40,6 +52,20 @@ func (w *WsHandler) AddClient(c *fiber.Ctx) error {
 	return err
 }
 
+// GetSingleChatMessages godoc
+//
+//	@Summary		Chat Messages
+//	@Description	get messages of users chat
+//	@Tags			User-Websocket
+//	@Param			receiverId		query		integer	false "receiverId"
+//	@Param			date			query		time	false "date"
+//	@Param			skip			query		integer false	"skip"
+//	@Param			limit			query		integer false	"limit"
+//	@Param			messageState	query		integer	false "messageState"
+//	@Param			reverseOrder	query		boolean false	"reverseOrder"
+//	@Success		200				{object}	[]model.MessageDataModel
+//	@Failure		400				{object}	response.ResponseErrorModel
+//	@Router			/v1/ws/singleChat/messages [get]
 func (w *WsHandler) GetSingleChatMessages(c *fiber.Ctx) error {
 	var params model.GetSingleMessagesReq
 	err := c.QueryParser(&params)
@@ -47,6 +73,8 @@ func (w *WsHandler) GetSingleChatMessages(c *fiber.Ctx) error {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
 
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	params.UserId = jwtUserData.UserId
 	messages, err := w.wsService.GetSingleChatMessages(&params)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
@@ -54,6 +82,20 @@ func (w *WsHandler) GetSingleChatMessages(c *fiber.Ctx) error {
 	return response.ResponseOKWithData(c, messages)
 }
 
+// GetSingleChatList godoc
+//
+//	@Summary		Chats List
+//	@Description	get list of conversations
+//	@Tags			User-Websocket
+//	@Param			chatsSkip				query		integer false	"chatsSkip"
+//	@Param			chatsLimit				query		integer false	"chatsLimit"
+//	@Param			messagePerChatSkip		query		integer false	"messagePerChatSkip"
+//	@Param			messagePerChatLimit		query		integer	false "messagePerChatLimit"
+//	@Param			messageState			query		integer	false "messageState"
+//	@Param			includeProfileImages	query		boolean	false "includeProfileImages"
+//	@Success		200						{object}	[]model.ChatsCompressedDataModel
+//	@Failure		400						{object}	response.ResponseErrorModel
+//	@Router			/v1/ws/singleChat/list [get]
 func (w *WsHandler) GetSingleChatList(c *fiber.Ctx) error {
 	var params model.GetSingleChatListReq
 	err := c.QueryParser(&params)
@@ -61,6 +103,8 @@ func (w *WsHandler) GetSingleChatList(c *fiber.Ctx) error {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
 
+	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+	params.UserId = jwtUserData.UserId
 	messages, err := w.wsService.GetSingleChatList(&params)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)

@@ -1434,6 +1434,160 @@ const docTemplate = `{
                     }
                 }
             }
+        },
+        "/v1/ws/addClient": {
+            "get": {
+                "description": "start websocket connection",
+                "tags": [
+                    "User-Websocket"
+                ],
+                "summary": "Connect websocket",
+                "parameters": [
+                    {
+                        "type": "string",
+                        "description": "unique id of the device",
+                        "name": "deviceId",
+                        "in": "path",
+                        "required": true
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseOKModel"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/ws/singleChat/list": {
+            "get": {
+                "description": "get list of conversations",
+                "tags": [
+                    "User-Websocket"
+                ],
+                "summary": "Chats List",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "chatsSkip",
+                        "name": "chatsSkip",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "chatsLimit",
+                        "name": "chatsLimit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "messagePerChatSkip",
+                        "name": "messagePerChatSkip",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "messagePerChatLimit",
+                        "name": "messagePerChatLimit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "messageState",
+                        "name": "messageState",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "includeProfileImages",
+                        "name": "includeProfileImages",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.ChatsCompressedDataModel"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/ws/singleChat/messages": {
+            "get": {
+                "description": "get messages of users chat",
+                "tags": [
+                    "User-Websocket"
+                ],
+                "summary": "Chat Messages",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "receiverId",
+                        "name": "receiverId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "skip",
+                        "name": "skip",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "limit",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "messageState",
+                        "name": "messageState",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "reverseOrder",
+                        "name": "reverseOrder",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "type": "array",
+                            "items": {
+                                "$ref": "#/definitions/model.MessageDataModel"
+                            }
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
         }
     },
     "definitions": {
@@ -1478,6 +1632,44 @@ const docTemplate = `{
                 },
                 "thisDevice": {
                     "$ref": "#/definitions/model.ActiveSessionDataModel"
+                }
+            }
+        },
+        "model.ChatsCompressedDataModel": {
+            "type": "object",
+            "properties": {
+                "isOnline": {
+                    "type": "boolean"
+                },
+                "lastSeenDate": {
+                    "type": "string"
+                },
+                "messages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.MessageDataModel"
+                    }
+                },
+                "profileImages": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ProfileImageDataModel"
+                    }
+                },
+                "publicName": {
+                    "type": "string"
+                },
+                "role": {
+                    "type": "string"
+                },
+                "unreadMessagesCount": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
                 }
             }
         },
@@ -1686,6 +1878,38 @@ const docTemplate = `{
                 },
                 "url": {
                     "type": "string"
+                }
+            }
+        },
+        "model.MessageDataModel": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "creatorId": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "medias": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.MediaFile"
+                    }
+                },
+                "receiverId": {
+                    "type": "integer"
+                },
+                "roomId": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "integer"
                 }
             }
         },

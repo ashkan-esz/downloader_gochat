@@ -257,7 +257,6 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 
 	switch channelMessage.Action {
 	case model.MessageReadAction:
-		//todo : validation on provided ReceiverId
 		err := wsSvc.wsRepo.BatchUpdateMessageState(
 			channelMessage.MessageRead.Id,
 			channelMessage.MessageRead.RoomId,
@@ -503,17 +502,31 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 			if clientMessage.NewMessage.RoomId == -1 {
 				//one to one message
 				rabbit.Publish(ctx, receiveMessage, conf, cc.UserId)
+				//consider end of typing
+				if _, ok, _ := hub.getClient(clientMessage.NewMessage.ReceiverId); ok {
+					readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
+					userStatusReq := model.UserStatusReq{
+						Type:    model.UserStatusStopTyping,
+						UserId:  cc.UserId,
+						UserIds: []int64{clientMessage.NewMessage.ReceiverId},
+					}
+					message2 := model.CreateSendUserIsTypingAction(&userStatusReq)
+					rabbit.Publish(ctx, message2, readQueueConf, cc.UserId)
+				}
 			} else {
 				//group/channel message
 				hub.Broadcast <- receiveMessage
 			}
 		case model.SingleChatMessagesAction:
+			clientMessage.ChatMessagesReq.UserId = cc.UserId
 			message := model.CreateGetChatMessagesAction(&clientMessage.ChatMessagesReq)
 			rabbit.Publish(ctx, message, conf, cc.UserId)
 		case model.SingleChatsListAction:
+			clientMessage.ChatsListReq.UserId = cc.UserId
 			message := model.CreateGetChatListAction(&clientMessage.ChatsListReq)
 			rabbit.Publish(ctx, message, conf, cc.UserId)
 		case model.MessageReadAction:
+			clientMessage.MessageRead.ReceiverId = cc.UserId
 			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
 			message := model.CreateMessageReadAction(
 				clientMessage.MessageRead.Id,
@@ -524,10 +537,12 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 				2, false)
 			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
 		case model.UserStatusAction:
+			clientMessage.UserStatusReq.UserId = cc.UserId
 			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
 			message := model.CreateGetUserStatusAction(clientMessage.UserStatusReq)
 			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
 		case model.UserIsTypingAction:
+			clientMessage.UserStatusReq.UserId = cc.UserId
 			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
 			message := model.CreateSendUserIsTypingAction(clientMessage.UserStatusReq)
 			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
