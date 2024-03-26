@@ -194,6 +194,7 @@ func HandleGroupChatMessage(d *amqp.Delivery, extraConsumerData interface{}) {
 }
 
 func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
+	defer reviveWebsocket()
 	// run as rabbitmq consumer
 	wsSvc := extraConsumerData.(*WsService)
 	var channelMessage *model.ChannelMessage
@@ -247,6 +248,7 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 }
 
 func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
+	defer reviveWebsocket()
 	// run as rabbitmq consumer
 	wsSvc := extraConsumerData.(*WsService)
 	var channelMessage *model.ChannelMessage
@@ -326,6 +328,7 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 }
 
 func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *WsService) error {
+	defer reviveWebsocket()
 	sender, senderExist, _ := wsSvc.hub.getClient(receiveNewMessage.UserId)
 	mid, err := wsSvc.wsRepo.SaveMessage(receiveNewMessage)
 	if err != nil {
@@ -403,6 +406,7 @@ func HandleSingleChatMessage(receiveNewMessage *model.ReceiveNewMessage, wsSvc *
 
 func (c *ClientConnection) WriteMessage(cc *Client) {
 	ticker := time.NewTicker(pingPeriod)
+	defer reviveWebsocket()
 	defer func() {
 		ticker.Stop()
 		c.Conn.Close()
@@ -450,6 +454,7 @@ func (c *ClientConnection) WriteMessage(cc *Client) {
 }
 
 func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.RabbitMQ, wsRepo repository.IWsRepository) {
+	defer reviveWebsocket()
 	defer func() {
 		//hub.UnRegister <- c  //it just offline, didnt left
 		c.Conn.Close()
@@ -477,7 +482,7 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 		var clientMessage model.ClientMessage
 		err := c.Conn.ReadJSON(&clientMessage)
 		if err != nil {
-			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
+			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseMessage, websocket.CloseNormalClosure) {
 				log.Printf("error: %v", err)
 			}
 			break
@@ -551,8 +556,7 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 	}
 }
 
-func (h *Hub) ReviveWebsocket(wsSvc *WsService) {
-	//todo :
+func reviveWebsocket() {
 	if err := recover(); err != nil {
 		if os.Getenv("LOG_PANIC_TRACE") == "true" {
 			log.Println(

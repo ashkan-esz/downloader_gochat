@@ -20,5 +20,7 @@ package main
 //todo : share lists, collections
 //todo : share movie
 
+//todo : add documentation for websocket messages
+
 //todo : handle auth for message apis
 //todo : security
