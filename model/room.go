@@ -43,7 +43,7 @@ func (UserMessageRead) TableName() string {
 //---------------------------------------
 
 type GetSingleMessagesReq struct {
-	UserId       int64     `json:"userId" query:"-"`
+	UserId       int64     `json:"userId" query:"-" swaggerignore:"true"`
 	ReceiverId   int64     `json:"receiverId"`
 	Date         time.Time `json:"date"`
 	Skip         int       `json:"skip"`
@@ -53,7 +53,7 @@ type GetSingleMessagesReq struct {
 }
 
 type GetSingleChatListReq struct {
-	UserId               int64 `json:"userId" query:"-"`
+	UserId               int64 `json:"userId" query:"-" swaggerignore:"true"`
 	ChatsSkip            int   `json:"chatsSkip"`
 	ChatsLimit           int   `json:"chatsLimit"`
 	MessagePerChatSkip   int   `json:"messagePerChatSkip"`

@@ -1,5 +1,49 @@
 basePath: /
 definitions:
+  model.ActionError:
+    properties:
+      action:
+        $ref: '#/definitions/model.ActionType'
+      actionData: {}
+      code:
+        type: integer
+      errorMessage:
+        type: string
+    type: object
+  model.ActionType:
+    enum:
+    - message-read
+    - send-new-message
+    - receive-new-message
+    - new-message-send-result
+    - receive-message-state
+    - action-error
+    - new-follow-notification
+    - new-message-notification
+    - update-profile-images
+    - update-profile
+    - single-chats-list
+    - single-chat-messages
+    - notification-settings
+    - user-status
+    - user-status-isTyping
+    type: string
+    x-enum-varnames:
+    - MessageReadAction
+    - SendNewMessageAction
+    - ReceiveNewMessageAction
+    - NewMessageSendResultAction
+    - ReceiveMessageStateAction
+    - ErrorAction
+    - FollowNotifAction
+    - NewMessageNotifAction
+    - UpdateProfileImagesAction
+    - UpdateProfileAction
+    - SingleChatsListAction
+    - SingleChatMessagesAction
+    - NotificationSettingsAction
+    - UserStatusAction
+    - UserIsTypingAction
   model.ActiveSessionDataModel:
     properties:
       appName:
@@ -53,6 +97,31 @@ definitions:
         type: integer
       username:
         type: string
+    type: object
+  model.ClientMessage:
+    properties:
+      action:
+        $ref: '#/definitions/model.ActionType'
+      chatMessagesReq:
+        allOf:
+        - $ref: '#/definitions/model.GetSingleMessagesReq'
+        description: action is SingleChatMessagesAction
+      chatsListReq:
+        allOf:
+        - $ref: '#/definitions/model.GetSingleChatListReq'
+        description: action is SingleChatsListAction
+      messageRead:
+        allOf:
+        - $ref: '#/definitions/model.MessageRead'
+        description: action is MessageReadAction
+      newMessage:
+        allOf:
+        - $ref: '#/definitions/model.NewMessage'
+        description: action is SendNewMessageAction
+      userStatusReq:
+        allOf:
+        - $ref: '#/definitions/model.UserStatusReq'
+        description: action is UserStatusAction
     type: object
   model.ComputedFavoriteGenres:
     properties:
@@ -135,6 +204,36 @@ definitions:
         type: integer
       username:
         type: string
+    type: object
+  model.GetSingleChatListReq:
+    properties:
+      chatsLimit:
+        type: integer
+      chatsSkip:
+        type: integer
+      includeProfileImages:
+        type: boolean
+      messagePerChatLimit:
+        type: integer
+      messagePerChatSkip:
+        type: integer
+      messageState:
+        type: integer
+    type: object
+  model.GetSingleMessagesReq:
+    properties:
+      date:
+        type: string
+      limit:
+        type: integer
+      messageState:
+        type: integer
+      receiverId:
+        type: integer
+      reverseOrder:
+        type: boolean
+      skip:
+        type: integer
     type: object
   model.LoginViewModel:
     properties:
@@ -221,6 +320,19 @@ definitions:
       state:
         type: integer
     type: object
+  model.MessageRead:
+    properties:
+      date:
+        type: string
+      id:
+        type: integer
+      roomId:
+        type: integer
+      state:
+        type: integer
+      userId:
+        type: integer
+    type: object
   model.MovieSettings:
     properties:
       includeAnime:
@@ -229,6 +341,36 @@ definitions:
         type: boolean
       userId:
         type: integer
+    type: object
+  model.NewMessage:
+    properties:
+      content:
+        type: string
+      receiverId:
+        type: integer
+      roomId:
+        type: integer
+      uuid:
+        type: string
+    type: object
+  model.NewMessageSendResult:
+    properties:
+      code:
+        type: integer
+      date:
+        type: string
+      errorMessage:
+        type: string
+      id:
+        type: integer
+      receiverId:
+        type: integer
+      roomId:
+        type: integer
+      state:
+        type: integer
+      uuid:
+        type: string
     type: object
   model.NotificationDataModel:
     properties:
@@ -306,6 +448,33 @@ definitions:
       userId:
         type: integer
     type: object
+  model.ReceiveNewMessage:
+    properties:
+      content:
+        type: string
+      creatorImage:
+        type: string
+      date:
+        type: string
+      id:
+        type: integer
+      medias:
+        items:
+          $ref: '#/definitions/model.MediaFile'
+        type: array
+      receiverId:
+        type: integer
+      roomId:
+        type: integer
+      state:
+        type: integer
+      userId:
+        type: integer
+      username:
+        type: string
+      uuid:
+        type: string
+    type: object
   model.RegisterViewModel:
     properties:
       confirmPassword:
@@ -318,6 +487,54 @@ definitions:
         type: string
       username:
         type: string
+    type: object
+  model.ServerResultMessage:
+    properties:
+      action:
+        $ref: '#/definitions/model.ActionType'
+      actionError:
+        allOf:
+        - $ref: '#/definitions/model.ActionError'
+        description: action is ErrorAction
+      chatMessages:
+        description: action is SingleChatMessagesAction
+        items:
+          $ref: '#/definitions/model.MessageDataModel'
+        type: array
+      chats:
+        description: action is SingleChatsListAction
+        items:
+          $ref: '#/definitions/model.ChatsCompressedDataModel'
+        type: array
+      editProfile:
+        allOf:
+        - $ref: '#/definitions/model.EditProfileReq'
+        description: action is UpdateProfileAction
+      messageRead:
+        allOf:
+        - $ref: '#/definitions/model.MessageRead'
+        description: action is ReceiveMessageStateAction
+      newMessageSendResult:
+        allOf:
+        - $ref: '#/definitions/model.NewMessageSendResult'
+        description: action is NewMessageSendResultAction
+      notificationSettings:
+        allOf:
+        - $ref: '#/definitions/model.NotificationSettings'
+        description: action is NotificationSettingsAction
+      profileImages:
+        description: action is UpdateProfileImagesAction
+        items:
+          $ref: '#/definitions/model.ProfileImageDataModel'
+        type: array
+      receiveNewMessage:
+        allOf:
+        - $ref: '#/definitions/model.ReceiveNewMessage'
+        description: action is ReceiveNewMessageAction
+      userStatusRes:
+        allOf:
+        - $ref: '#/definitions/model.UserStatusRes'
+        description: action is UserStatusAction
     type: object
   model.TokenViewModel:
     properties:
@@ -420,6 +637,38 @@ definitions:
       notificationSettings:
         $ref: '#/definitions/model.NotificationSettings'
     type: object
+  model.UserStatusReq:
+    properties:
+      type:
+        $ref: '#/definitions/model.UserStatusResultType'
+      userIds:
+        items:
+          type: integer
+        type: array
+    type: object
+  model.UserStatusRes:
+    properties:
+      isTypingUserIds:
+        items:
+          type: integer
+        type: array
+      onlineUserIds:
+        items:
+          type: integer
+        type: array
+      type:
+        $ref: '#/definitions/model.UserStatusResultType'
+    type: object
+  model.UserStatusResultType:
+    enum:
+    - onlineUsers
+    - isTyping
+    - stopTyping
+    type: string
+    x-enum-varnames:
+    - UserStatusOnlineUsers
+    - UserStatusIsTyping
+    - UserStatusStopTyping
   model.UserViewModel:
     properties:
       email:
@@ -1400,11 +1649,17 @@ paths:
         name: deviceId
         required: true
         type: string
+      - description: types of bodies can be handled in server
+        in: body
+        name: messageBody
+        required: true
+        schema:
+          $ref: '#/definitions/model.ClientMessage'
       responses:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/response.ResponseOKModel'
+            $ref: '#/definitions/model.ServerResultMessage'
         "400":
           description: Bad Request
           schema:

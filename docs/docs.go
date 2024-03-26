@@ -1449,13 +1449,22 @@ const docTemplate = `{
                         "name": "deviceId",
                         "in": "path",
                         "required": true
+                    },
+                    {
+                        "description": "types of bodies can be handled in server",
+                        "name": "messageBody",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "$ref": "#/definitions/model.ClientMessage"
+                        }
                     }
                 ],
                 "responses": {
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/response.ResponseOKModel"
+                            "$ref": "#/definitions/model.ServerResultMessage"
                         }
                     },
                     "400": {
@@ -1591,6 +1600,58 @@ const docTemplate = `{
         }
     },
     "definitions": {
+        "model.ActionError": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/model.ActionType"
+                },
+                "actionData": {},
+                "code": {
+                    "type": "integer"
+                },
+                "errorMessage": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.ActionType": {
+            "type": "string",
+            "enum": [
+                "message-read",
+                "send-new-message",
+                "receive-new-message",
+                "new-message-send-result",
+                "receive-message-state",
+                "action-error",
+                "new-follow-notification",
+                "new-message-notification",
+                "update-profile-images",
+                "update-profile",
+                "single-chats-list",
+                "single-chat-messages",
+                "notification-settings",
+                "user-status",
+                "user-status-isTyping"
+            ],
+            "x-enum-varnames": [
+                "MessageReadAction",
+                "SendNewMessageAction",
+                "ReceiveNewMessageAction",
+                "NewMessageSendResultAction",
+                "ReceiveMessageStateAction",
+                "ErrorAction",
+                "FollowNotifAction",
+                "NewMessageNotifAction",
+                "UpdateProfileImagesAction",
+                "UpdateProfileAction",
+                "SingleChatsListAction",
+                "SingleChatMessagesAction",
+                "NotificationSettingsAction",
+                "UserStatusAction",
+                "UserIsTypingAction"
+            ]
+        },
         "model.ActiveSessionDataModel": {
             "type": "object",
             "properties": {
@@ -1670,6 +1731,54 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "model.ClientMessage": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/model.ActionType"
+                },
+                "chatMessagesReq": {
+                    "description": "action is SingleChatMessagesAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.GetSingleMessagesReq"
+                        }
+                    ]
+                },
+                "chatsListReq": {
+                    "description": "action is SingleChatsListAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.GetSingleChatListReq"
+                        }
+                    ]
+                },
+                "messageRead": {
+                    "description": "action is MessageReadAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.MessageRead"
+                        }
+                    ]
+                },
+                "newMessage": {
+                    "description": "action is SendNewMessageAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.NewMessage"
+                        }
+                    ]
+                },
+                "userStatusReq": {
+                    "description": "action is UserStatusAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.UserStatusReq"
+                        }
+                    ]
                 }
             }
         },
@@ -1799,6 +1908,52 @@ const docTemplate = `{
                 }
             }
         },
+        "model.GetSingleChatListReq": {
+            "type": "object",
+            "properties": {
+                "chatsLimit": {
+                    "type": "integer"
+                },
+                "chatsSkip": {
+                    "type": "integer"
+                },
+                "includeProfileImages": {
+                    "type": "boolean"
+                },
+                "messagePerChatLimit": {
+                    "type": "integer"
+                },
+                "messagePerChatSkip": {
+                    "type": "integer"
+                },
+                "messageState": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.GetSingleMessagesReq": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "limit": {
+                    "type": "integer"
+                },
+                "messageState": {
+                    "type": "integer"
+                },
+                "receiverId": {
+                    "type": "integer"
+                },
+                "reverseOrder": {
+                    "type": "boolean"
+                },
+                "skip": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.LoginViewModel": {
             "type": "object",
             "properties": {
@@ -1913,6 +2068,26 @@ const docTemplate = `{
                 }
             }
         },
+        "model.MessageRead": {
+            "type": "object",
+            "properties": {
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "roomId": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
+        },
         "model.MovieSettings": {
             "type": "object",
             "properties": {
@@ -1924,6 +2099,52 @@ const docTemplate = `{
                 },
                 "userId": {
                     "type": "integer"
+                }
+            }
+        },
+        "model.NewMessage": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "receiverId": {
+                    "type": "integer"
+                },
+                "roomId": {
+                    "type": "integer"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
+        "model.NewMessageSendResult": {
+            "type": "object",
+            "properties": {
+                "code": {
+                    "type": "integer"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "errorMessage": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "receiverId": {
+                    "type": "integer"
+                },
+                "roomId": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "integer"
+                },
+                "uuid": {
+                    "type": "string"
                 }
             }
         },
@@ -2043,6 +2264,47 @@ const docTemplate = `{
                 }
             }
         },
+        "model.ReceiveNewMessage": {
+            "type": "object",
+            "properties": {
+                "content": {
+                    "type": "string"
+                },
+                "creatorImage": {
+                    "type": "string"
+                },
+                "date": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "medias": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.MediaFile"
+                    }
+                },
+                "receiverId": {
+                    "type": "integer"
+                },
+                "roomId": {
+                    "type": "integer"
+                },
+                "state": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                },
+                "username": {
+                    "type": "string"
+                },
+                "uuid": {
+                    "type": "string"
+                }
+            }
+        },
         "model.RegisterViewModel": {
             "type": "object",
             "properties": {
@@ -2060,6 +2322,91 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "model.ServerResultMessage": {
+            "type": "object",
+            "properties": {
+                "action": {
+                    "$ref": "#/definitions/model.ActionType"
+                },
+                "actionError": {
+                    "description": "action is ErrorAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.ActionError"
+                        }
+                    ]
+                },
+                "chatMessages": {
+                    "description": "action is SingleChatMessagesAction",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.MessageDataModel"
+                    }
+                },
+                "chats": {
+                    "description": "action is SingleChatsListAction",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ChatsCompressedDataModel"
+                    }
+                },
+                "editProfile": {
+                    "description": "action is UpdateProfileAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.EditProfileReq"
+                        }
+                    ]
+                },
+                "messageRead": {
+                    "description": "action is ReceiveMessageStateAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.MessageRead"
+                        }
+                    ]
+                },
+                "newMessageSendResult": {
+                    "description": "action is NewMessageSendResultAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.NewMessageSendResult"
+                        }
+                    ]
+                },
+                "notificationSettings": {
+                    "description": "action is NotificationSettingsAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.NotificationSettings"
+                        }
+                    ]
+                },
+                "profileImages": {
+                    "description": "action is UpdateProfileImagesAction",
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.ProfileImageDataModel"
+                    }
+                },
+                "receiveNewMessage": {
+                    "description": "action is ReceiveNewMessageAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.ReceiveNewMessage"
+                        }
+                    ]
+                },
+                "userStatusRes": {
+                    "description": "action is UserStatusAction",
+                    "allOf": [
+                        {
+                            "$ref": "#/definitions/model.UserStatusRes"
+                        }
+                    ]
                 }
             }
         },
@@ -2213,6 +2560,53 @@ const docTemplate = `{
                     "$ref": "#/definitions/model.NotificationSettings"
                 }
             }
+        },
+        "model.UserStatusReq": {
+            "type": "object",
+            "properties": {
+                "type": {
+                    "$ref": "#/definitions/model.UserStatusResultType"
+                },
+                "userIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                }
+            }
+        },
+        "model.UserStatusRes": {
+            "type": "object",
+            "properties": {
+                "isTypingUserIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "onlineUserIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "type": {
+                    "$ref": "#/definitions/model.UserStatusResultType"
+                }
+            }
+        },
+        "model.UserStatusResultType": {
+            "type": "string",
+            "enum": [
+                "onlineUsers",
+                "isTyping",
+                "stopTyping"
+            ],
+            "x-enum-varnames": [
+                "UserStatusOnlineUsers",
+                "UserStatusIsTyping",
+                "UserStatusStopTyping"
+            ]
         },
         "model.UserViewModel": {
             "type": "object",

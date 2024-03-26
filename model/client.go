@@ -4,26 +4,28 @@ import (
 	"time"
 )
 
+type ActionType string
+
 // from client to server
-const MessageReadAction = "message-read"
-const SendNewMessageAction = "send-new-message"
+const MessageReadAction ActionType = "message-read"
+const SendNewMessageAction ActionType = "send-new-message"
 
 // from server to client
-const ReceiveNewMessageAction = "receive-new-message"
-const NewMessageSendResultAction = "new-message-send-result"
-const ReceiveMessageStateAction = "receive-message-state"
-const ErrorAction = "action-error"
-const FollowNotifAction = "new-follow-notification"
-const NewMessageNotifAction = "new-message-notification"
-const UpdateProfileImagesAction = "update-profile-images"
-const UpdateProfileAction = "update-profile"
+const ReceiveNewMessageAction ActionType = "receive-new-message"
+const NewMessageSendResultAction ActionType = "new-message-send-result"
+const ReceiveMessageStateAction ActionType = "receive-message-state"
+const ErrorAction ActionType = "action-error"
+const FollowNotifAction ActionType = "new-follow-notification"
+const NewMessageNotifAction ActionType = "new-message-notification"
+const UpdateProfileImagesAction ActionType = "update-profile-images"
+const UpdateProfileAction ActionType = "update-profile"
 
 // both way
-const SingleChatsListAction = "single-chats-list"
-const SingleChatMessagesAction = "single-chat-messages"
-const NotificationSettingsAction = "notification-settings"
-const UserStatusAction = "user-status"
-const UserIsTypingAction = "user-status-isTyping"
+const SingleChatsListAction ActionType = "single-chats-list"
+const SingleChatMessagesAction ActionType = "single-chat-messages"
+const NotificationSettingsAction ActionType = "notification-settings"
+const UserStatusAction ActionType = "user-status"
+const UserIsTypingAction ActionType = "user-status-isTyping"
 
 type UserStatusResultType string
 
@@ -34,16 +36,16 @@ const (
 )
 
 type ClientMessage struct {
-	Action          string               `json:"action,omitempty"`
-	NewMessage      NewMessage           `json:"newMessage,omitempty"`
-	MessageRead     *MessageRead         `json:"messageRead,omitempty"`
-	ChatMessagesReq GetSingleMessagesReq `json:"chatMessagesReq,omitempty"`
-	ChatsListReq    GetSingleChatListReq `json:"chatsListReq,omitempty"`
-	UserStatusReq   *UserStatusReq       `json:"userStatusReq,omitempty"`
+	Action          ActionType           `json:"action,omitempty"`
+	NewMessage      NewMessage           `json:"newMessage,omitempty"`                                     //action is SendNewMessageAction
+	MessageRead     *MessageRead         `json:"messageRead,omitempty"`                                    //action is MessageReadAction
+	ChatMessagesReq GetSingleMessagesReq `json:"chatMessagesReq,omitempty" description:"some shitty desc"` //action is SingleChatMessagesAction
+	ChatsListReq    GetSingleChatListReq `json:"chatsListReq,omitempty"`                                   //action is SingleChatsListAction
+	UserStatusReq   *UserStatusReq       `json:"userStatusReq,omitempty"`                                  //action is UserStatusAction
 }
 
 type ChannelMessage struct {
-	Action               string                      `json:"action,omitempty"`
+	Action               ActionType                  `json:"action,omitempty"`
 	ReceiveNewMessage    *ReceiveNewMessage          `json:"receiveNewMessage,omitempty"`
 	NewMessageSendResult *NewMessageSendResult       `json:"newMessageSendResult,omitempty"`
 	MessageRead          *MessageRead                `json:"messageRead,omitempty"`
@@ -58,6 +60,21 @@ type ChannelMessage struct {
 	EditProfile          *EditProfileReq             `json:"editProfile,omitempty"`
 	UserStatusReq        *UserStatusReq              `json:"userStatusReq,omitempty"`
 	UserStatusRes        *UserStatusRes              `json:"userStatusRes,omitempty"`
+}
+
+// for documentation usage
+type ServerResultMessage struct {
+	Action               ActionType                  `json:"action,omitempty"`
+	ReceiveNewMessage    *ReceiveNewMessage          `json:"receiveNewMessage,omitempty"`    //action is ReceiveNewMessageAction
+	NewMessageSendResult *NewMessageSendResult       `json:"newMessageSendResult,omitempty"` //action is NewMessageSendResultAction
+	MessageRead          *MessageRead                `json:"messageRead,omitempty"`          //action is ReceiveMessageStateAction
+	ChatMessages         *[]MessageDataModel         `json:"chatMessages,omitempty"`         //action is SingleChatMessagesAction
+	Chats                *[]ChatsCompressedDataModel `json:"chats,omitempty"`                //action is SingleChatsListAction
+	ActionError          *ActionError                `json:"actionError,omitempty"`          //action is ErrorAction
+	NotificationSettings *NotificationSettings       `json:"notificationSettings,omitempty"` //action is NotificationSettingsAction
+	ProfileImages        *[]ProfileImageDataModel    `json:"profileImages,omitempty"`        //action is UpdateProfileImagesAction
+	EditProfile          *EditProfileReq             `json:"editProfile,omitempty"`          //action is UpdateProfileAction
+	UserStatusRes        *UserStatusRes              `json:"userStatusRes,omitempty"`        //action is UserStatusAction
 }
 
 //------------------------------------------
@@ -99,14 +116,14 @@ type MessageRead struct {
 	Id         int64     `json:"id"`
 	RoomId     int64     `json:"roomId"`
 	UserId     int64     `json:"userId"`
-	ReceiverId int64     `json:"receiverId"`
+	ReceiverId int64     `json:"receiverId" swaggerignore:"true"`
 	State      int       `json:"state"`
 	Date       time.Time `json:"date"`
 }
 
 type UserStatusReq struct {
 	Type    UserStatusResultType `json:"type"`
-	UserId  int64                `json:"userId"`
+	UserId  int64                `json:"userId" swaggerignore:"true"`
 	UserIds []int64              `json:"userIds"`
 }
 
@@ -117,7 +134,7 @@ type UserStatusRes struct {
 }
 
 type ActionError struct {
-	Action       string      `json:"action"`
+	Action       ActionType  `json:"action"`
 	ActionData   interface{} `json:"actionData"`
 	Code         int         `json:"code"`
 	ErrorMessage string      `json:"errorMessage"`
@@ -237,7 +254,7 @@ func CreateMessageReadAction(id int64, roomId int64, userId int64, receiverId in
 	}
 }
 
-func CreateActionError(code int, errorMessage string, action string, actionData interface{}) *ChannelMessage {
+func CreateActionError(code int, errorMessage string, action ActionType, actionData interface{}) *ChannelMessage {
 	return &ChannelMessage{
 		Action: ErrorAction,
 		ActionError: &ActionError{
