@@ -491,6 +491,12 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 		conf := rabbitmq.NewConfigPublish(rabbitmq.ChatExchange, rabbitmq.SingleChatBindingKey)
 		switch clientMessage.Action {
 		case model.SendNewMessageAction:
+			validation := clientMessage.NewMessage.Validate()
+			if len(validation) > 0 {
+				cc.Message <- model.CreateActionError(400, validation, model.SendNewMessageAction, clientMessage.NewMessage)
+				continue
+			}
+
 			message := &model.ReceiveNewMessage{
 				Id:         0,
 				Uuid:       clientMessage.NewMessage.Uuid,
@@ -523,14 +529,32 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 				hub.Broadcast <- receiveMessage
 			}
 		case model.SingleChatMessagesAction:
+			validation := clientMessage.ChatMessagesReq.Validate()
+			if len(validation) > 0 {
+				cc.Message <- model.CreateActionError(400, validation, model.SingleChatMessagesAction, clientMessage.ChatMessagesReq)
+				continue
+			}
+
 			clientMessage.ChatMessagesReq.UserId = cc.UserId
 			message := model.CreateGetChatMessagesAction(&clientMessage.ChatMessagesReq)
 			rabbit.Publish(ctx, message, conf, cc.UserId)
 		case model.SingleChatsListAction:
+			validation := clientMessage.ChatsListReq.Validate()
+			if len(validation) > 0 {
+				cc.Message <- model.CreateActionError(400, validation, model.SingleChatsListAction, clientMessage.ChatsListReq)
+				continue
+			}
+
 			clientMessage.ChatsListReq.UserId = cc.UserId
 			message := model.CreateGetChatListAction(&clientMessage.ChatsListReq)
 			rabbit.Publish(ctx, message, conf, cc.UserId)
 		case model.MessageReadAction:
+			validation := clientMessage.MessageRead.Validate()
+			if len(validation) > 0 {
+				cc.Message <- model.CreateActionError(400, validation, model.MessageReadAction, clientMessage.MessageRead)
+				continue
+			}
+
 			clientMessage.MessageRead.ReceiverId = cc.UserId
 			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
 			message := model.CreateMessageReadAction(
@@ -542,15 +566,29 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 				2, false)
 			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
 		case model.UserStatusAction:
+			validation := clientMessage.UserStatusReq.Validate()
+			if len(validation) > 0 {
+				cc.Message <- model.CreateActionError(400, validation, model.UserStatusAction, clientMessage.UserStatusReq)
+				continue
+			}
+
 			clientMessage.UserStatusReq.UserId = cc.UserId
 			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
 			message := model.CreateGetUserStatusAction(clientMessage.UserStatusReq)
 			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
 		case model.UserIsTypingAction:
+			validation := clientMessage.UserStatusReq.Validate()
+			if len(validation) > 0 {
+				cc.Message <- model.CreateActionError(400, validation, model.UserIsTypingAction, clientMessage.UserStatusReq)
+				continue
+			}
+
 			clientMessage.UserStatusReq.UserId = cc.UserId
 			readQueueConf := rabbitmq.NewConfigPublish(rabbitmq.MessageStateExchange, rabbitmq.MessageStateBindingKey)
 			message := model.CreateSendUserIsTypingAction(clientMessage.UserStatusReq)
 			rabbit.Publish(ctx, message, readQueueConf, cc.UserId)
+		default:
+			cc.Message <- model.CreateActionError(400, "Invalid action", clientMessage.Action, nil)
 		}
 
 	}

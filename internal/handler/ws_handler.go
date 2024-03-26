@@ -37,7 +37,7 @@ func NewWsHandler(wsService service.IWsService) *WsHandler {
 //	@Param			messageBody	body		model.ClientMessage	true	"types of bodies can be handled in server"
 //	@Success		200			{object}	model.ServerResultMessage
 //	@Failure		400			{object}	response.ResponseErrorModel
-//	@Router			/v1/ws/addClient [get]
+//	@Router			/v1/ws/addClient/:deviceId [get]
 func (w *WsHandler) AddClient(c *fiber.Ctx) error {
 	deviceId := c.Params("deviceId", "")
 	if deviceId == "" || deviceId == ":deviceId" {

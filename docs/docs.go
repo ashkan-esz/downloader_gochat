@@ -1912,22 +1912,32 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "chatsLimit": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "chatsSkip": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 0
                 },
                 "includeProfileImages": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": false
                 },
                 "messagePerChatLimit": {
-                    "type": "integer"
+                    "type": "integer",
+                    "maximum": 6,
+                    "minimum": 1
                 },
                 "messagePerChatSkip": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 0
                 },
                 "messageState": {
-                    "type": "integer"
+                    "description": "0: pending, 1: saved, 2: receiver read",
+                    "type": "integer",
+                    "default": 0,
+                    "maximum": 2,
+                    "minimum": 0
                 }
             }
         },
@@ -1938,19 +1948,27 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "limit": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "messageState": {
-                    "type": "integer"
+                    "description": "0: pending, 1: saved, 2: receiver read || on 0 value, this filter won't apply",
+                    "type": "integer",
+                    "default": 0,
+                    "maximum": 2,
+                    "minimum": 0
                 },
                 "receiverId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "reverseOrder": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": false
                 },
                 "skip": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 0
                 }
             }
         },
@@ -2075,16 +2093,23 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "id": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "roomId": {
-                    "type": "integer"
+                    "description": "value -1 means its user-to-user message",
+                    "type": "integer",
+                    "minimum": -1
                 },
                 "state": {
-                    "type": "integer"
+                    "description": "0: pending, 1: saved, 2: receiver read",
+                    "type": "integer",
+                    "maximum": 2,
+                    "minimum": 0
                 },
                 "userId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 }
             }
         },
@@ -2109,10 +2134,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "receiverId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "roomId": {
-                    "type": "integer"
+                    "description": "value -1 means its user-to-user message",
+                    "type": "integer",
+                    "minimum": -1
                 },
                 "uuid": {
                     "type": "string"
@@ -2570,7 +2598,8 @@ const docTemplate = `{
                 "userIds": {
                     "type": "array",
                     "items": {
-                        "type": "integer"
+                        "type": "integer",
+                        "maximum": 12
                     }
                 }
             }

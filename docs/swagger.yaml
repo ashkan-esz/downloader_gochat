@@ -208,16 +208,26 @@ definitions:
   model.GetSingleChatListReq:
     properties:
       chatsLimit:
+        minimum: 1
         type: integer
       chatsSkip:
+        minimum: 0
         type: integer
       includeProfileImages:
+        default: false
         type: boolean
       messagePerChatLimit:
+        maximum: 6
+        minimum: 1
         type: integer
       messagePerChatSkip:
+        minimum: 0
         type: integer
       messageState:
+        default: 0
+        description: '0: pending, 1: saved, 2: receiver read'
+        maximum: 2
+        minimum: 0
         type: integer
     type: object
   model.GetSingleMessagesReq:
@@ -225,14 +235,23 @@ definitions:
       date:
         type: string
       limit:
+        minimum: 1
         type: integer
       messageState:
+        default: 0
+        description: '0: pending, 1: saved, 2: receiver read || on 0 value, this filter
+          won''t apply'
+        maximum: 2
+        minimum: 0
         type: integer
       receiverId:
+        minimum: 1
         type: integer
       reverseOrder:
+        default: false
         type: boolean
       skip:
+        minimum: 0
         type: integer
     type: object
   model.LoginViewModel:
@@ -325,12 +344,19 @@ definitions:
       date:
         type: string
       id:
+        minimum: 1
         type: integer
       roomId:
+        description: value -1 means its user-to-user message
+        minimum: -1
         type: integer
       state:
+        description: '0: pending, 1: saved, 2: receiver read'
+        maximum: 2
+        minimum: 0
         type: integer
       userId:
+        minimum: 1
         type: integer
     type: object
   model.MovieSettings:
@@ -347,8 +373,11 @@ definitions:
       content:
         type: string
       receiverId:
+        minimum: 1
         type: integer
       roomId:
+        description: value -1 means its user-to-user message
+        minimum: -1
         type: integer
       uuid:
         type: string
@@ -643,6 +672,7 @@ definitions:
         $ref: '#/definitions/model.UserStatusResultType'
       userIds:
         items:
+          maximum: 12
           type: integer
         type: array
     type: object

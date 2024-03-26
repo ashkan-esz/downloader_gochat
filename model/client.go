@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strings"
 	"time"
 )
 
@@ -37,11 +38,11 @@ const (
 
 type ClientMessage struct {
 	Action          ActionType           `json:"action,omitempty"`
-	NewMessage      NewMessage           `json:"newMessage,omitempty"`                                     //action is SendNewMessageAction
-	MessageRead     *MessageRead         `json:"messageRead,omitempty"`                                    //action is MessageReadAction
-	ChatMessagesReq GetSingleMessagesReq `json:"chatMessagesReq,omitempty" description:"some shitty desc"` //action is SingleChatMessagesAction
-	ChatsListReq    GetSingleChatListReq `json:"chatsListReq,omitempty"`                                   //action is SingleChatsListAction
-	UserStatusReq   *UserStatusReq       `json:"userStatusReq,omitempty"`                                  //action is UserStatusAction
+	NewMessage      NewMessage           `json:"newMessage,omitempty"`      //action is SendNewMessageAction
+	MessageRead     *MessageRead         `json:"messageRead,omitempty"`     //action is MessageReadAction
+	ChatMessagesReq GetSingleMessagesReq `json:"chatMessagesReq,omitempty"` //action is SingleChatMessagesAction
+	ChatsListReq    GetSingleChatListReq `json:"chatsListReq,omitempty"`    //action is SingleChatsListAction
+	UserStatusReq   *UserStatusReq       `json:"userStatusReq,omitempty"`   //action is UserStatusAction
 }
 
 type ChannelMessage struct {
@@ -82,9 +83,21 @@ type ServerResultMessage struct {
 
 type NewMessage struct {
 	Content    string `json:"content"`
-	RoomId     int64  `json:"roomId"`
-	ReceiverId int64  `json:"receiverId"`
+	RoomId     int64  `json:"roomId" minimum:"-1"` // value -1 means its user-to-user message
+	ReceiverId int64  `json:"receiverId" minimum:"1"`
 	Uuid       string `json:"uuid"`
+}
+
+func (m *NewMessage) Validate() string {
+	errors := make([]string, 0)
+	if m.RoomId < -1 {
+		errors = append(errors, "roomId cannot be smaller than -1")
+	}
+	if m.ReceiverId < 1 {
+		errors = append(errors, "receiverId cannot be smaller than 1")
+	}
+
+	return strings.Join(errors, ", ")
 }
 
 type ReceiveNewMessage struct {
@@ -113,18 +126,45 @@ type NewMessageSendResult struct {
 }
 
 type MessageRead struct {
-	Id         int64     `json:"id"`
-	RoomId     int64     `json:"roomId"`
-	UserId     int64     `json:"userId"`
+	Id         int64     `json:"id" minimum:"1"`
+	RoomId     int64     `json:"roomId" minimum:"-1"` // value -1 means its user-to-user message
+	UserId     int64     `json:"userId" minimum:"1"`
 	ReceiverId int64     `json:"receiverId" swaggerignore:"true"`
-	State      int       `json:"state"`
+	State      int       `json:"state" minimum:"0" maximum:"2"` // 0: pending, 1: saved, 2: receiver read
 	Date       time.Time `json:"date"`
+}
+
+func (m *MessageRead) Validate() string {
+	errors := make([]string, 0)
+	if m.Id < 1 {
+		errors = append(errors, "id cannot be smaller than 1")
+	}
+	if m.RoomId < -1 {
+		errors = append(errors, "roomId cannot be smaller than -1")
+	}
+	if m.UserId < 1 {
+		errors = append(errors, "userId cannot be smaller than 1")
+	}
+	if m.State < 0 || m.State > 2 {
+		errors = append(errors, "state must be in range of 0-2")
+	}
+
+	return strings.Join(errors, ", ")
 }
 
 type UserStatusReq struct {
 	Type    UserStatusResultType `json:"type"`
 	UserId  int64                `json:"userId" swaggerignore:"true"`
-	UserIds []int64              `json:"userIds"`
+	UserIds []int64              `json:"userIds" maximum:"12"`
+}
+
+func (m *UserStatusReq) Validate() string {
+	errors := make([]string, 0)
+	if len(m.UserIds) > 12 {
+		errors = append(errors, "userIds length cannot be more than 12")
+	}
+
+	return strings.Join(errors, ", ")
 }
 
 type UserStatusRes struct {

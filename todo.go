@@ -23,5 +23,3 @@ package main
 //todo : write readme.md file
 
 //todo : add validation for request bodies and api params
-
-//todo : add validation for websocket messages
