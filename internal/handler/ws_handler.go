@@ -73,6 +73,10 @@ func (w *WsHandler) GetSingleChatMessages(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	validation := params.Validate()
+	if len(validation) > 0 {
+		return response.ResponseError(c, validation, fiber.StatusBadRequest)
+	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
 	params.UserId = jwtUserData.UserId
@@ -102,6 +106,10 @@ func (w *WsHandler) GetSingleChatList(c *fiber.Ctx) error {
 	err := c.QueryParser(&params)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	validation := params.Validate()
+	if len(validation) > 0 {
+		return response.ResponseError(c, validation, fiber.StatusBadRequest)
 	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)

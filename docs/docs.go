@@ -145,6 +145,12 @@ const docTemplate = `{
                             "$ref": "#/definitions/response.ResponseOKModel"
                         }
                     },
+                    "403": {
+                        "description": "Forbidden",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
                     "404": {
                         "description": "Not Found",
                         "schema": {
@@ -568,15 +574,13 @@ const docTemplate = `{
                         "type": "boolean",
                         "description": "return refreshToken in response body instead of saving in cookie",
                         "name": "noCookie",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "type": "boolean",
                         "description": "also return profile images, slower response",
                         "name": "profileImages",
-                        "in": "query",
-                        "required": true
+                        "in": "query"
                     },
                     {
                         "description": "Device Info",
@@ -658,7 +662,7 @@ const docTemplate = `{
                         "BearerAuth": []
                     }
                 ],
-                "description": "Logout user, return accessToken as empty string and also reset/remove refreshToken cookie if use in browser\n.in other environments reset refreshToken from client after successful logout.",
+                "description": "Logout user, return accessToken as empty string and also reset/remove refreshToken cookie if use in browser\nin other environments reset refreshToken from client after successful logout.",
                 "tags": [
                     "User-Auth"
                 ],
@@ -762,17 +766,23 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "entityTypeId",
+                        "description": "entityTypeId, ignore filter when value is 0",
                         "name": "entityTypeId",
                         "in": "query",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "status",
+                        "description": "status, ignore filter when value is 0, 1 means saved, 2 means seen",
                         "name": "status",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "autoUpdateStatus",
+                        "name": "autoUpdateStatus",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -825,14 +835,14 @@ const docTemplate = `{
                     },
                     {
                         "type": "integer",
-                        "description": "type of notification",
+                        "description": "type of notification, ignore filter when value is 0",
                         "name": "entityTypeId",
                         "in": "path",
                         "required": true
                     },
                     {
                         "type": "integer",
-                        "description": "new value of status",
+                        "description": "new value of status, 1 means saved, 2 means seen",
                         "name": "status",
                         "in": "path",
                         "required": true
@@ -1223,6 +1233,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "enum": [
+                            "all",
                             "downloadLinks",
                             "notification",
                             "movie"
@@ -1345,6 +1356,7 @@ const docTemplate = `{
                 "parameters": [
                     {
                         "enum": [
+                            "all",
                             "downloadLinks",
                             "notification",
                             "movie"
@@ -1435,7 +1447,7 @@ const docTemplate = `{
                 }
             }
         },
-        "/v1/ws/addClient": {
+        "/v1/ws/addClient/:deviceId": {
             "get": {
                 "description": "start websocket connection",
                 "tags": [
@@ -1801,11 +1813,18 @@ const docTemplate = `{
         },
         "model.DeviceInfo": {
             "type": "object",
+            "required": [
+                "appName",
+                "appVersion",
+                "deviceModel",
+                "os"
+            ],
             "properties": {
                 "appName": {
                     "type": "string"
                 },
                 "appVersion": {
+                    "description": "format: ^\\d\\d?\\.\\d\\d?\\.\\d\\d?$",
                     "type": "string"
                 },
                 "deviceModel": {
@@ -1826,22 +1845,23 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "includeCensored": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "includeDubbed": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "includeHardSub": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "preferredQualities": {
+                    "description": "enum: 480p,720p,1080p,2160p",
                     "type": "array",
                     "items": {
                         "type": "string"
                     }
-                },
-                "userId": {
-                    "type": "integer"
                 }
             }
         },
@@ -1861,6 +1881,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "username": {
+                    "description": "format: (?i)^[a-z|\\d_-]+$",
                     "type": "string"
                 }
             }
@@ -1979,6 +2000,7 @@ const docTemplate = `{
                     "$ref": "#/definitions/model.DeviceInfo"
                 },
                 "password": {
+                    "description": "contain one number, one uppercase letter, cannot have space, cannot be equal with username",
                     "type": "string"
                 },
                 "username_email": {
@@ -2117,13 +2139,12 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "includeAnime": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "includeHentai": {
-                    "type": "boolean"
-                },
-                "userId": {
-                    "type": "integer"
+                    "type": "boolean",
+                    "default": false
                 }
             }
         },
@@ -2204,6 +2225,7 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "status": {
+                    "description": "1: saved, 2: seen",
                     "type": "integer"
                 }
             }
@@ -2212,34 +2234,40 @@ const docTemplate = `{
             "type": "object",
             "properties": {
                 "finishedListSpinOffSequel": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "followMovie": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "followMovieBetterQuality": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "followMovieSubtitle": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "futureList": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "futureListSerialSeasonEnd": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "futureListSubtitle": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "newFollower": {
-                    "type": "boolean"
+                    "type": "boolean",
+                    "default": true
                 },
                 "newMessage": {
-                    "type": "boolean"
-                },
-                "userId": {
-                    "type": "integer"
+                    "type": "boolean",
+                    "default": false
                 }
             }
         },
@@ -2346,10 +2374,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "password": {
+                    "description": "contain one number, one uppercase letter, cannot have space, cannot be equal with username",
                     "type": "string"
                 },
                 "username": {
-                    "type": "string"
+                    "description": "min:6, max: 50",
+                    "type": "string",
+                    "format": "(?i)^[a-z|\\d_-]+$"
                 }
             }
         },
@@ -2454,8 +2485,12 @@ const docTemplate = `{
         },
         "model.UpdatePasswordReq": {
             "type": "object",
+            "required": [
+                "oldPassword"
+            ],
             "properties": {
                 "newPassword": {
+                    "description": "contain one number, one uppercase letter, cannot have space, cannot be equal with oldPassword",
                     "type": "string"
                 },
                 "oldPassword": {
@@ -2470,10 +2505,13 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "receiverId": {
-                    "type": "integer"
+                    "type": "integer",
+                    "minimum": 1
                 },
                 "roomId": {
-                    "type": "integer"
+                    "description": "value -1 means its user-to-user message",
+                    "type": "integer",
+                    "minimum": -1
                 },
                 "uuid": {
                     "type": "string"

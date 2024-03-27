@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"strings"
+	"time"
+)
 
 type MediaFile struct {
 	Id        int64     `gorm:"column:id;type:serial;autoIncrement;primaryKey;" json:"id"`
@@ -22,7 +25,20 @@ func (MediaFile) TableName() string {
 
 type UploadMediaReq struct {
 	Content    string `json:"content"`
-	RoomId     int64  `json:"roomId"`
-	ReceiverId int64  `json:"receiverId"`
+	RoomId     int64  `json:"roomId" minimum:"-1"` // value -1 means its user-to-user message
+	ReceiverId int64  `json:"receiverId" minimum:"1"`
 	Uuid       string `json:"uuid"`
+}
+
+func (m *UploadMediaReq) Validate() string {
+	errors := make([]string, 0)
+
+	if m.RoomId < -1 {
+		errors = append(errors, "roomId cannot be smaller than -1")
+	}
+	if m.ReceiverId < 1 {
+		errors = append(errors, "receiverId cannot be smaller than 1")
+	}
+
+	return strings.Join(errors, ", ")
 }

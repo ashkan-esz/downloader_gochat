@@ -21,5 +21,3 @@ package main
 //todo : generate blurHash
 
 //todo : write readme.md file
-
-//todo : add validation for request bodies and api params

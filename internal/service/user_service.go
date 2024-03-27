@@ -348,7 +348,7 @@ func (s *UserService) GetUserSettings(userId int64, settingName model.SettingNam
 		NotificationSettings:  nil,
 		MovieSettings:         nil,
 	}
-	if string(settingName) == model.AllSettingsName {
+	if settingName == model.AllSettingsName {
 		notif, err := s.userRepo.GetUserNotificationSettings(userId)
 		if err != nil {
 			return nil, err

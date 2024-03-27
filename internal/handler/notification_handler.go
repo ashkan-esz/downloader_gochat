@@ -31,12 +31,13 @@ func NewNotificationHandler(notifService service.INotificationService) *Notifica
 //	@Summary		Follow events
 //	@Description	get user followers/followings events
 //	@Tags			User-Notifications
-//	@Param			skip			path		integer	true	"skip"
-//	@Param			limit			path		integer	true	"limit"
-//	@Param			entityTypeId	query		integer	true	"entityTypeId"
-//	@Param			status			query		integer	true	"status"
-//	@Success		200				{object}	model.NotificationDataModel
-//	@Failure		400,401,404		{object}	response.ResponseErrorModel
+//	@Param			skip				path		integer	true	"skip"
+//	@Param			limit				path		integer	true	"limit"
+//	@Param			entityTypeId		query		integer	true	"entityTypeId, ignore filter when value is 0"
+//	@Param			status				query		integer	true	"status, ignore filter when value is 0, 1 means saved, 2 means seen"
+//	@Param			autoUpdateStatus	query		boolean	false	"autoUpdateStatus"
+//	@Success		200					{object}	model.NotificationDataModel
+//	@Failure		400,401,404			{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
 //	@Router			/v1/user/notifications/:skip/:limit [get]
 func (n *NotificationHandler) GetUserNotifications(c *fiber.Ctx) error {
@@ -44,12 +45,24 @@ func (n *NotificationHandler) GetUserNotifications(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if skip < 0 {
+		return response.ResponseError(c, "skip cannot be smaller than 0", fiber.StatusBadRequest)
+	}
 	limit, err := c.ParamsInt("limit", 0)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if limit < 1 {
+		return response.ResponseError(c, "limit cannot be smaller than 1", fiber.StatusBadRequest)
+	}
 	entityTypeId := c.QueryInt("entityTypeId", 0)
+	if entityTypeId < 0 || entityTypeId > 2 {
+		return response.ResponseError(c, "entityTypeId myst be in range 0-2", fiber.StatusBadRequest)
+	}
 	status := c.QueryInt("status", 0)
+	if status < 0 || status > 2 {
+		return response.ResponseError(c, "status myst be in range 0-2", fiber.StatusBadRequest)
+	}
 	autoUpdateStatus := c.QueryBool("autoUpdateStatus", false)
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
@@ -66,8 +79,8 @@ func (n *NotificationHandler) GetUserNotifications(c *fiber.Ctx) error {
 //	@Description	update the status of notifications
 //	@Tags			User-Notifications
 //	@Param			id				path		integer	true	"notificationId"
-//	@Param			entityTypeId	path		integer	true	"type of notification"
-//	@Param			status			path		integer	true	"new value of status"
+//	@Param			entityTypeId	path		integer	true	"type of notification, ignore filter when value is 0"
+//	@Param			status			path		integer	true	"new value of status, 1 means saved, 2 means seen"
 //	@Success		200				{object}	response.ResponseOKModel
 //	@Failure		400,401,404		{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
@@ -77,16 +90,22 @@ func (n *NotificationHandler) BatchUpdateUserNotificationStatus(c *fiber.Ctx) er
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if id < 1 {
+		return response.ResponseError(c, "id cannot be smaller than 1", fiber.StatusBadRequest)
+	}
 	entityTypeId, err := c.ParamsInt("entityTypeId", 0)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	if entityTypeId < 0 || entityTypeId > 2 {
+		return response.ResponseError(c, "entityTypeId myst be in range 0-2", fiber.StatusBadRequest)
 	}
 	status, err := c.ParamsInt("status", 0)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
-	if status > 2 {
-		status = 2
+	if status < 0 || status > 2 {
+		return response.ResponseError(c, "status myst be in range 0-2", fiber.StatusBadRequest)
 	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)

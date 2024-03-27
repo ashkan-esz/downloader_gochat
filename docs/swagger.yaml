@@ -139,6 +139,7 @@ definitions:
       appName:
         type: string
       appVersion:
+        description: 'format: ^\d\d?\.\d\d?\.\d\d?$'
         type: string
       deviceModel:
         type: string
@@ -148,21 +149,28 @@ definitions:
         type: string
       os:
         type: string
+    required:
+    - appName
+    - appVersion
+    - deviceModel
+    - os
     type: object
   model.DownloadLinksSettings:
     properties:
       includeCensored:
+        default: true
         type: boolean
       includeDubbed:
+        default: true
         type: boolean
       includeHardSub:
+        default: true
         type: boolean
       preferredQualities:
+        description: 'enum: 480p,720p,1080p,2160p'
         items:
           type: string
         type: array
-      userId:
-        type: integer
     type: object
   model.EditProfileReq:
     properties:
@@ -175,6 +183,7 @@ definitions:
       publicName:
         type: string
       username:
+        description: 'format: (?i)^[a-z|\d_-]+$'
         type: string
     type: object
   model.FollowListProfileImageDataModel:
@@ -259,6 +268,8 @@ definitions:
       deviceInfo:
         $ref: '#/definitions/model.DeviceInfo'
       password:
+        description: contain one number, one uppercase letter, cannot have space,
+          cannot be equal with username
         type: string
       username_email:
         type: string
@@ -362,11 +373,11 @@ definitions:
   model.MovieSettings:
     properties:
       includeAnime:
+        default: true
         type: boolean
       includeHentai:
+        default: false
         type: boolean
-      userId:
-        type: integer
     type: object
   model.NewMessage:
     properties:
@@ -420,30 +431,38 @@ definitions:
       receiverId:
         type: integer
       status:
+        description: '1: saved, 2: seen'
         type: integer
     type: object
   model.NotificationSettings:
     properties:
       finishedListSpinOffSequel:
+        default: true
         type: boolean
       followMovie:
+        default: true
         type: boolean
       followMovieBetterQuality:
+        default: true
         type: boolean
       followMovieSubtitle:
+        default: true
         type: boolean
       futureList:
+        default: true
         type: boolean
       futureListSerialSeasonEnd:
+        default: true
         type: boolean
       futureListSubtitle:
+        default: true
         type: boolean
       newFollower:
+        default: true
         type: boolean
       newMessage:
+        default: false
         type: boolean
-      userId:
-        type: integer
     type: object
   model.ProfileImage:
     properties:
@@ -513,8 +532,12 @@ definitions:
       email:
         type: string
       password:
+        description: contain one number, one uppercase letter, cannot have space,
+          cannot be equal with username
         type: string
       username:
+        description: 'min:6, max: 50'
+        format: (?i)^[a-z|\d_-]+$
         type: string
     type: object
   model.ServerResultMessage:
@@ -577,17 +600,24 @@ definitions:
   model.UpdatePasswordReq:
     properties:
       newPassword:
+        description: contain one number, one uppercase letter, cannot have space,
+          cannot be equal with oldPassword
         type: string
       oldPassword:
         type: string
+    required:
+    - oldPassword
     type: object
   model.UploadMediaReq:
     properties:
       content:
         type: string
       receiverId:
+        minimum: 1
         type: integer
       roomId:
+        description: value -1 means its user-to-user message
+        minimum: -1
         type: integer
       uuid:
         type: string
@@ -821,6 +851,10 @@ paths:
           description: OK
           schema:
             $ref: '#/definitions/response.ResponseOKModel'
+        "403":
+          description: Forbidden
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
         "404":
           description: Not Found
           schema:
@@ -1094,12 +1128,10 @@ paths:
       - description: return refreshToken in response body instead of saving in cookie
         in: query
         name: noCookie
-        required: true
         type: boolean
       - description: also return profile images, slower response
         in: query
         name: profileImages
-        required: true
         type: boolean
       - description: Device Info
         in: body
@@ -1156,7 +1188,7 @@ paths:
     put:
       description: |-
         Logout user, return accessToken as empty string and also reset/remove refreshToken cookie if use in browser
-        .in other environments reset refreshToken from client after successful logout.
+        in other environments reset refreshToken from client after successful logout.
       responses:
         "200":
           description: OK
@@ -1219,16 +1251,21 @@ paths:
         name: limit
         required: true
         type: integer
-      - description: entityTypeId
+      - description: entityTypeId, ignore filter when value is 0
         in: query
         name: entityTypeId
         required: true
         type: integer
-      - description: status
+      - description: status, ignore filter when value is 0, 1 means saved, 2 means
+          seen
         in: query
         name: status
         required: true
         type: integer
+      - description: autoUpdateStatus
+        in: query
+        name: autoUpdateStatus
+        type: boolean
       responses:
         "200":
           description: OK
@@ -1260,12 +1297,12 @@ paths:
         name: id
         required: true
         type: integer
-      - description: type of notification
+      - description: type of notification, ignore filter when value is 0
         in: path
         name: entityTypeId
         required: true
         type: integer
-      - description: new value of status
+      - description: new value of status, 1 means saved, 2 means seen
         in: path
         name: status
         required: true
@@ -1525,6 +1562,7 @@ paths:
       parameters:
       - description: name of setting
         enum:
+        - all
         - downloadLinks
         - notification
         - movie
@@ -1605,6 +1643,7 @@ paths:
       parameters:
       - description: name of setting
         enum:
+        - all
         - downloadLinks
         - notification
         - movie
@@ -1670,7 +1709,7 @@ paths:
       summary: Verify Email (Internal Usage)
       tags:
       - User
-  /v1/ws/addClient:
+  /v1/ws/addClient/:deviceId:
     get:
       description: start websocket connection
       parameters:

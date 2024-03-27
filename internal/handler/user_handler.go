@@ -179,8 +179,8 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 //	@Summary		Get Token
 //	@Description	Get new Tokens, also return `refreshToken`
 //	@Tags			User-Auth
-//	@Param			noCookie		query		bool				true	"return refreshToken in response body instead of saving in cookie"
-//	@Param			profileImages	query		bool				true	"also return profile images, slower response"
+//	@Param			noCookie		query		bool				false	"return refreshToken in response body instead of saving in cookie"
+//	@Param			profileImages	query		bool				false	"also return profile images, slower response"
 //	@Param			user			body		model.DeviceInfo	true	"Device Info"
 //	@Success		200				{object}	model.UserViewModel
 //	@Failure		400,401			{object}	response.ResponseErrorModel
@@ -241,7 +241,7 @@ func (h *UserHandler) GetToken(c *fiber.Ctx) error {
 //
 //	@Summary		Logout
 //	@Description	Logout user, return accessToken as empty string and also reset/remove refreshToken cookie if use in browser
-//	@Description	.in other environments reset refreshToken from client after successful logout.
+//	@Description	in other environments reset refreshToken from client after successful logout.
 //	@Tags			User-Auth
 //	@Success		200
 //	@Failure		401,403	{object}	response.ResponseErrorModel
@@ -338,9 +338,13 @@ func (h *UserHandler) ForceLogoutAll(c *fiber.Ctx) error {
 //	@Security		BearerAuth
 //	@Router			/v1/user/setNotifToken [put]
 func (h *UserHandler) SetNotifToken(c *fiber.Ctx) error {
+	notifToken := c.Params("notifToken", "")
+	if len(notifToken) < 10 {
+		return response.ResponseError(c, "Invalid notifToken (min: 10)", fiber.StatusBadRequest)
+	}
+
 	refreshToken := c.Locals("refreshToken").(string)
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
-	notifToken := c.Params("notifToken", "")
 	err := h.userService.SetNotifToken(jwtUserData, refreshToken, notifToken)
 
 	if err != nil {
@@ -370,6 +374,9 @@ func (h *UserHandler) FollowUser(c *fiber.Ctx) error {
 	followId, err := c.ParamsInt("followId", 0)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	if followId < 1 {
+		return response.ResponseError(c, "followId cannot be smaller than 1", fiber.StatusBadRequest)
 	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
@@ -401,6 +408,9 @@ func (h *UserHandler) UnFollowUser(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if followId < 1 {
+		return response.ResponseError(c, "followId cannot be smaller than 1", fiber.StatusBadRequest)
+	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
 	err = h.userService.UnFollowUser(jwtUserData, int64(followId))
@@ -431,13 +441,22 @@ func (h *UserHandler) GetUserFollowers(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if userId < 1 {
+		return response.ResponseError(c, "userId cannot be smaller than 1", fiber.StatusBadRequest)
+	}
 	skip, err := c.ParamsInt("skip", 0)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if skip < 0 {
+		return response.ResponseError(c, "skip cannot be smaller than 0", fiber.StatusBadRequest)
+	}
 	limit, err := c.ParamsInt("limit", 0)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	if limit < 1 {
+		return response.ResponseError(c, "limit cannot be smaller than 1", fiber.StatusBadRequest)
 	}
 
 	result, err := h.userService.GetUserFollowers(int64(userId), skip, limit)
@@ -464,13 +483,22 @@ func (h *UserHandler) GetUserFollowings(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if userId < 1 {
+		return response.ResponseError(c, "userId cannot be smaller than 1", fiber.StatusBadRequest)
+	}
 	skip, err := c.ParamsInt("skip", 0)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if skip < 1 {
+		return response.ResponseError(c, "skip cannot be smaller than 0", fiber.StatusBadRequest)
+	}
 	limit, err := c.ParamsInt("limit", 0)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
+	}
+	if limit < 1 {
+		return response.ResponseError(c, "limit cannot be smaller than 1", fiber.StatusBadRequest)
 	}
 
 	result, err := h.userService.GetUserFollowings(int64(userId), skip, limit)
@@ -495,6 +523,13 @@ func (h *UserHandler) GetUserFollowings(c *fiber.Ctx) error {
 //	@Router			/v1/user/userSettings/:settingName [get]
 func (h *UserHandler) GetUserSettings(c *fiber.Ctx) error {
 	settingName := c.Params("settingName", "all")
+	if slices.Contains(model.SettingNames, model.SettingName(settingName)) {
+		names := []string{}
+		for _, name := range model.SettingNames {
+			names = append(names, string(name))
+		}
+		return response.ResponseError(c, fmt.Sprintf("settingName has invalid value : (%v)", strings.Join(names, ", ")), fiber.StatusBadRequest)
+	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
 	result, err := h.userService.GetUserSettings(jwtUserData.UserId, model.SettingName(settingName))
@@ -536,16 +571,32 @@ func (h *UserHandler) UpdateUserSettings(c *fiber.Ctx) error {
 		if settings.NotificationSettings == nil {
 			return response.ResponseError(c, "Invalid fields for notificationSettings", fiber.StatusBadRequest)
 		}
+		validation := settings.NotificationSettings.Validate()
+		if len(validation) > 0 {
+			return response.ResponseError(c, validation, fiber.StatusBadRequest)
+		}
 	case string(model.DownloadSettingsName):
 		if settings.DownloadLinksSettings == nil {
 			return response.ResponseError(c, "Invalid fields for downloadLinksSettings", fiber.StatusBadRequest)
+		}
+		validation := settings.DownloadLinksSettings.Validate()
+		if len(validation) > 0 {
+			return response.ResponseError(c, validation, fiber.StatusBadRequest)
 		}
 	case string(model.MovieSettingsName):
 		if settings.MovieSettings == nil {
 			return response.ResponseError(c, "Invalid fields for movieSettings", fiber.StatusBadRequest)
 		}
+		validation := settings.MovieSettings.Validate()
+		if len(validation) > 0 {
+			return response.ResponseError(c, validation, fiber.StatusBadRequest)
+		}
 	default:
-		return response.ResponseError(c, "Invalid settingName", fiber.StatusBadRequest)
+		names := []string{}
+		for _, name := range model.SettingNames {
+			names = append(names, string(name))
+		}
+		return response.ResponseError(c, fmt.Sprintf("settingName has invalid value : (%v)", strings.Join(names, ", ")), fiber.StatusBadRequest)
 	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
@@ -582,6 +633,9 @@ func (h *UserHandler) UpdateUserFavoriteGenres(c *fiber.Ctx) error {
 	}
 	genresArray = slices.Compact(genresArray)
 
+	if len(genresArray) == 0 {
+		return response.ResponseError(c, "Invalid value for genres", fiber.StatusBadRequest)
+	}
 	if len(genresArray) > 6 {
 		return response.ResponseError(c, response.ExceedGenres, fiber.StatusConflict)
 	}
@@ -690,6 +744,10 @@ func (h *UserHandler) EditUserProfile(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
+	validation := editFields.Validate()
+	if len(validation) > 0 {
+		return response.ResponseError(c, validation, fiber.StatusBadRequest)
+	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
 	result, err := h.userService.EditUserProfile(jwtUserData.UserId, &editFields)
@@ -724,6 +782,10 @@ func (h *UserHandler) UpdateUserPassword(c *fiber.Ctx) error {
 	err := c.BodyParser(&passwords)
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	validation := passwords.Validate()
+	if len(validation) > 0 {
+		return response.ResponseError(c, validation, fiber.StatusBadRequest)
 	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
@@ -782,7 +844,14 @@ func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if userId < 1 {
+		return response.ResponseError(c, "userId cannot be smaller than 1", fiber.StatusBadRequest)
+	}
+
 	token := c.Params("token", "")
+	if token == "" {
+		return response.ResponseError(c, "token cannot be empty", fiber.StatusBadRequest)
+	}
 
 	err = h.userService.VerifyEmail(int64(userId), token)
 	if err != nil {
@@ -803,8 +872,8 @@ func (h *UserHandler) VerifyEmail(c *fiber.Ctx) error {
 //	@Description	maybe email goes to spam folder.
 //	@Description	limited to 2 call per minute
 //	@Tags			User
-//	@Success		200		{object}	response.ResponseOKModel
-//	@Failure		404,500	{object}	response.ResponseErrorModel
+//	@Success		200			{object}	response.ResponseOKModel
+//	@Failure		403,404,500	{object}	response.ResponseErrorModel
 //	@Router			/v1/user/deleteAccount [delete]
 func (h *UserHandler) SendDeleteAccount(c *fiber.Ctx) error {
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
@@ -835,7 +904,13 @@ func (h *UserHandler) DeleteUserAccount(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusBadRequest)
 	}
+	if userId < 1 {
+		return response.ResponseError(c, "userId cannot be smaller than 1", fiber.StatusBadRequest)
+	}
 	token := c.Params("token", "")
+	if token == "" {
+		return response.ResponseError(c, "token cannot be empty", fiber.StatusBadRequest)
+	}
 
 	err = h.userService.DeleteUserAccount(int64(userId), token)
 	if err != nil {
@@ -949,6 +1024,9 @@ func (h *UserHandler) RemoveProfileImage(c *fiber.Ctx) error {
 	fileName := c.Params("fileName", "")
 	if fileName == "" {
 		return response.ResponseError(c, "invalid filename", fiber.StatusBadRequest)
+	}
+	if fileName == "" {
+		return response.ResponseError(c, "fileName cannot be empty", fiber.StatusBadRequest)
 	}
 
 	jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)

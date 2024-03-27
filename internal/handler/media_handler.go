@@ -48,6 +48,10 @@ func (m *MediaHandler) UploadFile(c *fiber.Ctx) error {
 	if err != nil {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
+	validation := req.Validate()
+	if len(validation) > 0 {
+		return response.ResponseError(c, validation, fiber.StatusBadRequest)
+	}
 
 	file, err := c.FormFile("mediaFile")
 	if err != nil {

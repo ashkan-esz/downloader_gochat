@@ -28,6 +28,8 @@ const (
 	DISLIKE             LikeDislike   = "dislike"
 )
 
+var MbtiTypes = []MbtiType{ISTJ, ISFJ, INFJ, INTJ, ISTP, ISFP, INFP, INTP, ESTP, ESFP, ENFP, ENTP, ESTJ, ESFJ, ENFJ}
+
 const (
 	ISTJ MbtiType = "ISTJ"
 	ISFJ MbtiType = "ISFJ"

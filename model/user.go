@@ -2,7 +2,9 @@ package model
 
 import (
 	"downloader_gochat/util"
+	"fmt"
 	"regexp"
+	"slices"
 	"strings"
 	"time"
 
@@ -84,24 +86,24 @@ type TokenViewModel struct {
 }
 
 type RegisterViewModel struct {
-	Username        string     `json:"username"`
-	Email           string     `json:"email"`
-	Password        string     `json:"password"`
+	Username        string     `json:"username" minimum:"6" maximum:"50" format:"(?i)^[a-z|\\d_-]+$"` // min:6, max: 50
+	Email           string     `json:"email" type:"email"`
+	Password        string     `json:"password" minimum:"8" maximum:"50"` // contain one number, one uppercase letter, cannot have space, cannot be equal with username
 	ConfirmPassword string     `json:"confirmPassword"`
 	DeviceInfo      DeviceInfo `json:"deviceInfo"`
 }
 
 type LoginViewModel struct {
-	Email      string     `json:"username_email"`
-	Password   string     `json:"password"`
+	Email      string     `json:"username_email" minimum:"6" maximum:"50"`
+	Password   string     `json:"password" minimum:"8" maximum:"50"` // contain one number, one uppercase letter, cannot have space, cannot be equal with username
 	DeviceInfo DeviceInfo `json:"deviceInfo"`
 }
 
 type DeviceInfo struct {
-	AppName     string `json:"appName"`
-	AppVersion  string `json:"appVersion"`
-	Os          string `json:"os"`
-	DeviceModel string `json:"deviceModel"`
+	AppName     string `json:"appName" validate:"required"`
+	AppVersion  string `json:"appVersion" validate:"required"` //format: ^\d\d?\.\d\d?\.\d\d?$
+	Os          string `json:"os" validate:"required"`
+	DeviceModel string `json:"deviceModel" validate:"required"`
 	NotifToken  string `json:"notifToken"`
 	Fingerprint string `json:"fingerprint"`
 }
@@ -160,11 +162,34 @@ type UserMetaWithImageDataModel struct {
 //---------------------------------------
 
 type EditProfileReq struct {
-	Username   string   `gorm:"column:username" json:"username"`
+	Username   string   `gorm:"column:username" json:"username" minimum:"6" maximum:"50"` //format: (?i)^[a-z|\d_-]+$
 	PublicName string   `gorm:"column:publicName" json:"publicName"`
 	Bio        string   `gorm:"column:bio" json:"bio"`
 	Email      string   `gorm:"column:email" json:"email"`
 	MbtiType   MbtiType `gorm:"column:mbtiType" json:"mbtiType"`
+}
+
+func (p *EditProfileReq) Validate() string {
+	errors := make([]string, 0)
+
+	if len(p.Username) < 6 {
+		errors = append(errors, "Username Length Must Be More Than 6")
+	} else if len(p.Username) > 50 {
+		errors = append(errors, "Username Length Must Be Less Than 50")
+	}
+	if matched, _ := regexp.MatchString("(?i)^[a-z|\\d_-]+$", p.Username); !matched {
+		errors = append(errors, "Only a-z, 0-9, and underscores are allowed")
+	}
+
+	for !slices.Contains(MbtiTypes, p.MbtiType) {
+		types := []string{}
+		for _, t := range MbtiTypes {
+			types = append(types, string(t))
+		}
+		errors = append(errors, fmt.Sprintf("Invalid value for mbtiType : (%v)", strings.Join(types, ", ")))
+	}
+
+	return strings.Join(errors, ", ")
 }
 
 type UserProfileReq struct {
@@ -178,8 +203,29 @@ type UserProfileReq struct {
 }
 
 type UpdatePasswordReq struct {
-	OldPassword string `json:"oldPassword"`
-	NewPassword string `json:"newPassword"`
+	OldPassword string `json:"oldPassword" validate:"required"`
+	NewPassword string `json:"newPassword" minimum:"8" maximum:"50"` // contain one number, one uppercase letter, cannot have space, cannot be equal with oldPassword
+}
+
+func (p *UpdatePasswordReq) Validate() string {
+	errors := make([]string, 0)
+
+	if p.OldPassword == "" {
+		errors = append(errors, "oldPassword Is Empty")
+	} else if p.NewPassword == "" {
+		errors = append(errors, "newPassword Is Empty")
+	} else {
+		if len(p.NewPassword) < 8 {
+			errors = append(errors, "newPassword Length Must Be More Than 8")
+		} else if len(p.NewPassword) > 50 {
+			errors = append(errors, "newPassword Length Must Be Less Than 50")
+		}
+		if p.OldPassword == p.NewPassword {
+			errors = append(errors, "newPassword cannot be equal with oldPassword")
+		}
+	}
+
+	return strings.Join(errors, ", ")
 }
 
 type UserProfileRes struct {
