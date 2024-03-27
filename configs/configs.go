@@ -46,7 +46,7 @@ func LoadEnvVariables() {
 		log.Fatalf("Error loading .env file: %v", err)
 	}
 
-	configs.DbUrl = os.Getenv("DB_URL")
+	configs.DbUrl = os.Getenv("POSTGRES_DATABASE_URL")
 	configs.AccessTokenSecret = os.Getenv("ACCESS_TOKEN_SECRET")
 	configs.RefreshTokenSecret = os.Getenv("REFRESH_TOKEN_SECRET")
 	configs.MigrateOnStart = os.Getenv("MIGRATE_ON_START") == "true"
@@ -75,6 +75,6 @@ func LoadEnvVariables() {
 	for i := range configs.CorsAllowedOrigins {
 		configs.CorsAllowedOrigins[i] = strings.TrimSpace(configs.CorsAllowedOrigins[i])
 	}
-	configs.AccessTokenExpireHour = 1
-	configs.RefreshTokenExpireDay = 180
+	configs.AccessTokenExpireHour, err = strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXPIRE_HOUR"))
+	configs.RefreshTokenExpireDay, err = strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXPIRE_DAY"))
 }

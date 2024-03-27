@@ -19,5 +19,3 @@ package main
 //todo : add sentry
 
 //todo : generate blurHash
-
-//todo : write readme.md file
