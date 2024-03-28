@@ -264,6 +264,7 @@ model CastImage {
   originalUrl  String
   size         Int
   thumbnail    String
+  blurHash    String
   url          String     @unique
   vpnStatus    String
   staffId      Int?       @unique

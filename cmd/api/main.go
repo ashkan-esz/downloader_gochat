@@ -76,6 +76,10 @@ func main() {
 	mediaSvc := service.NewMediaService(mediaRep, userRep, wsRep, rabbit, cloudStorageSvc)
 	mediaHandler := handler.NewMediaHandler(mediaSvc)
 
+	movieRep := repository.NewMovieRepository(dbConn.GetDB(), mongoDB.GetDB())
+	castRep := repository.NewCastRepository(dbConn.GetDB(), mongoDB.GetDB())
+	_ = service.NewBlurHashService(movieRep, castRep, rabbit)
+
 	api.InitRouter(userHandler, wsHandler, notifHandler, mediaHandler)
 	api.Start("0.0.0.0:8080")
 }

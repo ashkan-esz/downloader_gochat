@@ -39,6 +39,7 @@ const (
 	userMessageConsumerCount  = 10
 	groupMessageConsumerCount = 1
 	messageStateConsumerCount = 3
+	blurHashConsumerCount     = 6
 )
 
 var globalHub *Hub

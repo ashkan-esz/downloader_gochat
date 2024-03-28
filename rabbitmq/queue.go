@@ -26,6 +26,8 @@ const (
 	MessageStateBindingKey = "message.state"
 	NotificationQueue      = "notification"
 	NotificationBindingKey = "notification"
+	BlurHashQueue          = "blurHash"
+	BlurHashBindingKey     = "blurHash"
 )
 
 func (r *rabbit) createQueuesAndBind() {
@@ -53,6 +55,9 @@ func (r *rabbit) createQueuesAndBind() {
 		log.Printf("error binding queue %s: %s\n", SingleChatQueue, err)
 	}
 
+	//------------------------------------
+	//------------------------------------
+
 	config = ConfigQueue{
 		Name:       GroupChatQueue,
 		Durable:    true,
@@ -76,6 +81,9 @@ func (r *rabbit) createQueuesAndBind() {
 	if err != nil {
 		log.Printf("error binding queue %s: %s\n", GroupChatQueue, err)
 	}
+
+	//------------------------------------
+	//------------------------------------
 
 	MessageStateConfig := ConfigQueue{
 		Name:       MessageStateQueue,
@@ -101,6 +109,9 @@ func (r *rabbit) createQueuesAndBind() {
 		log.Printf("error binding queue %s: %s\n", MessageStateQueue, err)
 	}
 
+	//------------------------------------
+	//------------------------------------
+
 	NotificationConfig := ConfigQueue{
 		Name:       NotificationQueue,
 		Durable:    true,
@@ -123,6 +134,33 @@ func (r *rabbit) createQueuesAndBind() {
 	err = r.BindQueueExchange(NotificationBindConfig)
 	if err != nil {
 		log.Printf("error binding queue %s: %s\n", NotificationQueue, err)
+	}
+
+	//------------------------------------
+	//------------------------------------
+
+	blurHashConfig := ConfigQueue{
+		Name:       BlurHashQueue,
+		Durable:    true,
+		AutoDelete: false,
+		Exclusive:  false,
+		NoWait:     false,
+		Args:       nil,
+	}
+	_, err = r.CreateQueue(blurHashConfig)
+	if err != nil {
+		log.Printf("error creating queue %s: %s\n", BlurHashQueue, err)
+	}
+
+	blurHashConfigBindConfig := ConfigBindQueue{
+		QueueName:  BlurHashQueue,
+		Exchange:   BlurHashExchange,
+		RoutingKey: BlurHashBindingKey,
+		NoWait:     false,
+	}
+	err = r.BindQueueExchange(blurHashConfigBindConfig)
+	if err != nil {
+		log.Printf("error binding queue %s: %s\n", BlurHashQueue, err)
 	}
 }
 

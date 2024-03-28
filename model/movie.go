@@ -94,3 +94,15 @@ type WatchedMovie struct {
 func (WatchedMovie) TableName() string {
 	return "WatchedMovie"
 }
+
+//---------------------------------------
+//---------------------------------------
+
+type MoviePoster struct {
+	Url       string `json:"url" bson:"url"`
+	Info      string `json:"info" bson:"info"`
+	Size      int64  `json:"size" bson:"size"`
+	VpnStatus string `json:"vpnStatus" bson:"vpnStatus"`
+	Thumbnail string `json:"thumbnail" bson:"thumbnail"`
+	BlurHash  string `json:"blurHash" bson:"blurHash"`
+}

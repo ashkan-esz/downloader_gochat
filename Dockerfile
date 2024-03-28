@@ -26,3 +26,5 @@ EXPOSE 5000
 
 # Command to run when starting the container.
 ENTRYPOINT ["/cmd/api/main.go"]
+
+# sudo apt-get install libwebp-dev

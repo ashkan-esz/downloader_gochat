@@ -17,5 +17,3 @@ package main
 
 //todo : error handling
 //todo : add sentry
-
-//todo : generate blurHash
