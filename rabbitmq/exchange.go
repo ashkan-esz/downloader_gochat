@@ -19,6 +19,8 @@ const (
 	NotificationExchangeType = "direct"
 	BlurHashExchange         = "BlurHashExchange"
 	BlurHashExchangeType     = "direct"
+	EmailExchange            = "EmailExchange"
+	EmailExchangeType        = "direct"
 )
 
 func (r *rabbit) createExchanges() {
@@ -76,6 +78,20 @@ func (r *rabbit) createExchanges() {
 	err = r.CreateExchange(blurHashConfig)
 	if err != nil {
 		log.Printf("error creating exchange %v: %s\n", BlurHashExchange, err)
+	}
+
+	emailConfig := ConfigExchange{
+		Name:       EmailExchange,
+		Type:       EmailExchangeType,
+		Durable:    true,
+		AutoDelete: false,
+		Internal:   false,
+		NoWait:     false,
+		Args:       nil,
+	}
+	err = r.CreateExchange(emailConfig)
+	if err != nil {
+		log.Printf("error creating exchange %v: %s\n", EmailExchange, err)
 	}
 }
 

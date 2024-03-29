@@ -41,6 +41,7 @@ func (r *rabbit) Publish(ctx context.Context, myStruct interface{}, config Confi
 			ContentEncoding: config.ContentEncoding,
 			Priority:        config.Priority,
 			CorrelationId:   config.CorrelationID,
+			Expiration:      config.Expiration,
 			MessageId:       config.MessageID,
 			Body:            body,
 		},

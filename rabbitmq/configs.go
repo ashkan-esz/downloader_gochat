@@ -65,6 +65,7 @@ type ConfigPublish struct {
 	Priority        uint8
 	CorrelationID   string
 	MessageID       string
+	Expiration      string
 }
 
 // NewConfigConsume helper function to create a new ConfigConsume with some default values
@@ -94,5 +95,6 @@ func NewConfigPublish(exchange, routingKey string) ConfigPublish {
 		Priority:        0,
 		CorrelationID:   "",
 		MessageID:       "",
+		Expiration:      "",
 	}
 }

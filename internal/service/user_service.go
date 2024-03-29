@@ -124,7 +124,19 @@ func (s *UserService) SignUp(registerVM *model.RegisterViewModel, ip string) (*m
 		return nil, err
 	}
 
-	err = email.AddRegisterEmail(registerVM.Email, user.EmailVerifyToken, user.RawUsername, 5)
+	//-----------------------------------
+	queueConf := rabbitmq.NewConfigPublish(rabbitmq.EmailExchange, rabbitmq.EmailBindingKey)
+	emailData := email.EmailQueueData{
+		Type:        email.UserRegistration,
+		UserId:      user.UserId,
+		RawUsername: user.RawUsername,
+		Email:       registerVM.Email,
+		Token:       user.EmailVerifyToken,
+		Host:        configs.GetConfigs().MainServerAddress,
+		DeviceInfo:  nil,
+	}
+	s.rabbitmq.Publish(context.TODO(), emailData, queueConf, user.UserId)
+	//-----------------------------------
 
 	userVM := model.UserViewModel{
 		UserId:   result.UserId,
@@ -171,7 +183,20 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel, ip string) (*mode
 	}
 
 	if isNewDevice {
-		err = email.AddLoginEmail(loginVM.Email, &loginVM.DeviceInfo, 4)
+		//-----------------------------------
+		queueConf := rabbitmq.NewConfigPublish(rabbitmq.EmailExchange, rabbitmq.EmailBindingKey)
+		emailData := email.EmailQueueData{
+			Type:        email.UserLogin,
+			UserId:      searchResult.UserId,
+			RawUsername: searchResult.Username,
+			Email:       loginVM.Email,
+			Token:       "",
+			Host:        configs.GetConfigs().MainServerAddress,
+			DeviceInfo:  &loginVM.DeviceInfo,
+		}
+		s.rabbitmq.Publish(context.TODO(), emailData, queueConf, searchResult.UserId)
+		//-----------------------------------
+
 		activeSessions, err := s.userRepo.GetUserActiveSessions(searchResult.UserId)
 		if err != nil {
 			err := s.userRepo.RemoveSession(searchResult.UserId, token.RefreshToken)
@@ -527,7 +552,19 @@ func (s *UserService) UpdateUserPassword(userId int64, passwords *model.UpdatePa
 
 	if err == nil && searchResult.Email != "" {
 		// send email
-		_ = email.AddUpdatePasswordEmail(searchResult.Email, 4)
+		//-----------------------------------
+		queueConf := rabbitmq.NewConfigPublish(rabbitmq.EmailExchange, rabbitmq.EmailBindingKey)
+		emailData := email.EmailQueueData{
+			Type:        email.PasswordUpdated,
+			UserId:      searchResult.UserId,
+			RawUsername: searchResult.Username,
+			Email:       searchResult.Email,
+			Token:       "",
+			Host:        configs.GetConfigs().MainServerAddress,
+			DeviceInfo:  nil,
+		}
+		s.rabbitmq.Publish(context.TODO(), emailData, queueConf, searchResult.UserId)
+		//-----------------------------------
 	}
 
 	return err
@@ -554,8 +591,20 @@ func (s *UserService) SendVerifyEmail(userId int64) error {
 		return err
 	}
 
-	err = email.AddVerifyEmail(searchResult.UserId, searchResult.Email, verifyToken, searchResult.Username, 1)
-
+	//-----------------------------------
+	queueConf := rabbitmq.NewConfigPublish(rabbitmq.EmailExchange, rabbitmq.EmailBindingKey)
+	queueConf.Expiration = strconv.FormatInt(verifyTokenExpire, 10)
+	emailData := email.EmailQueueData{
+		Type:        email.VerifyEmail,
+		UserId:      searchResult.UserId,
+		RawUsername: searchResult.Username,
+		Email:       searchResult.Email,
+		Token:       verifyToken,
+		Host:        configs.GetConfigs().MainServerAddress,
+		DeviceInfo:  nil,
+	}
+	s.rabbitmq.Publish(context.TODO(), emailData, queueConf, searchResult.UserId)
+	//-----------------------------------
 	return err
 }
 
@@ -582,8 +631,20 @@ func (s *UserService) SendDeleteAccount(userId int64) error {
 		return err
 	}
 
-	err = email.AddDeleteAccountEmail(searchResult.UserId, searchResult.Email, verifyToken, searchResult.Username, 1)
-
+	//-----------------------------------
+	queueConf := rabbitmq.NewConfigPublish(rabbitmq.EmailExchange, rabbitmq.EmailBindingKey)
+	queueConf.Expiration = strconv.FormatInt(verifyTokenExpire, 10)
+	emailData := email.EmailQueueData{
+		Type:        email.DeleteAccount,
+		UserId:      searchResult.UserId,
+		RawUsername: searchResult.Username,
+		Email:       searchResult.Email,
+		Token:       verifyToken,
+		Host:        configs.GetConfigs().MainServerAddress,
+		DeviceInfo:  nil,
+	}
+	s.rabbitmq.Publish(context.TODO(), emailData, queueConf, searchResult.UserId)
+	//-----------------------------------
 	return err
 }
 

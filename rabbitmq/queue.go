@@ -28,6 +28,8 @@ const (
 	NotificationBindingKey = "notification"
 	BlurHashQueue          = "blurHash"
 	BlurHashBindingKey     = "blurHash"
+	EmailQueue             = "email"
+	EmailBindingKey        = "email"
 )
 
 func (r *rabbit) createQueuesAndBind() {
@@ -161,6 +163,33 @@ func (r *rabbit) createQueuesAndBind() {
 	err = r.BindQueueExchange(blurHashConfigBindConfig)
 	if err != nil {
 		log.Printf("error binding queue %s: %s\n", BlurHashQueue, err)
+	}
+
+	//------------------------------------
+	//------------------------------------
+
+	emailConfig := ConfigQueue{
+		Name:       EmailQueue,
+		Durable:    true,
+		AutoDelete: false,
+		Exclusive:  false,
+		NoWait:     false,
+		Args:       nil,
+	}
+	_, err = r.CreateQueue(emailConfig)
+	if err != nil {
+		log.Printf("error creating queue %s: %s\n", EmailQueue, err)
+	}
+
+	emailConfigBindConfig := ConfigBindQueue{
+		QueueName:  EmailQueue,
+		Exchange:   EmailExchange,
+		RoutingKey: EmailBindingKey,
+		NoWait:     false,
+	}
+	err = r.BindQueueExchange(emailConfigBindConfig)
+	if err != nil {
+		log.Printf("error binding queue %s: %s\n", EmailQueue, err)
 	}
 }
 
