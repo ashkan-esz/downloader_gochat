@@ -24,6 +24,7 @@ type ConfigStruct struct {
 	MongodbDatabaseUrl           string
 	MongodbDatabaseName          string
 	AgendaJobsCollection         string
+	ServerAddress                string
 	MainServerAddress            string
 	RabbitMqUrl                  string
 	FirebaseAuthKey              string
@@ -56,6 +57,7 @@ func LoadEnvVariables() {
 	configs.MongodbDatabaseUrl = os.Getenv("MONGODB_DATABASE_URL")
 	configs.MongodbDatabaseName = os.Getenv("MONGODB_DATABASE_NAME")
 	configs.AgendaJobsCollection = os.Getenv("AGENDA_JOBS_COLLECTION")
+	configs.ServerAddress = os.Getenv("SERVER_ADDRESS")
 	configs.MainServerAddress = os.Getenv("MAIN_SERVER_ADDRESS")
 	configs.RabbitMqUrl = os.Getenv("RABBITMQ_URL")
 	configs.FirebaseAuthKey = os.Getenv("FIREBASE_AUTH_KEY")

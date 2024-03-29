@@ -35,6 +35,7 @@ To run this project, you will need to add the following environment variables to
 | **`BUCKET_NAME_PREFIX`**               | if bucket names not exist use this. for example 'poster' --> 'test_poster'               | `false`  |               |
 | **`FirebaseAuthKey`**                  | a coded key from firebase that used in sending push notification                         | `true`   |               |
 | **`RABBITMQ_URL`**                     |                                                                                          | `true`   |               |
+| **`SERVER_ADDRESS`**                   | the url of the server                                                                    | `true`   |               |
 | **`MAIN_SERVER_ADDRESS`**              | the url of the downloader_api (main server)                                              | `true`   |               |
 | **`AgendaJobsCollection`**             |                                                                                          | `true`   |               |
 | **`DEFAULT_PROFILE_IMAGE`**            |                                                                                          | `true`   |               |

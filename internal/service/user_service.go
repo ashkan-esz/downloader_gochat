@@ -125,15 +125,19 @@ func (s *UserService) SignUp(registerVM *model.RegisterViewModel, ip string) (*m
 	}
 
 	//-----------------------------------
+	verifyEmailUrl := fmt.Sprintf("%v/v1/user/VerifyEmail/%v/%v",
+		configs.GetConfigs().ServerAddress, searchResult.UserId, user.EmailVerifyToken)
 	queueConf := rabbitmq.NewConfigPublish(rabbitmq.EmailExchange, rabbitmq.EmailBindingKey)
 	emailData := email.EmailQueueData{
 		Type:        email.UserRegistration,
 		UserId:      user.UserId,
 		RawUsername: user.RawUsername,
 		Email:       registerVM.Email,
-		Token:       user.EmailVerifyToken,
-		Host:        configs.GetConfigs().MainServerAddress,
+		Token:       "",
+		Host:        "",
+		Url:         verifyEmailUrl,
 		DeviceInfo:  nil,
+		IpLocation:  ipLocation,
 	}
 	s.rabbitmq.Publish(context.TODO(), emailData, queueConf, user.UserId)
 	//-----------------------------------
@@ -191,8 +195,10 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel, ip string) (*mode
 			RawUsername: searchResult.Username,
 			Email:       loginVM.Email,
 			Token:       "",
-			Host:        configs.GetConfigs().MainServerAddress,
+			Host:        "",
+			Url:         "",
 			DeviceInfo:  &loginVM.DeviceInfo,
+			IpLocation:  ipLocation,
 		}
 		s.rabbitmq.Publish(context.TODO(), emailData, queueConf, searchResult.UserId)
 		//-----------------------------------
@@ -560,8 +566,10 @@ func (s *UserService) UpdateUserPassword(userId int64, passwords *model.UpdatePa
 			RawUsername: searchResult.Username,
 			Email:       searchResult.Email,
 			Token:       "",
-			Host:        configs.GetConfigs().MainServerAddress,
+			Host:        "",
+			Url:         "",
 			DeviceInfo:  nil,
+			IpLocation:  "",
 		}
 		s.rabbitmq.Publish(context.TODO(), emailData, queueConf, searchResult.UserId)
 		//-----------------------------------
@@ -592,6 +600,8 @@ func (s *UserService) SendVerifyEmail(userId int64) error {
 	}
 
 	//-----------------------------------
+	verifyEmailUrl := fmt.Sprintf("%v/v1/user/VerifyEmail/%v/%v",
+		configs.GetConfigs().ServerAddress, searchResult.UserId, verifyToken)
 	queueConf := rabbitmq.NewConfigPublish(rabbitmq.EmailExchange, rabbitmq.EmailBindingKey)
 	queueConf.Expiration = strconv.FormatInt(verifyTokenExpire, 10)
 	emailData := email.EmailQueueData{
@@ -600,8 +610,10 @@ func (s *UserService) SendVerifyEmail(userId int64) error {
 		RawUsername: searchResult.Username,
 		Email:       searchResult.Email,
 		Token:       verifyToken,
-		Host:        configs.GetConfigs().MainServerAddress,
+		Host:        "",
+		Url:         verifyEmailUrl,
 		DeviceInfo:  nil,
+		IpLocation:  "",
 	}
 	s.rabbitmq.Publish(context.TODO(), emailData, queueConf, searchResult.UserId)
 	//-----------------------------------
@@ -632,6 +644,8 @@ func (s *UserService) SendDeleteAccount(userId int64) error {
 	}
 
 	//-----------------------------------
+	deleteUrl := fmt.Sprintf("%v/v1/user/deleteAccount/%v/%v",
+		configs.GetConfigs().ServerAddress, searchResult.UserId, verifyToken)
 	queueConf := rabbitmq.NewConfigPublish(rabbitmq.EmailExchange, rabbitmq.EmailBindingKey)
 	queueConf.Expiration = strconv.FormatInt(verifyTokenExpire, 10)
 	emailData := email.EmailQueueData{
@@ -640,8 +654,10 @@ func (s *UserService) SendDeleteAccount(userId int64) error {
 		RawUsername: searchResult.Username,
 		Email:       searchResult.Email,
 		Token:       verifyToken,
-		Host:        configs.GetConfigs().MainServerAddress,
+		Host:        "",
+		Url:         deleteUrl,
 		DeviceInfo:  nil,
+		IpLocation:  "",
 	}
 	s.rabbitmq.Publish(context.TODO(), emailData, queueConf, searchResult.UserId)
 	//-----------------------------------
