@@ -1,30 +1,19 @@
-FROM golang:1.16-alpine AS builder
+FROM golang:1.21-alpine as builder
+WORKDIR /app
 
-# Move to working directory (/build).
-WORKDIR /build
+RUN apk add libwebp-dev build-base
 
-# Copy and download dependency using go mod.
-COPY go.mod go.sum ./
+COPY go.* ./
 RUN go mod download
 
-# Copy the code into the container.
 COPY . .
 
-# Set necessary environment variables needed for our image
-# and build the API server.
-ENV CGO_ENABLED=0 GOOS=linux GOARCH=amd64
-RUN go build -ldflags="-s -w" -o apiserver .
+RUN CGO_ENABLED=1 GOOS=linux go build -ldflags="-s -w" -o /app/myapp cmd/api/main.go
 
-FROM scratch
+FROM alpine
+RUN apk add libwebp-dev
+WORKDIR /app
+COPY --from=builder /app/myapp /app/myapp
 
-# Copy binary and config files from /build
-# to root folder of scratch container.
-COPY --from=builder ["/build/apiserver", "/build/.env", "/"]
-
-# Export necessary port.
-EXPOSE 5000
-
-# Command to run when starting the container.
-ENTRYPOINT ["/cmd/api/main.go"]
-
-# sudo apt-get install libwebp-dev
+EXPOSE 7777
+ENTRYPOINT [ "/app/myapp" ]

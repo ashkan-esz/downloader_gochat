@@ -29,4 +29,17 @@ run_redis:
 run_dev:
 	clear && swag fmt && make update_swagger && go run cmd/api/main.go
 
-.PHONY: db_dev create_db_dev drop_db_dev migrate_up_db_dev migrate_down_db_dev update_swagger build_rabbitmq run_rabbitmq run_redis run_dev
+up:
+	docker-compose up --build
+
+build:
+	docker image build --network=host -t downloader_gochat .
+
+run:
+	docker run --rm --network=host --name downloader_gochat --env-file ./.env downloader_gochat
+
+push-image:
+	docker tag downloader_gochat ashkanaz2828/downloader_gochat
+	docker push ashkanaz2828/downloader_gochat
+
+.PHONY: db_dev create_db_dev drop_db_dev migrate_up_db_dev migrate_down_db_dev update_swagger build_rabbitmq run_rabbitmq run_redis run_dev up build run push-image
