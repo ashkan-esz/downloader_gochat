@@ -4,10 +4,10 @@ import (
 	"context"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
+	errorHandler "downloader_gochat/pkg/error"
 	"downloader_gochat/rabbitmq"
 	"encoding/json"
 	"fmt"
-	"log"
 	"slices"
 	"strconv"
 
@@ -46,7 +46,8 @@ func NewNotificationService(notifRepo repository.INotificationRepository, userRe
 			rabbitmq.NotifySetupDone(openConChan)
 			<-openConChan
 			if err := rabbit.Consume(ctx, notificationConfig, &notifSvc, NotificationConsumer); err != nil {
-				log.Printf("error consuming from queue %s: %s\n", rabbitmq.NotificationQueue, err)
+				errorMessage := fmt.Sprintf("error consuming from queue %s: %s", rabbitmq.NotificationQueue, err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		}()
 	}
@@ -72,7 +73,8 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 		err = notifSvc.notifRepo.SaveUserNotification(channelMessage.NotificationData)
 		if err != nil {
 			if err = d.Nack(false, true); err != nil {
-				log.Printf("error nacking [notification] message: %s\n", err)
+				errorMessage := fmt.Sprintf("error nacking [notification] message: %s", err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		} else {
 			notifSvc.handleNotification(channelMessage.NotificationData)
@@ -92,7 +94,8 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	}
 
 	if err = d.Ack(false); err != nil {
-		log.Printf("error acking [notification] message: %s\n", err)
+		errorMessage := fmt.Sprintf("error acking [notification] message: %s", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 }
 

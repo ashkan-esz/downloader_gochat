@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"downloader_gochat/configs"
+	errorHandler "downloader_gochat/pkg/error"
 	"encoding/base64"
 	"fmt"
 	"sync"
@@ -89,7 +90,7 @@ func (p *PushNotificationService) PushNotificationBufferHandler() {
 		t.Stop()
 		// send all buffered messages before quit
 		p.SendBufferedPushNotifications(messages)
-		fmt.Println("notification batch sender finished")
+		//fmt.Println("notification batch sender finished")
 	}()
 
 	for {
@@ -114,7 +115,8 @@ func (p *PushNotificationService) SendBufferedPushNotifications(messages []*mess
 
 	batchResp, err := p.FcmClient.SendEach(context.TODO(), messages)
 	if err != nil {
-		fmt.Printf("batch response: %+v, err: %s \n", batchResp, err)
+		errorMessage := fmt.Sprintf("firebase batch response: %+v, err: %s", batchResp, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 }
 

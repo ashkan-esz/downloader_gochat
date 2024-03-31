@@ -3,6 +3,8 @@ package rabbitmq
 import (
 	"context"
 	"downloader_gochat/configs"
+	errorHandler "downloader_gochat/pkg/error"
+	"fmt"
 	"log"
 	"runtime"
 	"sync"
@@ -178,14 +180,16 @@ func closeConnections(r *rabbit) {
 	if r.chConsumer != nil {
 		err = r.chConsumer.Close()
 		if err != nil {
-			log.Printf("Error closing consumer channel: [%s]\n", err)
+			errorMessage := fmt.Sprintf("Error closing consumer channel: [%s]", err)
+			errorHandler.SaveError(errorMessage, err)
 		}
 	}
 	for i, consumeChan := range r.consumerChannelPool {
 		if consumeChan != nil {
 			err = consumeChan.Close()
 			if err != nil {
-				log.Printf("Error closing consumer channel %v: [%s]\n", i, err)
+				errorMessage := fmt.Sprintf("Error closing consumer channel %v: [%s]", i, err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		}
 	}
@@ -193,14 +197,16 @@ func closeConnections(r *rabbit) {
 	if r.chProducer != nil {
 		err = r.chProducer.Close()
 		if err != nil {
-			log.Printf("Error closing producer channel: [%s]\n", err)
+			errorMessage := fmt.Sprintf("Error closing producer channel: [%s]", err)
+			errorHandler.SaveError(errorMessage, err)
 		}
 	}
 	for i, produceChan := range r.producerChannelPool {
 		if produceChan != nil {
 			err = produceChan.Close()
 			if err != nil {
-				log.Printf("Error closing producer channel %v: [%s]\n", i, err)
+				errorMessage := fmt.Sprintf("Error closing producer channel %v: [%s]", i, err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		}
 	}
@@ -208,13 +214,15 @@ func closeConnections(r *rabbit) {
 	if r.producerConn != nil {
 		err = r.producerConn.Close()
 		if err != nil {
-			log.Printf("Error closing connection: [%s]\n", err)
+			errorMessage := fmt.Sprintf("Error closing connection: [%s]", err)
+			errorHandler.SaveError(errorMessage, err)
 		}
 	}
 	if r.consumerConn != nil {
 		err = r.consumerConn.Close()
 		if err != nil {
-			log.Printf("Error closing connection: [%s]\n", err)
+			errorMessage := fmt.Sprintf("Error closing connection: [%s]", err)
+			errorHandler.SaveError(errorMessage, err)
 		}
 	}
 }

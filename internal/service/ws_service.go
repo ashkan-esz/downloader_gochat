@@ -4,6 +4,7 @@ import (
 	"context"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
+	errorHandler "downloader_gochat/pkg/error"
 	"downloader_gochat/rabbitmq"
 	"encoding/json"
 	"errors"
@@ -15,6 +16,7 @@ import (
 	"time"
 
 	"github.com/fasthttp/websocket"
+	"github.com/getsentry/sentry-go"
 	"github.com/google/uuid"
 	amqp "github.com/rabbitmq/amqp091-go"
 	"github.com/valyala/fasthttp"
@@ -62,7 +64,8 @@ func NewWsService(WsRepo repository.IWsRepository, userRep repository.IUserRepos
 			rabbitmq.NotifySetupDone(openConChan)
 			<-openConChan
 			if err := rabbit.Consume(ctx, config, &wsSvc, UserMessageConsumer); err != nil {
-				log.Printf("error consuming from queue %s: %s\n", rabbitmq.SingleChatQueue, err)
+				errorMessage := fmt.Sprintf("error consuming from queue %s: %s", rabbitmq.SingleChatQueue, err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		}()
 	}
@@ -79,7 +82,8 @@ func NewWsService(WsRepo repository.IWsRepository, userRep repository.IUserRepos
 			rabbitmq.NotifySetupDone(openConChan)
 			<-openConChan
 			if err := rabbit.Consume(ctx, groupConfig, &wsSvc, HandleGroupChatMessage); err != nil {
-				log.Printf("error consuming from queue %s: %s\n", rabbitmq.GroupChatQueue, err)
+				errorMessage := fmt.Sprintf("error consuming from queue %s: %s", rabbitmq.GroupChatQueue, err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		}()
 	}
@@ -92,7 +96,8 @@ func NewWsService(WsRepo repository.IWsRepository, userRep repository.IUserRepos
 			rabbitmq.NotifySetupDone(openConChan)
 			<-openConChan
 			if err := rabbit.Consume(ctx, messageStateConfig, &wsSvc, MessageStateConsumer); err != nil {
-				log.Printf("error consuming from queue %s: %s\n", rabbitmq.MessageStateQueue, err)
+				errorMessage := fmt.Sprintf("error consuming from queue %s: %s", rabbitmq.MessageStateQueue, err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		}()
 	}
@@ -211,7 +216,8 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 		chatMessages, err := wsSvc.wsRepo.GetSingleChatMessages(channelMessage.ChatMessagesReq)
 		if err != nil {
 			if err = d.Nack(false, true); err != nil {
-				log.Printf("error nacking message: %s\n", err)
+				errorMessage := fmt.Sprintf("error nacking message: %s", err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 			//if sender, ok, _ := wsSvc.hub.getClient(channelMessage.ChatMessagesReq.UserId); ok {
 			//	errorData := model.CreateActionError(500, err.Error(), model.SingleChatMessagesAction, channelMessage.ChatMessagesReq)
@@ -228,7 +234,8 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			chatMessages, err := wsSvc.GetSingleChatList(channelMessage.ChatsListReq)
 			if err != nil {
 				if err = d.Nack(false, true); err != nil {
-					log.Printf("error nacking message: %s\n", err)
+					errorMessage := fmt.Sprintf("error nacking message: %s", err)
+					errorHandler.SaveError(errorMessage, err)
 				}
 				//if sender, ok, _ := wsSvc.hub.getClient(channelMessage.ChatsListReq.UserId); ok {
 				//	errorData := model.CreateActionError(500, err.Error(), model.SingleChatsListAction, channelMessage.ChatsListReq)
@@ -244,7 +251,8 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	}
 
 	if err = d.Ack(false); err != nil {
-		log.Printf("error acking message: %s\n", err)
+		errorMessage := fmt.Sprintf("error acking message: %s", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 }
 
@@ -273,7 +281,8 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 					messageReceiver.Message <- errorData
 				} else {
 					if err = d.Nack(false, true); err != nil {
-						log.Printf("error nacking message: %s\n", err)
+						errorMessage := fmt.Sprintf("error nacking message: %s", err)
+						errorHandler.SaveError(errorMessage, err)
 					}
 					//errorData := model.CreateActionError(500, err.Error(), model.MessageReadAction, channelMessage.MessageRead)
 					//messageReceiver.Message <- errorData
@@ -324,7 +333,8 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	}
 
 	if err = d.Ack(false); err != nil {
-		log.Printf("error acking [messageState] message: %s\n", err)
+		errorMessage := fmt.Sprintf("error acking [messageState] message: %s", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 }
 
@@ -431,7 +441,8 @@ func (c *ClientConnection) WriteMessage(cc *Client) {
 				cc.Connections[i].Conn.SetWriteDeadline(time.Now().Add(writeWait))
 				err := cc.Connections[i].Conn.WriteJSON(message)
 				if err != nil {
-					fmt.Printf("error on sending json to client: %v\n", err)
+					errorMessage := fmt.Sprintf("error on sending json to client: %v", err)
+					errorHandler.SaveError(errorMessage, err)
 					//return
 					errorFlag = true
 				}
@@ -484,7 +495,8 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 		err := c.Conn.ReadJSON(&clientMessage)
 		if err != nil {
 			if websocket.IsUnexpectedCloseError(err, websocket.CloseGoingAway, websocket.CloseAbnormalClosure, websocket.CloseMessage, websocket.CloseNormalClosure) {
-				log.Printf("error: %v", err)
+				errorMessage := fmt.Sprintf("error: %v", err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 			break
 		}
@@ -597,6 +609,7 @@ func (c *ClientConnection) ReadMessage(cc *Client, hub *Hub, rabbit rabbitmq.Rab
 
 func reviveWebsocket() {
 	if err := recover(); err != nil {
+		sentry.CurrentHub().Recover(err)
 		if os.Getenv("LOG_PANIC_TRACE") == "true" {
 			log.Println(
 				"level:", "error",

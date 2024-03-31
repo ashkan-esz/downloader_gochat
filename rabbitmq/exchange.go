@@ -1,7 +1,8 @@
 package rabbitmq
 
 import (
-	"log"
+	errorHandler "downloader_gochat/pkg/error"
+	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -35,7 +36,8 @@ func (r *rabbit) createExchanges() {
 	}
 	err := r.CreateExchange(config)
 	if err != nil {
-		log.Printf("error creating exchange %v: %s\n", ChatExchange, err)
+		errorMessage := fmt.Sprintf("error creating exchange %v: %s", ChatExchange, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	messageStateConfig := ConfigExchange{
@@ -49,7 +51,8 @@ func (r *rabbit) createExchanges() {
 	}
 	err = r.CreateExchange(messageStateConfig)
 	if err != nil {
-		log.Printf("error creating exchange %v: %s\n", MessageStateExchange, err)
+		errorMessage := fmt.Sprintf("error creating exchange %v: %s", MessageStateExchange, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	notificationConfig := ConfigExchange{
@@ -63,7 +66,8 @@ func (r *rabbit) createExchanges() {
 	}
 	err = r.CreateExchange(notificationConfig)
 	if err != nil {
-		log.Printf("error creating exchange %v: %s\n", NotificationExchange, err)
+		errorMessage := fmt.Sprintf("error creating exchange %v: %s", NotificationExchange, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	blurHashConfig := ConfigExchange{
@@ -77,7 +81,8 @@ func (r *rabbit) createExchanges() {
 	}
 	err = r.CreateExchange(blurHashConfig)
 	if err != nil {
-		log.Printf("error creating exchange %v: %s\n", BlurHashExchange, err)
+		errorMessage := fmt.Sprintf("error creating exchange %v: %s", BlurHashExchange, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	emailConfig := ConfigExchange{
@@ -91,7 +96,8 @@ func (r *rabbit) createExchanges() {
 	}
 	err = r.CreateExchange(emailConfig)
 	if err != nil {
-		log.Printf("error creating exchange %v: %s\n", EmailExchange, err)
+		errorMessage := fmt.Sprintf("error creating exchange %v: %s", EmailExchange, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 }
 

@@ -4,6 +4,7 @@ import (
 	"context"
 	"downloader_gochat/db/redis"
 	"downloader_gochat/model"
+	errorHandler "downloader_gochat/pkg/error"
 	"encoding/json"
 	"fmt"
 	"slices"
@@ -158,12 +159,14 @@ func getCachedMultiUserData(userIds []int64) ([]model.CachedUserData, error) {
 func setUserDataCache(userId int64, userData *model.CachedUserData) error {
 	jsonData, err := json.Marshal(userData)
 	if err != nil {
-		fmt.Println("Redis Error on saving userData: ", err)
+		errorMessage := fmt.Sprintf("Redis Error on saving userData: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 		return err
 	}
 	err = redis.SetRedis(context.Background(), userDataCachePrefix+strconv.FormatInt(userId, 10), jsonData, 24*time.Hour)
 	if err != nil {
-		fmt.Println("Redis Error on saving userData: ", err)
+		errorMessage := fmt.Sprintf("Redis Error on saving userData: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 	return err
 }

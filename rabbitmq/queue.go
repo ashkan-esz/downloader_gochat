@@ -1,7 +1,8 @@
 package rabbitmq
 
 import (
-	"log"
+	errorHandler "downloader_gochat/pkg/error"
+	"fmt"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 )
@@ -43,7 +44,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	_, err := r.CreateQueue(config)
 	if err != nil {
-		log.Printf("error creating queue %s: %s\n", SingleChatQueue, err)
+		errorMessage := fmt.Sprintf("error creating queue %s: %s", SingleChatQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	bindConfig := ConfigBindQueue{
@@ -54,7 +56,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	err = r.BindQueueExchange(bindConfig)
 	if err != nil {
-		log.Printf("error binding queue %s: %s\n", SingleChatQueue, err)
+		errorMessage := fmt.Sprintf("error binding queue %s: %s", SingleChatQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	//------------------------------------
@@ -70,7 +73,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	_, err = r.CreateQueue(config)
 	if err != nil {
-		log.Printf("error creating queue %s: %s\n", GroupChatQueue, err)
+		errorMessage := fmt.Sprintf("error creating queue %s: %s", GroupChatQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	bindConfig = ConfigBindQueue{
@@ -81,7 +85,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	err = r.BindQueueExchange(bindConfig)
 	if err != nil {
-		log.Printf("error binding queue %s: %s\n", GroupChatQueue, err)
+		errorMessage := fmt.Sprintf("error binding queue %s: %s", GroupChatQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	//------------------------------------
@@ -97,7 +102,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	_, err = r.CreateQueue(MessageStateConfig)
 	if err != nil {
-		log.Printf("error creating queue %s: %s\n", MessageStateQueue, err)
+		errorMessage := fmt.Sprintf("error creating queue %s: %s", MessageStateQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	MessageStateBindConfig := ConfigBindQueue{
@@ -108,7 +114,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	err = r.BindQueueExchange(MessageStateBindConfig)
 	if err != nil {
-		log.Printf("error binding queue %s: %s\n", MessageStateQueue, err)
+		errorMessage := fmt.Sprintf("error binding queue %s: %s", MessageStateQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	//------------------------------------
@@ -124,7 +131,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	_, err = r.CreateQueue(NotificationConfig)
 	if err != nil {
-		log.Printf("error creating queue %s: %s\n", NotificationQueue, err)
+		errorMessage := fmt.Sprintf("error creating queue %s: %s", NotificationQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	NotificationBindConfig := ConfigBindQueue{
@@ -135,7 +143,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	err = r.BindQueueExchange(NotificationBindConfig)
 	if err != nil {
-		log.Printf("error binding queue %s: %s\n", NotificationQueue, err)
+		errorMessage := fmt.Sprintf("error binding queue %s: %s", NotificationQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	//------------------------------------
@@ -151,7 +160,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	_, err = r.CreateQueue(blurHashConfig)
 	if err != nil {
-		log.Printf("error creating queue %s: %s\n", BlurHashQueue, err)
+		errorMessage := fmt.Sprintf("error creating queue %s: %s", BlurHashQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	blurHashConfigBindConfig := ConfigBindQueue{
@@ -162,7 +172,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	err = r.BindQueueExchange(blurHashConfigBindConfig)
 	if err != nil {
-		log.Printf("error binding queue %s: %s\n", BlurHashQueue, err)
+		errorMessage := fmt.Sprintf("error binding queue %s: %s", BlurHashQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	//------------------------------------
@@ -178,7 +189,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	_, err = r.CreateQueue(emailConfig)
 	if err != nil {
-		log.Printf("error creating queue %s: %s\n", EmailQueue, err)
+		errorMessage := fmt.Sprintf("error creating queue %s: %s", EmailQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	emailConfigBindConfig := ConfigBindQueue{
@@ -189,7 +201,8 @@ func (r *rabbit) createQueuesAndBind() {
 	}
 	err = r.BindQueueExchange(emailConfigBindConfig)
 	if err != nil {
-		log.Printf("error binding queue %s: %s\n", EmailQueue, err)
+		errorMessage := fmt.Sprintf("error binding queue %s: %s", EmailQueue, err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 }
 

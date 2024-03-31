@@ -10,6 +10,7 @@ import (
 )
 
 type ConfigStruct struct {
+	Port                         string
 	DbUrl                        string
 	AccessTokenSecret            string
 	RefreshTokenSecret           string
@@ -34,6 +35,8 @@ type ConfigStruct struct {
 	CloudStorageAccessKey        string
 	CloudStorageSecretAccessKey  string
 	CloudStorageBucketNamePrefix string
+	SentryDns                    string
+	PrintErrors                  bool
 }
 
 var configs = ConfigStruct{}
@@ -44,9 +47,10 @@ func GetConfigs() ConfigStruct {
 
 func LoadEnvVariables() {
 	if err := godotenv.Load(); err != nil {
-		log.Fatalf("Error loading .env file: %v", err)
+		log.Printf("Error loading .env file: %v", err)
 	}
 
+	configs.Port = os.Getenv("PORT")
 	configs.DbUrl = os.Getenv("POSTGRES_DATABASE_URL")
 	configs.AccessTokenSecret = os.Getenv("ACCESS_TOKEN_SECRET")
 	configs.RefreshTokenSecret = os.Getenv("REFRESH_TOKEN_SECRET")
@@ -79,4 +83,6 @@ func LoadEnvVariables() {
 	}
 	configs.AccessTokenExpireHour, err = strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXPIRE_HOUR"))
 	configs.RefreshTokenExpireDay, err = strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXPIRE_DAY"))
+	configs.SentryDns = os.Getenv("SENTRY_DNS")
+	configs.PrintErrors = os.Getenv("PRINT_ERRORS") == "true"
 }

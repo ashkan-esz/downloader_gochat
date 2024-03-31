@@ -2,6 +2,7 @@ package configs
 
 import (
 	"context"
+	errorHandler "downloader_gochat/pkg/error"
 	"fmt"
 	"sync"
 	"time"
@@ -55,7 +56,8 @@ func load(mongodb *mongo.Database) {
 		FindOne(context.Background(), bson.D{{"title", "server configs"}}).
 		Decode(&dbConfigs)
 	if err != nil {
-		fmt.Printf("could not get dbConfig from mongodb: %s\n", err)
+		errorMessage := fmt.Sprintf("could not get dbConfig from mongodb: %s", err)
+		errorHandler.SaveError(errorMessage, err)
 		//log.Fatalf("could not get dbConfig from mongodb: %s", err)
 	}
 }

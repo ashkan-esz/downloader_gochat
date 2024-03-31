@@ -3,6 +3,8 @@ package db
 import (
 	"downloader_gochat/configs"
 	"downloader_gochat/model"
+	errorHandler "downloader_gochat/pkg/error"
+	"fmt"
 	"log"
 	"strings"
 
@@ -47,25 +49,29 @@ func (d *Database) AutoMigrate() {
 	////err := d.db.Exec("DROP TYPE IF EXISTS \"titleRelation\"").Error
 	err := d.db.Exec("create type \"titleRelation\" as enum ('prequel', 'sequel', 'spin_off', 'side_story', 'full_story', 'summary', 'parent_story', 'other', 'alternative_setting', 'alternative_version');").Error
 	if err != nil && !strings.Contains(err.Error(), "already exists") {
-		log.Printf("error on AutoMigrate: %v\n", err)
+		errorMessage := fmt.Sprintf("error on AutoMigrate: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	////err = d.db.Exec("DROP TYPE IF EXISTS \"userRole\"").Error
 	err = d.db.Exec("create type \"userRole\" as enum ('test_user', 'user', 'dev', 'admin');").Error
 	if err != nil && !strings.Contains(err.Error(), "already exists") {
-		log.Printf("error on AutoMigrate: %v\n", err)
+		errorMessage := fmt.Sprintf("error on AutoMigrate: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	////err = d.db.Exec("DROP TYPE IF EXISTS \"likeDislike\"").Error
 	//err = d.db.Exec("create type \"likeDislike\" as enum ('like', 'dislike');").Error
 	if err != nil && !strings.Contains(err.Error(), "already exists") {
-		log.Printf("error on AutoMigrate: %v\n", err)
+		errorMessage := fmt.Sprintf("error on AutoMigrate: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	////err = d.db.Exec("DROP TYPE IF EXISTS \"MbtiType\"").Error
 	err = d.db.Exec("create type \"MbtiType\" as enum ('ISTJ', 'ISFJ', 'INFJ', 'INTJ', 'ISTP', 'ISFP', 'INFP', 'INTP', 'ESTP', 'ESFP', 'ENFP', 'ENTP', 'ESTJ', 'ESFJ', 'ENFJ', 'ENTJ');\n").Error
 	if err != nil && !strings.Contains(err.Error(), "already exists") {
-		log.Printf("error on AutoMigrate: %v\n", err)
+		errorMessage := fmt.Sprintf("error on AutoMigrate: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	d.db.Exec("DROP TABLE IF EXISTS \"ProfileImage\"")
@@ -93,12 +99,14 @@ func (d *Database) AutoMigrate() {
 		&model.Room{}, &model.Message{}, &model.UserMessageRead{}, &model.MediaFile{},
 	)
 	if err != nil {
-		log.Printf("error on AutoMigrate: %v\n", err)
+		errorMessage := fmt.Sprintf("error on AutoMigrate: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 
 	err = d.db.Model(&model.NotificationEntityType{}).CreateInBatches(model.NotificationEntityTypesAndId, 10).Error
 	if err != nil {
-		log.Printf("error on Inserting Notification entity types: %v\n", err)
+		errorMessage := fmt.Sprintf("error on Inserting Notification entity types: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 }
 

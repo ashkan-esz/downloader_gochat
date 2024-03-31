@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"downloader_gochat/internal/repository"
+	errorHandler "downloader_gochat/pkg/error"
 	"downloader_gochat/rabbitmq"
 	"encoding/json"
 	"fmt"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/buckket/go-blurhash"
 	"github.com/disintegration/imaging"
+	"github.com/getsentry/sentry-go"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -42,7 +44,8 @@ func NewBlurHashService(movieRepo repository.IMovieRepository, castRepo reposito
 			rabbitmq.NotifySetupDone(openConChan)
 			<-openConChan
 			if err := rabbit.Consume(ctx, blurHashConfig, &blurHashSvc, BlurHashConsumer); err != nil {
-				log.Printf("error consuming from queue %s: %s\n", rabbitmq.BlurHashQueue, err)
+				errorMessage := fmt.Sprintf("error consuming from queue %s: %s", rabbitmq.BlurHashQueue, err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		}()
 	}
@@ -87,7 +90,8 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 		hashStr, err = blurSvc.CreateBlurHash(channelMessage.Url)
 		if err != nil {
 			if err = d.Nack(false, true); err != nil {
-				log.Printf("error nacking [blurHash] message: %s\n", err)
+				errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 			return
 		}
@@ -98,7 +102,8 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 		id, err := strconv.ParseInt(channelMessage.Id, 10, 64)
 		if err != nil {
 			if err = d.Nack(false, true); err != nil {
-				log.Printf("error nacking [blurHash] message: %s\n", err)
+				errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 			return
 		}
@@ -108,15 +113,18 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			err = blurSvc.castRepo.SaveCharacterCastImageBlurHash(id, hashStr)
 		}
 		if err != nil {
-			log.Printf("error saving [%s] blurHash: %s\n", channelMessage.Type, err)
+			errorMessage := fmt.Sprintf("error saving [%s] blurHash: %s", channelMessage.Type, err)
+			errorHandler.SaveError(errorMessage, err)
 			if err = d.Nack(false, true); err != nil {
-				log.Printf("error nacking [blurHash] message: %s\n", err)
+				errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		}
 	case moviePoster:
 		posters, err := blurSvc.movieRepo.GetPosters(channelMessage.Id)
 		if err != nil {
-			log.Printf("error on getting posters to generate [blurHash]: %s\n", err)
+			errorMessage := fmt.Sprintf("error on getting posters to generate [blurHash]: %s", err)
+			errorHandler.SaveError(errorMessage, err)
 		}
 		if posters != nil && len(posters) > 0 {
 			for i := range posters {
@@ -128,9 +136,11 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 
 			err = blurSvc.movieRepo.SavePosters(channelMessage.Id, posters)
 			if err != nil {
-				log.Printf("error saving [%s] blurHash: %s\n", channelMessage.Type, err)
+				errorMessage := fmt.Sprintf("error saving [%s] blurHash: %s", channelMessage.Type, err)
+				errorHandler.SaveError(errorMessage, err)
 				if err = d.Nack(false, true); err != nil {
-					log.Printf("error nacking [blurHash] message: %s\n", err)
+					errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
+					errorHandler.SaveError(errorMessage, err)
 				}
 			}
 		}
@@ -141,15 +151,18 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			err = blurSvc.movieRepo.SavePosterWideS3BlurHash(channelMessage.Id, channelMessage.Url, hashStr)
 		}
 		if err != nil {
-			log.Printf("error saving [%s] blurHash: %s\n", channelMessage.Type, err)
+			errorMessage := fmt.Sprintf("error saving [%s] blurHash: %s", channelMessage.Type, err)
+			errorHandler.SaveError(errorMessage, err)
 			if err = d.Nack(false, true); err != nil {
-				log.Printf("error nacking [blurHash] message: %s\n", err)
+				errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
+				errorHandler.SaveError(errorMessage, err)
 			}
 		}
 	}
 
 	if err = d.Ack(false); err != nil {
-		log.Printf("error acking [blurHash] message: %s\n", err)
+		errorMessage := fmt.Sprintf("error acking [blurHash] message: %s", err)
+		errorHandler.SaveError(errorMessage, err)
 	}
 }
 
@@ -160,11 +173,13 @@ func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 	// download
 	resp, err := http.Get(url)
 	if err != nil {
-		fmt.Println("Error on downloading image: ", err)
+		errorMessage := fmt.Sprintf("Error on downloading image: %s", err)
+		errorHandler.SaveError(errorMessage, err)
 		return "", err
 	}
 	if resp.StatusCode != http.StatusOK {
-		fmt.Println("Error on downloading image: ", fmt.Errorf("bad status: %s", resp.Status))
+		errorMessage := fmt.Sprintf("Error on downloading image: %v", fmt.Errorf("bad status: %s", resp.Status))
+		errorHandler.SaveError(errorMessage, err)
 		return "", err
 	}
 	defer resp.Body.Close()
@@ -172,14 +187,16 @@ func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 	// decode
 	img, err := imaging.Decode(resp.Body)
 	if err != nil {
-		fmt.Println("Error on decoding downloaded image: ", err)
+		errorMessage := fmt.Sprintf("Error on decoding downloaded image: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 		return "", err
 	}
 
 	//creating blurHash
 	str, err := blurhash.Encode(4, 3, img)
 	if err != nil {
-		fmt.Println("Error on creating blurHash from downloaded image: ", err)
+		errorMessage := fmt.Sprintf("Error on creating blurHash from downloaded image: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 		return "", err
 	}
 	return str, nil
@@ -191,6 +208,7 @@ func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 
 func revive() {
 	if err := recover(); err != nil {
+		sentry.CurrentHub().Recover(err)
 		if os.Getenv("LOG_PANIC_TRACE") == "true" {
 			log.Println(
 				"level:", "error",

@@ -6,6 +6,7 @@ import (
 	"downloader_gochat/cloudStorage"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
+	errorHandler "downloader_gochat/pkg/error"
 	"downloader_gochat/rabbitmq"
 	"encoding/base64"
 	"fmt"
@@ -142,7 +143,8 @@ func (m *MediaService) UploadFile(userId int64, messageData *model.UploadMediaRe
 func createThumbnailAndBlurHash(contentType string, fileBuffer multipart.File) (string, string) {
 	img, err := imaging.Decode(fileBuffer)
 	if err != nil {
-		fmt.Println("Error on decoding uploaded image: ", err)
+		errorMessage := fmt.Sprintf("Error on decoding uploaded image: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 		return "", ""
 	}
 
@@ -155,11 +157,13 @@ func createThumbnailAndBlurHash(contentType string, fileBuffer multipart.File) (
 		//err = jpeg.Encode(newbuf, dstImage, &jpeg.Options{Quality: 20})
 		options, err := encoder.NewLossyEncoderOptions(encoder.PresetDefault, 30)
 		if err != nil {
-			fmt.Println("Error on creating webp options: ", err)
+			errorMessage := fmt.Sprintf("Error on creating webp options: %v", err)
+			errorHandler.SaveError(errorMessage, err)
 		} else {
 			err = webp.Encode(newbuf, dstImage, options)
 			if err != nil {
-				fmt.Println("Error on encoding webp: ", err)
+				errorMessage := fmt.Sprintf("Error on encoding webp: %v", err)
+				errorHandler.SaveError(errorMessage, err)
 			} else {
 				str := base64.StdEncoding.EncodeToString(newbuf.Bytes())
 				//thumbnailStr = "data:image/jpeg;base64," + str
@@ -172,7 +176,8 @@ func createThumbnailAndBlurHash(contentType string, fileBuffer multipart.File) (
 		//creating blurHash from thumbnail image
 		str, err := blurhash.Encode(4, 3, dstImage)
 		if err != nil {
-			fmt.Println("Error on creating blurHash from thumbnail image: ", err)
+			errorMessage := fmt.Sprintf("Error on creating blurHash from thumbnail image: %v", err)
+			errorHandler.SaveError(errorMessage, err)
 			return thumbnailStr, ""
 		}
 		return thumbnailStr, str
@@ -180,7 +185,8 @@ func createThumbnailAndBlurHash(contentType string, fileBuffer multipart.File) (
 		//creating blurHash from original image
 		str, err := blurhash.Encode(4, 3, img)
 		if err != nil {
-			fmt.Println("Error on creating blurHash from original image: ", err)
+			errorMessage := fmt.Sprintf("Error on creating blurHash from original image: %v", err)
+			errorHandler.SaveError(errorMessage, err)
 			return thumbnailStr, ""
 		}
 		return thumbnailStr, str

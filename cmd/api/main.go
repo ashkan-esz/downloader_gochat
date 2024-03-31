@@ -14,6 +14,9 @@ import (
 	"downloader_gochat/pkg/geoip"
 	"downloader_gochat/rabbitmq"
 	"log"
+	"time"
+
+	"github.com/getsentry/sentry-go"
 )
 
 // @title						Fiber Swagger Example API
@@ -37,6 +40,32 @@ import (
 // @Produce					json
 func main() {
 	configs.LoadEnvVariables()
+
+	err := sentry.Init(sentry.ClientOptions{
+		Dsn: configs.GetConfigs().SentryDns,
+		// Set TracesSampleRate to 1.0 to capture 100%
+		// of transactions for performance monitoring.
+		// We recommend adjusting this value in production,
+		TracesSampleRate: 0.1,
+		EnableTracing:    true,
+		Debug:            true,
+		AttachStacktrace: true,
+		//BeforeSend: func(event *sentry.Event, hint *sentry.EventHint) *sentry.Event {
+		//	if hint.Context != nil {
+		//		if c, ok := hint.Context.Value(sentry.RequestContextKey).(*fiber.Ctx); ok {
+		//			// You have access to the original Context if it panicked
+		//			fmt.Println(utils.ImmutableString(c.Hostname()))
+		//		}
+		//	}
+		//	fmt.Println(event)
+		//	return event
+		//},
+	})
+	if err != nil {
+		log.Fatalf("sentry.Init: %s", err)
+	}
+	// Flush buffered events before the program terminates.
+	defer sentry.Flush(2 * time.Second)
 
 	go redis.ConnectRedis()
 	go geoip.Load()
@@ -81,5 +110,5 @@ func main() {
 	_ = service.NewBlurHashService(movieRep, castRep, rabbit)
 
 	api.InitRouter(userHandler, wsHandler, notifHandler, mediaHandler)
-	api.Start("0.0.0.0:8080")
+	api.Start("0.0.0.0:" + configs.GetConfigs().Port)
 }

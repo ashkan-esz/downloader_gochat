@@ -21,6 +21,7 @@ To run this project, you will need to add the following environment variables to
 | **`MONGODB_DATABASE_URL`**             |                                                                                          | `true`   |               |
 | **`REDIS_URL`**                        |                                                                                          | `true`   |               |
 | **`REDIS_PASSWORD`**                   |                                                                                          | `true`   |               |
+| **`SENTRY_DNS`**                       | see [sentry.io](https://sentry.io)                                                       | `false`  |               |
 | **`ACCESS_TOKEN_SECRET`**              |                                                                                          | `true`   |               |
 | **`REFRESH_TOKEN_SECRET`**             |                                                                                          | `true`   |               |
 | **`ACCESS_TOKEN_EXPIRE_HOUR`**         |                                                                                          | `true`   |               |
@@ -40,6 +41,7 @@ To run this project, you will need to add the following environment variables to
 | **`AgendaJobsCollection`**             |                                                                                          | `true`   |               |
 | **`DEFAULT_PROFILE_IMAGE`**            |                                                                                          | `true`   |               |
 | **`MIGRATE_ON_START`**                 |                                                                                          | `true`   |               |
+| **`PRINT_ERRORS`**                     |                                                                                          | `false`  | false         |
 
 >**NOTE: check [configs schema](https://github.com/ashkan-esz/downloader_api/blob/master/readme/CONFIGS.README.md) for other configs that read from db.**
 
