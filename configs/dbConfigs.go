@@ -2,11 +2,12 @@ package configs
 
 import (
 	"context"
-	errorHandler "downloader_gochat/pkg/error"
 	"fmt"
+	"log"
 	"sync"
 	"time"
 
+	"github.com/getsentry/sentry-go"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -57,7 +58,10 @@ func load(mongodb *mongo.Database) {
 		Decode(&dbConfigs)
 	if err != nil {
 		errorMessage := fmt.Sprintf("could not get dbConfig from mongodb: %s", err)
-		errorHandler.SaveError(errorMessage, err)
+		if configs.PrintErrors {
+			log.Println(errorMessage)
+		}
+		sentry.CaptureException(err)
 		//log.Fatalf("could not get dbConfig from mongodb: %s", err)
 	}
 }
