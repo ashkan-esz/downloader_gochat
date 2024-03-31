@@ -12,10 +12,7 @@ package main
 //todo : share lists, collections
 //todo : share movie
 
-//todo : docker
-//todo : connect to main server
-
-//todo : error handling
-//todo : add sentry
-
-//todo : check login api performance
+//todo : edit nginx for proxy, ipLocation not working
+//todo : connect to main server (nginx config)
+//todo : add to main server
+//todo : push to hub.docker

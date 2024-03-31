@@ -126,7 +126,7 @@ func (s *UserService) SignUp(registerVM *model.RegisterViewModel, ip string) (*m
 
 	//-----------------------------------
 	verifyEmailUrl := fmt.Sprintf("%v/v1/user/VerifyEmail/%v/%v",
-		configs.GetConfigs().ServerAddress, searchResult.UserId, user.EmailVerifyToken)
+		configs.GetConfigs().ServerAddress, user.UserId, user.EmailVerifyToken)
 	queueConf := rabbitmq.NewConfigPublish(rabbitmq.EmailExchange, rabbitmq.EmailBindingKey)
 	emailData := email.EmailQueueData{
 		Type:        email.UserRegistration,
