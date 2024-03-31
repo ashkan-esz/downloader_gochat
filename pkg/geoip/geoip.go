@@ -1,6 +1,8 @@
 package geoip
 
 import (
+	errorHandler "downloader_gochat/pkg/error"
+	_ "embed"
 	"fmt"
 	"log"
 	"net"
@@ -23,8 +25,13 @@ type record struct {
 	} `maxminddb:"city"`
 }
 
+//go:embed GeoLite2-City.mmdb
+var geoLiteDb []byte
+
 func Load() {
-	db2, err := maxminddb.Open("pkg/geoip/GeoLite2-City.mmdb")
+	//f0, err := os.Getwd()
+	//db2, err := maxminddb.Open(f0 + "/pkg/geoip/GeoLite2-City.mmdb")
+	db2, err := maxminddb.FromBytes(geoLiteDb)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -36,7 +43,8 @@ func GetRequestLocation(ipString string) string {
 	ip := net.ParseIP(ipString)
 	err := db.Lookup(ip, &r)
 	if err != nil {
-		fmt.Println(err)
+		errorMessage := fmt.Sprintf("error on lookup ip location: %v", err)
+		errorHandler.SaveError(errorMessage, err)
 		return ""
 	}
 	country := r.Country.Names["en"]
