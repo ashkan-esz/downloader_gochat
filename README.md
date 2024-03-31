@@ -22,6 +22,7 @@ To run this project, you will need to add the following environment variables to
 | **`REDIS_URL`**                        |                                                                                          | `true`   |               |
 | **`REDIS_PASSWORD`**                   |                                                                                          | `true`   |               |
 | **`SENTRY_DNS`**                       | see [sentry.io](https://sentry.io)                                                       | `false`  |               |
+| **`SENTRY_RELEASE`**                   | see [sentry release](https://docs.sentry.io/product/releases/.)                          | `false`  |               |
 | **`ACCESS_TOKEN_SECRET`**              |                                                                                          | `true`   |               |
 | **`REFRESH_TOKEN_SECRET`**             |                                                                                          | `true`   |               |
 | **`ACCESS_TOKEN_EXPIRE_HOUR`**         |                                                                                          | `true`   |               |

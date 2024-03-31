@@ -36,6 +36,7 @@ type ConfigStruct struct {
 	CloudStorageSecretAccessKey  string
 	CloudStorageBucketNamePrefix string
 	SentryDns                    string
+	SentryRelease                string
 	PrintErrors                  bool
 }
 
@@ -84,5 +85,6 @@ func LoadEnvVariables() {
 	configs.AccessTokenExpireHour, err = strconv.Atoi(os.Getenv("ACCESS_TOKEN_EXPIRE_HOUR"))
 	configs.RefreshTokenExpireDay, err = strconv.Atoi(os.Getenv("REFRESH_TOKEN_EXPIRE_DAY"))
 	configs.SentryDns = os.Getenv("SENTRY_DNS")
+	configs.SentryRelease = os.Getenv("SENTRY_RELEASE")
 	configs.PrintErrors = os.Getenv("PRINT_ERRORS") == "true"
 }
