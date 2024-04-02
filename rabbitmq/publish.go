@@ -36,6 +36,7 @@ func (r *rabbit) Publish(ctx context.Context, myStruct interface{}, config Confi
 		config.Mandatory,
 		config.Immediate,
 		amqp.Publishing{
+			DeliveryMode:    config.DeliveryMode,
 			Headers:         config.Headers,
 			ContentType:     config.ContentType,
 			ContentEncoding: config.ContentEncoding,

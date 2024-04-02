@@ -1,11 +1,11 @@
 {
     "schemes": [
-        "http"
+        "https"
     ],
     "swagger": "2.0",
     "info": {
-        "description": "This is a sample server server.",
-        "title": "Fiber Swagger Example API",
+        "description": "Chat service of the downloader_api project.",
+        "title": "Go Chat Server",
         "termsOfService": "http://swagger.io/terms/",
         "contact": {
             "name": "API Support",
@@ -18,7 +18,7 @@
         },
         "version": "2.0"
     },
-    "host": "localhost:8080",
+    "host": "chat.movieTracker.mom",
     "basePath": "/",
     "paths": {
         "/": {

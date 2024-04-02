@@ -19,23 +19,23 @@ import (
 	"github.com/getsentry/sentry-go"
 )
 
-// @title						Fiber Swagger Example API
+// @title						Go Chat Server
 // @version					2.0
-// @description				This is a sample server server.
+// @description				Chat service of the downloader_api project.
 // @termsOfService				http://swagger.io/terms/
 // @contact.name				API Support
 // @contact.url				http://www.swagger.io/support
 // @contact.email				support@swagger.io
 // @license.name				Apache 2.0
 // @license.url				http://www.apache.org/licenses/LICENSE-2.0.html
-// @host						localhost:8080
+// @host						chat.movieTracker.mom
 // @BasePath					/
-// @schemes					http
+// @schemes					https
 // @securityDefinitions.apikey	BearerAuth
 // @in							header
 // @name						Authorization
 // @description				Type "Bearer" followed by a space and JWT token.
-// @tokenUrl					http://localhost:8080/v1/user/token
+// @tokenUrl					chat.movieTracker.mom/v1/user/getToken
 // @Accept						json
 // @Produce					json
 func main() {
@@ -47,7 +47,7 @@ func main() {
 		// Set TracesSampleRate to 1.0 to capture 100%
 		// of transactions for performance monitoring.
 		// We recommend adjusting this value in production,
-		TracesSampleRate: 0.1,
+		TracesSampleRate: 1,
 		EnableTracing:    true,
 		Debug:            true,
 		AttachStacktrace: true,

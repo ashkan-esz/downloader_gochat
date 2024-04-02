@@ -1,7 +1,7 @@
 version: '3.4'
 
 services:
-  chatService:
+  chat:
     image: downloader-gochat
     network_mode: host
     depends_on:
@@ -14,15 +14,15 @@ services:
     environment:
       PORT: 3002
       MAIN_SERVER_ADDRESS: api.movieTracker.mom
-      CORS_ALLOWED_ORIGINS: https://www.movietracker.mom --- https://movietracker.mom --- http://movietracker.mom --- https://admin.movietracker.mom --- http://admin.movietracker.mom
+      CORS_ALLOWED_ORIGINS: https://www.movietracker.mom --- https://movietracker.mom --- http://movietracker.mom --- https://admin.movietracker.mom --- http://admin.movietracker.mom --- https://chat.movietracker.mom
       LOG_PANIC_TRACE: 'true'
     #    ports:
     #      - "3000:3000"
     deploy:
       resources:
         limits:
-          cpus: "0.2"
-          memory: 100M
+          cpus: "0.4"
+          memory: 150M
         reservations:
           memory: 20M
     restart: always
@@ -30,6 +30,7 @@ services:
   rabbitmq:
     image: rabbitmq
     network_mode: host
+    container_name: my-rabbitmq
     build:
       context: .
       dockerfile: ./docker/rabbitmq/Dockerfile
@@ -39,9 +40,12 @@ services:
       - PORT=5672
       - RABBITMQ_DEFAULT_USER=${RABBITMQ_DEFAULT_USER}
       - RABBITMQ_DEFAULT_PASS=${RABBITMQ_DEFAULT_PASS}
+      - RABBITMQ_ERLANG_COOKIE=unique-erlang-cookie
     #    ports:
     #      - "5672:5672"
     #      - "15672:15672"
+    volumes:
+      - rabbitmq:/var/lib/rabbitmq/
     deploy:
       resources:
         limits:
@@ -54,7 +58,7 @@ services:
   postgresDb:
     image: postgres:16.0-alpine3.18
     env_file: ./.env
-    network_mode: service:chatService
+    network_mode: service:chat
     container_name: downloader_postgres
     environment:
       - POSTGRES_USER=postgres
@@ -82,7 +86,7 @@ services:
 volumes:
   redis:
     driver: local
-  telegrambot:
+  rabbitmq:
     driver: local
   pgdata:
     driver: local

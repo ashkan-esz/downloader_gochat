@@ -55,6 +55,7 @@ type ConfigConsume struct {
 
 // ConfigPublish is the configuration for the publisher
 type ConfigPublish struct {
+	DeliveryMode    uint8
 	Exchange        string
 	RoutingKey      string
 	Mandatory       bool
@@ -85,6 +86,7 @@ func NewConfigConsume(queueName, consumer string) ConfigConsume {
 // NewConfigPublish helper function to create a new ConfigPublish with some default values
 func NewConfigPublish(exchange, routingKey string) ConfigPublish {
 	return ConfigPublish{
+		DeliveryMode:    2,
 		Exchange:        exchange,
 		RoutingKey:      routingKey,
 		Mandatory:       false,

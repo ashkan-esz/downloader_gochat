@@ -59,6 +59,7 @@ var upgrader = websocket.FastHTTPUpgrader{
 		return localhostRegex.MatchString(host) ||
 			localhostRegex.MatchString(origin) ||
 			slices.Index(corsAllowedOrigins, host) != -1 ||
+			slices.Index(corsAllowedOrigins, "https://"+host) != -1 ||
 			slices.Index(corsAllowedOrigins, origin) != -1
 	},
 }

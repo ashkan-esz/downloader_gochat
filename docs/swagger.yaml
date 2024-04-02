@@ -757,18 +757,18 @@ definitions:
       errorMessage:
         type: string
     type: object
-host: localhost:8080
+host: chat.movieTracker.mom
 info:
   contact:
     email: support@swagger.io
     name: API Support
     url: http://www.swagger.io/support
-  description: This is a sample server server.
+  description: Chat service of the downloader_api project.
   license:
     name: Apache 2.0
     url: http://www.apache.org/licenses/LICENSE-2.0.html
   termsOfService: http://swagger.io/terms/
-  title: Fiber Swagger Example API
+  title: Go Chat Server
   version: "2.0"
 paths:
   /:
@@ -1817,7 +1817,7 @@ paths:
       tags:
       - User-Websocket
 schemes:
-- http
+- https
 securityDefinitions:
   BearerAuth:
     description: Type "Bearer" followed by a space and JWT token.

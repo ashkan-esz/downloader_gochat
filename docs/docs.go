@@ -2732,11 +2732,11 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info so clients can modify it
 var SwaggerInfo = &swag.Spec{
 	Version:          "2.0",
-	Host:             "localhost:8080",
+	Host:             "chat.movieTracker.mom",
 	BasePath:         "/",
-	Schemes:          []string{"http"},
-	Title:            "Fiber Swagger Example API",
-	Description:      "This is a sample server server.",
+	Schemes:          []string{"https"},
+	Title:            "Go Chat Server",
+	Description:      "Chat service of the downloader_api project.",
 	InfoInstanceName: "swagger",
 	SwaggerTemplate:  docTemplate,
 	LeftDelim:        "{{",
