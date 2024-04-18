@@ -35,11 +35,11 @@ To run this project, you will need to add the following environment variables to
 | **`CLOUAD_STORAGE_ACCESS_KEY`**        |                                                                                          | `true`   |               |
 | **`CLOUAD_STORAGE_SECRET_ACCESS_KEY`** |                                                                                          | `true`   |               |
 | **`BUCKET_NAME_PREFIX`**               | if bucket names not exist use this. for example 'poster' --> 'test_poster'               | `false`  |               |
-| **`FirebaseAuthKey`**                  | a coded key from firebase that used in sending push notification                         | `true`   |               |
+| **`FIREBASE_AUTH_KEY`**                | a coded key from firebase that used in sending push notification                         | `true`   |               |
 | **`RABBITMQ_URL`**                     |                                                                                          | `true`   |               |
 | **`SERVER_ADDRESS`**                   | the url of the server                                                                    | `true`   |               |
 | **`MAIN_SERVER_ADDRESS`**              | the url of the downloader_api (main server)                                              | `true`   |               |
-| **`AgendaJobsCollection`**             |                                                                                          | `true`   |               |
+| **`AGENDA_JOBS_COLLECTION`**           |                                                                                          | `true`   |               |
 | **`DEFAULT_PROFILE_IMAGE`**            |                                                                                          | `true`   |               |
 | **`MIGRATE_ON_START`**                 |                                                                                          | `true`   |               |
 | **`PRINT_ERRORS`**                     |                                                                                          | `false`  | false         |

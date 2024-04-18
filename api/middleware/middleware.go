@@ -4,6 +4,7 @@ import (
 	"downloader_gochat/db/redis"
 	"downloader_gochat/pkg/response"
 	"downloader_gochat/util"
+	"regexp"
 	"strings"
 
 	"github.com/gofiber/fiber/v2"
@@ -91,17 +92,6 @@ func IsAuthRefreshToken(c *fiber.Ctx) error {
 	return c.Next()
 }
 
-func CORSMiddleware(c *fiber.Ctx) error {
-	c.Set("Access-Control-Allow-Origin", "*")
-	c.Set("Access-Control-Allow-Credentials", "true")
-	c.Set("Access-Control-Allow-Headers", "Content-Type,Content-Length")
-	c.Set("Access-Control-Allow-Method", "POST, GET, DELETE, PUT")
-
-	if c.Method() == "OPTIONS" {
-		//c.AbortWithStatus(204)
-		return c.SendStatus(204)
-		//return
-	}
-
-	return c.Next()
-}
+var (
+	LocalhostRegex = regexp.MustCompile(`(?i)^(https?://)?localhost(:\d{4})?$`)
+)
