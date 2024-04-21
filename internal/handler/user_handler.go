@@ -110,6 +110,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 			Expires:     time.Now().Add(time.Duration(configs.GetConfigs().RefreshTokenExpireDay) * 24 * time.Hour),
 			Secure:      true,
 			HTTPOnly:    true,
+			Domain:      "." + configs.GetConfigs().Domain,
 			SameSite:    "none",
 			SessionOnly: false,
 		})
@@ -165,6 +166,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 			Expires:     time.Now().Add(time.Duration(configs.GetConfigs().RefreshTokenExpireDay) * 24 * time.Hour),
 			Secure:      true,
 			HTTPOnly:    true,
+			Domain:      "." + configs.GetConfigs().Domain,
 			SameSite:    "none",
 			SessionOnly: false,
 		})
@@ -219,6 +221,7 @@ func (h *UserHandler) GetToken(c *fiber.Ctx) error {
 			Expires:     time.Now().Add(time.Duration(configs.GetConfigs().RefreshTokenExpireDay) * 24 * time.Hour),
 			Secure:      true,
 			HTTPOnly:    true,
+			Domain:      "." + configs.GetConfigs().Domain,
 			SameSite:    "none",
 			SessionOnly: false,
 		})
@@ -267,6 +270,7 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 		Expires:     time.Now(),
 		Secure:      true,
 		HTTPOnly:    true,
+		Domain:      "." + configs.GetConfigs().Domain,
 		SameSite:    "none",
 		SessionOnly: false,
 	})
@@ -928,6 +932,7 @@ func (h *UserHandler) DeleteUserAccount(c *fiber.Ctx) error {
 		Expires:     time.Now(),
 		Secure:      true,
 		HTTPOnly:    true,
+		Domain:      "." + configs.GetConfigs().Domain,
 		SameSite:    "none",
 		SessionOnly: false,
 	})

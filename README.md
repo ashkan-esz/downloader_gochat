@@ -43,6 +43,7 @@ To run this project, you will need to add the following environment variables to
 | **`DEFAULT_PROFILE_IMAGE`**            |                                                                                          | `true`   |               |
 | **`MIGRATE_ON_START`**                 |                                                                                          | `true`   |               |
 | **`PRINT_ERRORS`**                     |                                                                                          | `false`  | false         |
+| **`DOMAIN`**                           | base domain, used for cookies domain and subdomain                                       | `true`   |               |
 
 >**NOTE: check [configs schema](https://github.com/ashkan-esz/downloader_api/blob/master/readme/CONFIGS.README.md) for other configs that read from db.**
 

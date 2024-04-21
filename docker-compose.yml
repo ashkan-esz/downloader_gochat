@@ -16,6 +16,7 @@ services:
       MAIN_SERVER_ADDRESS: api.movieTracker.mom
       CORS_ALLOWED_ORIGINS: https://www.movietracker.mom --- https://movietracker.mom --- http://movietracker.mom --- https://admin.movietracker.mom --- http://admin.movietracker.mom --- https://chat.movietracker.mom
       LOG_PANIC_TRACE: 'true'
+      DOMAIN: movietracker.mom
     #    ports:
     #      - "3000:3000"
     deploy:
