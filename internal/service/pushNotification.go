@@ -102,8 +102,14 @@ func (p *PushNotificationService) PushNotificationBufferHandler() {
 
 			messages = append(messages, m)
 		case <-t.C:
-			p.SendBufferedPushNotifications(messages)
-			messages = messages[:0]
+			if len(messages) > 500 {
+				temp := messages[0:500]
+				messages = messages[500:]
+				p.SendBufferedPushNotifications(temp)
+			} else {
+				p.SendBufferedPushNotifications(messages)
+				messages = messages[:0]
+			}
 		}
 	}
 }
