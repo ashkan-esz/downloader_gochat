@@ -106,3 +106,11 @@ type MoviePoster struct {
 	Thumbnail string `json:"thumbnail" bson:"thumbnail"`
 	BlurHash  string `json:"blurHash" bson:"blurHash"`
 }
+
+type MovieBriefData struct {
+	MovieId  string        `bson:"_id" json:"movieId"`
+	RawTitle string        `bson:"rawTitle" json:"rawTitle"`
+	Type     string        `bson:"type" json:"type"`
+	Year     string        `bson:"year" json:"year"`
+	Posters  []MoviePoster `bson:"posters" json:"posters"`
+}

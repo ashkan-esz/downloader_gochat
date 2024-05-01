@@ -98,15 +98,16 @@ func main() {
 	wsSvc := service.NewWsService(wsRep, userRep, rabbit)
 	wsHandler := handler.NewWsHandler(wsSvc)
 
+	movieRep := repository.NewMovieRepository(dbConn.GetDB(), mongoDB.GetDB())
+
 	notifRep := repository.NewNotificationRepository(dbConn.GetDB(), mongoDB.GetDB())
-	notifSvc := service.NewNotificationService(notifRep, userRep, rabbit, pushNotifSvc)
+	notifSvc := service.NewNotificationService(notifRep, userRep, movieRep, rabbit, pushNotifSvc)
 	notifHandler := handler.NewNotificationHandler(notifSvc)
 
 	mediaRep := repository.NewMediaRepository(dbConn.GetDB(), mongoDB.GetDB())
 	mediaSvc := service.NewMediaService(mediaRep, userRep, wsRep, rabbit, cloudStorageSvc)
 	mediaHandler := handler.NewMediaHandler(mediaSvc)
 
-	movieRep := repository.NewMovieRepository(dbConn.GetDB(), mongoDB.GetDB())
 	castRep := repository.NewCastRepository(dbConn.GetDB(), mongoDB.GetDB())
 	_ = service.NewBlurHashService(movieRep, castRep, rabbit)
 

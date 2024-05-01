@@ -8,3 +8,11 @@ type CachedUserData struct {
 	NotificationSettings NotificationSettings    `gorm:"foreignKey:UserId;references:UserId;"`
 	NotifTokens          []string                `json:"notifTokens"`
 }
+
+type CachedMovieData struct {
+	MovieId  string        `bson:"_id" json:"movieId"`
+	RawTitle string        `bson:"rawTitle" json:"rawTitle"`
+	Type     string        `bson:"type" json:"type"`
+	Year     string        `bson:"year" json:"year"`
+	Posters  []MoviePoster `bson:"posters" json:"posters"`
+}

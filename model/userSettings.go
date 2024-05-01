@@ -54,11 +54,11 @@ type NotificationSettings struct {
 	NewMessage                bool  `gorm:"column:newMessage;type:boolean;not null;" default:"false"`
 	FinishedListSpinOffSequel bool  `gorm:"column:finishedList_spinOffSequel;type:boolean;not null;" default:"true"`
 	FollowMovie               bool  `gorm:"column:followMovie;type:boolean;not null;" default:"true"`
-	FollowMovieBetterQuality  bool  `gorm:"column:followMovie_betterQuality;type:boolean;not null;" default:"true"`
-	FollowMovieSubtitle       bool  `gorm:"column:followMovie_subtitle;type:boolean;not null;" default:"true"`
-	FutureList                bool  `gorm:"column:futureList;type:boolean;not null;" default:"true"`
+	FollowMovieBetterQuality  bool  `gorm:"column:followMovie_betterQuality;type:boolean;not null;" default:"false"`
+	FollowMovieSubtitle       bool  `gorm:"column:followMovie_subtitle;type:boolean;not null;" default:"false"`
+	FutureList                bool  `gorm:"column:futureList;type:boolean;not null;" default:"false"`
 	FutureListSerialSeasonEnd bool  `gorm:"column:futureList_serialSeasonEnd;type:boolean;not null;" default:"true"`
-	FutureListSubtitle        bool  `gorm:"column:futureList_subtitle;type:boolean;not null;" default:"true"`
+	FutureListSubtitle        bool  `gorm:"column:futureList_subtitle;type:boolean;not null;" default:"false"`
 }
 
 func (NotificationSettings) TableName() string {

@@ -56,7 +56,7 @@ func (n *NotificationHandler) GetUserNotifications(c *fiber.Ctx) error {
 		return response.ResponseError(c, "limit cannot be smaller than 1", fiber.StatusBadRequest)
 	}
 	entityTypeId := c.QueryInt("entityTypeId", 0)
-	if entityTypeId < 0 || entityTypeId > 2 {
+	if entityTypeId < 0 || entityTypeId > 3 {
 		return response.ResponseError(c, "entityTypeId myst be in range 0-2", fiber.StatusBadRequest)
 	}
 	status := c.QueryInt("status", 0)

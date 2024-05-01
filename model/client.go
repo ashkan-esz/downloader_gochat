@@ -1,6 +1,7 @@
 package model
 
 import (
+	"strconv"
 	"strings"
 	"time"
 )
@@ -18,6 +19,7 @@ const ReceiveMessageStateAction ActionType = "receive-message-state"
 const ErrorAction ActionType = "action-error"
 const FollowNotifAction ActionType = "new-follow-notification"
 const NewMessageNotifAction ActionType = "new-message-notification"
+const MovieNotifAction ActionType = "movie-notification"
 const UpdateProfileImagesAction ActionType = "update-profile-images"
 const UpdateProfileAction ActionType = "update-profile"
 
@@ -322,7 +324,7 @@ func CreateFollowNotificationAction(userId int64, followId int64) *ChannelMessag
 			ReceiverId:   followId,
 			Date:         time.Now(),
 			Status:       1,
-			EntityId:     userId,
+			EntityId:     strconv.FormatInt(userId, 10),
 			EntityTypeId: FollowNotificationTypeId,
 			Message:      "",
 		},
@@ -346,7 +348,7 @@ func CreateNewMessageNotificationAction(message *ReceiveNewMessage) *ChannelMess
 			ReceiverId:   message.ReceiverId,
 			Date:         message.Date,
 			Status:       1,
-			EntityId:     message.Id,
+			EntityId:     strconv.FormatInt(message.Id, 10),
 			EntityTypeId: NewMessageNotificationTypeId,
 			Message:      message.Content,
 		},

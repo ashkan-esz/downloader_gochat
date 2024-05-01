@@ -34,12 +34,14 @@ func NewNotificationRepository(db *gorm.DB, mongodb *mongo.Database) *Notificati
 
 func (n *NotificationRepository) SaveUserNotification(notifData *model.NotificationDataModel) error {
 	notif := model.Notification{
-		CreatorId:    notifData.CreatorId,
-		ReceiverId:   notifData.ReceiverId,
-		Date:         notifData.Date,
-		Status:       notifData.Status,
-		EntityId:     notifData.EntityId,
-		EntityTypeId: notifData.EntityTypeId,
+		CreatorId:       notifData.CreatorId,
+		ReceiverId:      notifData.ReceiverId,
+		Date:            notifData.Date,
+		Status:          notifData.Status,
+		Message:         notifData.Message,
+		EntityId:        notifData.EntityId,
+		EntityTypeId:    notifData.EntityTypeId,
+		SubEntityTypeId: notifData.SubEntityTypeId,
 	}
 	err := n.db.Create(&notif).Error
 	notifData.Id = notif.Id
@@ -61,7 +63,7 @@ func (n *NotificationRepository) GetUserNotifications(userId int64, skip int, li
 		"status":       status,
 	}).
 		Model(&model.Notification{}).
-		Omit("message", "creatorImage").
+		Omit("creatorImage").
 		Order("date desc").
 		Offset(skip).
 		Limit(limit).

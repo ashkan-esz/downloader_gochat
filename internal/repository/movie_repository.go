@@ -12,6 +12,8 @@ import (
 )
 
 type IMovieRepository interface {
+	GetMovieBriefData(movieId string) (*model.MovieBriefData, error)
+	GetBatchMovieBriefData(movieIds []string) ([]model.MovieBriefData, error)
 	GetPosters(movieId string) ([]model.MoviePoster, error)
 	SavePosters(movieId string, posters []model.MoviePoster) error
 	SavePosterS3BlurHash(movieId string, posterUrl string, blurHash string) error
@@ -29,6 +31,58 @@ func NewMovieRepository(db *gorm.DB, mongodb *mongo.Database) *MovieRepository {
 
 //------------------------------------------
 //------------------------------------------
+
+func (m *MovieRepository) GetMovieBriefData(movieId string) (*model.MovieBriefData, error) {
+	id, err := primitive.ObjectIDFromHex(movieId)
+	if err != nil {
+		return nil, err
+	}
+
+	var result model.MovieBriefData
+	opts := options.FindOne().SetProjection(bson.D{
+		{"rawTitle", 1},
+		{"type", 1},
+		{"year", 1},
+		{"posters", 1},
+	})
+	err = m.mongodb.
+		Collection("movies").
+		FindOne(context.TODO(), bson.D{{"_id", id}}, opts).
+		Decode(&result)
+	return &result, err
+}
+
+func (m *MovieRepository) GetBatchMovieBriefData(movieIds []string) ([]model.MovieBriefData, error) {
+	ids := []primitive.ObjectID{}
+	for _, mId := range movieIds {
+		id, err := primitive.ObjectIDFromHex(mId)
+		if err != nil {
+			return nil, err
+		}
+		ids = append(ids, id)
+	}
+
+	opts := options.Find().SetProjection(bson.D{
+		{"rawTitle", 1},
+		{"type", 1},
+		{"year", 1},
+		{"posters", 1},
+	})
+	cursor, err := m.mongodb.
+		Collection("movies").
+		Find(context.TODO(), bson.D{{"_id", bson.M{"$in": ids}}}, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	var results []model.MovieBriefData
+	err = cursor.All(context.TODO(), &results)
+	if err != nil {
+		return nil, err
+	}
+
+	return results, err
+}
 
 func (m *MovieRepository) GetPosters(movieId string) ([]model.MoviePoster, error) {
 	id, err := primitive.ObjectIDFromHex(movieId)

@@ -1638,6 +1638,7 @@ const docTemplate = `{
                 "action-error",
                 "new-follow-notification",
                 "new-message-notification",
+                "movie-notification",
                 "update-profile-images",
                 "update-profile",
                 "single-chats-list",
@@ -1655,6 +1656,7 @@ const docTemplate = `{
                 "ErrorAction",
                 "FollowNotifAction",
                 "NewMessageNotifAction",
+                "MovieNotifAction",
                 "UpdateProfileImagesAction",
                 "UpdateProfileAction",
                 "SingleChatsListAction",
@@ -2210,7 +2212,7 @@ const docTemplate = `{
                     "type": "string"
                 },
                 "entityId": {
-                    "type": "integer"
+                    "type": "string"
                 },
                 "entityTypeId": {
                     "type": "integer"
@@ -2227,6 +2229,9 @@ const docTemplate = `{
                 "status": {
                     "description": "1: saved, 2: seen",
                     "type": "integer"
+                },
+                "subEntityTypeId": {
+                    "$ref": "#/definitions/model.SubEntityTypeId"
                 }
             }
         },
@@ -2243,15 +2248,15 @@ const docTemplate = `{
                 },
                 "followMovieBetterQuality": {
                     "type": "boolean",
-                    "default": true
+                    "default": false
                 },
                 "followMovieSubtitle": {
                     "type": "boolean",
-                    "default": true
+                    "default": false
                 },
                 "futureList": {
                     "type": "boolean",
-                    "default": true
+                    "default": false
                 },
                 "futureListSerialSeasonEnd": {
                     "type": "boolean",
@@ -2259,7 +2264,7 @@ const docTemplate = `{
                 },
                 "futureListSubtitle": {
                     "type": "boolean",
-                    "default": true
+                    "default": false
                 },
                 "newFollower": {
                     "type": "boolean",
@@ -2468,6 +2473,27 @@ const docTemplate = `{
                     ]
                 }
             }
+        },
+        "model.SubEntityTypeId": {
+            "type": "integer",
+            "enum": [
+                1,
+                2,
+                3,
+                4,
+                5,
+                6,
+                7
+            ],
+            "x-enum-varnames": [
+                "FinishedListSpinOffSequel",
+                "FollowingMovie",
+                "FollowMovieBetterQuality",
+                "FollowMovieSubtitle",
+                "FutureList",
+                "FutureListSerialSeasonEnd",
+                "FutureListSubtitle"
+            ]
         },
         "model.TokenViewModel": {
             "type": "object",

@@ -20,6 +20,7 @@ definitions:
     - action-error
     - new-follow-notification
     - new-message-notification
+    - movie-notification
     - update-profile-images
     - update-profile
     - single-chats-list
@@ -37,6 +38,7 @@ definitions:
     - ErrorAction
     - FollowNotifAction
     - NewMessageNotifAction
+    - MovieNotifAction
     - UpdateProfileImagesAction
     - UpdateProfileAction
     - SingleChatsListAction
@@ -421,7 +423,7 @@ definitions:
       date:
         type: string
       entityId:
-        type: integer
+        type: string
       entityTypeId:
         type: integer
       id:
@@ -433,6 +435,8 @@ definitions:
       status:
         description: '1: saved, 2: seen'
         type: integer
+      subEntityTypeId:
+        $ref: '#/definitions/model.SubEntityTypeId'
     type: object
   model.NotificationSettings:
     properties:
@@ -443,19 +447,19 @@ definitions:
         default: true
         type: boolean
       followMovieBetterQuality:
-        default: true
+        default: false
         type: boolean
       followMovieSubtitle:
-        default: true
+        default: false
         type: boolean
       futureList:
-        default: true
+        default: false
         type: boolean
       futureListSerialSeasonEnd:
         default: true
         type: boolean
       futureListSubtitle:
-        default: true
+        default: false
         type: boolean
       newFollower:
         default: true
@@ -588,6 +592,24 @@ definitions:
         - $ref: '#/definitions/model.UserStatusRes'
         description: action is UserStatusAction
     type: object
+  model.SubEntityTypeId:
+    enum:
+    - 1
+    - 2
+    - 3
+    - 4
+    - 5
+    - 6
+    - 7
+    type: integer
+    x-enum-varnames:
+    - FinishedListSpinOffSequel
+    - FollowingMovie
+    - FollowMovieBetterQuality
+    - FollowMovieSubtitle
+    - FutureList
+    - FutureListSerialSeasonEnd
+    - FutureListSubtitle
   model.TokenViewModel:
     properties:
       accessToken:
