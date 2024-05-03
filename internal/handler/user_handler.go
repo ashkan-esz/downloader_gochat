@@ -103,6 +103,10 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	}
 
 	if !noCookie {
+		cookieDomain := "." + configs.GetConfigs().Domain
+		if cookieDomain == ".localhost" {
+			cookieDomain = "localhost"
+		}
 		c.Cookie(&fiber.Cookie{
 			Name:        "refreshToken",
 			Value:       result.Token.RefreshToken,
@@ -110,7 +114,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 			Expires:     time.Now().Add(time.Duration(configs.GetConfigs().RefreshTokenExpireDay) * 24 * time.Hour),
 			Secure:      true,
 			HTTPOnly:    true,
-			Domain:      "." + configs.GetConfigs().Domain,
+			Domain:      cookieDomain,
 			SameSite:    "none",
 			SessionOnly: false,
 		})
@@ -159,6 +163,10 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	}
 
 	if !noCookie {
+		cookieDomain := "." + configs.GetConfigs().Domain
+		if cookieDomain == ".localhost" {
+			cookieDomain = "localhost"
+		}
 		c.Cookie(&fiber.Cookie{
 			Name:        "refreshToken",
 			Value:       result.Token.RefreshToken,
@@ -166,7 +174,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 			Expires:     time.Now().Add(time.Duration(configs.GetConfigs().RefreshTokenExpireDay) * 24 * time.Hour),
 			Secure:      true,
 			HTTPOnly:    true,
-			Domain:      "." + configs.GetConfigs().Domain,
+			Domain:      cookieDomain,
 			SameSite:    "none",
 			SessionOnly: false,
 		})
@@ -214,6 +222,10 @@ func (h *UserHandler) GetToken(c *fiber.Ctx) error {
 	result, token, err := h.userService.GetToken(&deviceInfo, refreshToken, jwtUserData, addProfileImages, ip)
 
 	if !noCookie && token != nil {
+		cookieDomain := "." + configs.GetConfigs().Domain
+		if cookieDomain == ".localhost" {
+			cookieDomain = "localhost"
+		}
 		c.Cookie(&fiber.Cookie{
 			Name:        "refreshToken",
 			Value:       token.RefreshToken,
@@ -221,7 +233,7 @@ func (h *UserHandler) GetToken(c *fiber.Ctx) error {
 			Expires:     time.Now().Add(time.Duration(configs.GetConfigs().RefreshTokenExpireDay) * 24 * time.Hour),
 			Secure:      true,
 			HTTPOnly:    true,
-			Domain:      "." + configs.GetConfigs().Domain,
+			Domain:      cookieDomain,
 			SameSite:    "none",
 			SessionOnly: false,
 		})
@@ -262,6 +274,10 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 
+	cookieDomain := "." + configs.GetConfigs().Domain
+	if cookieDomain == ".localhost" {
+		cookieDomain = "localhost"
+	}
 	c.Cookie(&fiber.Cookie{
 		Name:        "refreshToken",
 		Value:       "",
@@ -270,7 +286,7 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 		Expires:     time.Now(),
 		Secure:      true,
 		HTTPOnly:    true,
-		Domain:      "." + configs.GetConfigs().Domain,
+		Domain:      cookieDomain,
 		SameSite:    "none",
 		SessionOnly: false,
 	})
@@ -924,6 +940,10 @@ func (h *UserHandler) DeleteUserAccount(c *fiber.Ctx) error {
 		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
 	}
 
+	cookieDomain := "." + configs.GetConfigs().Domain
+	if cookieDomain == ".localhost" {
+		cookieDomain = "localhost"
+	}
 	c.Cookie(&fiber.Cookie{
 		Name:        "refreshToken",
 		Value:       "",
@@ -932,7 +952,7 @@ func (h *UserHandler) DeleteUserAccount(c *fiber.Ctx) error {
 		Expires:     time.Now(),
 		Secure:      true,
 		HTTPOnly:    true,
-		Domain:      "." + configs.GetConfigs().Domain,
+		Domain:      cookieDomain,
 		SameSite:    "none",
 		SessionOnly: false,
 	})
