@@ -1,21 +1,27 @@
 package service
 
 import (
+	"bytes"
 	"context"
 	"downloader_gochat/internal/repository"
 	errorHandler "downloader_gochat/pkg/error"
 	"downloader_gochat/rabbitmq"
 	"encoding/json"
+	"errors"
 	"fmt"
+	"image"
+	"io"
 	"log"
 	"net/http"
 	"os"
 	"runtime/debug"
 	"strconv"
+	"strings"
 
 	"github.com/buckket/go-blurhash"
 	"github.com/disintegration/imaging"
 	"github.com/getsentry/sentry-go"
+	"github.com/h2non/bimg"
 	amqp "github.com/rabbitmq/amqp091-go"
 )
 
@@ -172,10 +178,19 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 	// download
 	resp, err := http.Get(url)
+	if errors.Is(err, os.ErrDeadlineExceeded) || os.IsTimeout(err) {
+		return "", errors.New("image download timeout")
+	}
 	if err != nil {
 		errorMessage := fmt.Sprintf("Error on downloading image: %s", err)
 		errorHandler.SaveError(errorMessage, err)
 		return "", err
+	}
+	if resp.StatusCode == http.StatusGatewayTimeout || resp.StatusCode == http.StatusRequestTimeout {
+		return "", errors.New("image download timeout")
+	}
+	if resp.StatusCode == http.StatusNotFound {
+		return "", errors.New("image not found")
 	}
 	if resp.StatusCode != http.StatusOK {
 		errorMessage := fmt.Sprintf("Error on downloading image: %v", fmt.Errorf("bad status: %s", resp.Status))
@@ -185,11 +200,35 @@ func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 	defer resp.Body.Close()
 
 	// decode
-	img, err := imaging.Decode(resp.Body)
-	if err != nil {
-		errorMessage := fmt.Sprintf("Error on decoding downloaded image: %v", err)
-		errorHandler.SaveError(errorMessage, err)
-		return "", err
+	var img image.Image
+	if strings.HasSuffix(url, ".png") {
+		img, err = imaging.Decode(resp.Body)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Error on decoding downloaded image: %v", err)
+			errorHandler.SaveError(errorMessage, err)
+			return "", err
+		}
+	} else {
+		body, err := io.ReadAll(resp.Body)
+		if err != nil {
+			errorMessage := fmt.Sprintf("Error on decoding downloaded image3: %v", err)
+			errorHandler.SaveError(errorMessage, err)
+			return "", err
+		}
+
+		img2, err := bimg.NewImage(body).Convert(bimg.PNG)
+		if err != nil {
+			fmt.Println(err)
+			errorMessage := fmt.Sprintf("Error on decoding downloaded image4: %v", err)
+			errorHandler.SaveError(errorMessage, err)
+			return "", err
+		}
+		img, err = imaging.Decode(bytes.NewReader(img2))
+		if err != nil {
+			errorMessage := fmt.Sprintf("Error on decoding downloaded image5: %v", err)
+			errorHandler.SaveError(errorMessage, err)
+			return "", err
+		}
 	}
 
 	//creating blurHash

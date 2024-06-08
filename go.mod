@@ -14,10 +14,13 @@ require (
 	github.com/buckket/go-blurhash v1.1.0
 	github.com/disintegration/imaging v1.6.2
 	github.com/fasthttp/websocket v1.5.7
+	github.com/getsentry/sentry-go v0.27.0
+	github.com/gofiber/contrib/fibersentry v1.0.4
 	github.com/gofiber/fiber/v2 v2.52.4
 	github.com/gofiber/swagger v0.1.14
 	github.com/golang-jwt/jwt/v5 v5.2.0
 	github.com/google/uuid v1.6.0
+	github.com/h2non/bimg v1.1.9
 	github.com/joho/godotenv v1.5.1
 	github.com/kolesa-team/go-webp v1.0.4
 	github.com/lib/pq v1.10.9
@@ -56,14 +59,12 @@ require (
 	github.com/cespare/xxhash/v2 v2.2.0 // indirect
 	github.com/dgryski/go-rendezvous v0.0.0-20200823014737-9f7001d12a5f // indirect
 	github.com/felixge/httpsnoop v1.0.4 // indirect
-	github.com/getsentry/sentry-go v0.27.0 // indirect
 	github.com/go-logr/logr v1.4.1 // indirect
 	github.com/go-logr/stdr v1.2.2 // indirect
 	github.com/go-openapi/jsonpointer v0.20.2 // indirect
 	github.com/go-openapi/jsonreference v0.20.4 // indirect
 	github.com/go-openapi/spec v0.20.13 // indirect
 	github.com/go-openapi/swag v0.22.7 // indirect
-	github.com/gofiber/contrib/fibersentry v1.0.4 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.0 // indirect
 	github.com/golang/groupcache v0.0.0-20210331224755-41bb18bfe9da // indirect
 	github.com/golang/protobuf v1.5.3 // indirect

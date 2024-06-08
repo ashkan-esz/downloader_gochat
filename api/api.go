@@ -40,6 +40,7 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 
 		// Return status code with error message
 		//return c.Status(code).SendString(err.Error())
+		//fmt.Println(err.Error())
 		return response.ResponseError(c, "Internal Error", code)
 	}
 

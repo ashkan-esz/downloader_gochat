@@ -3,3 +3,5 @@ todo.go
 .idea
 README.md
 docker
+docker-compose.yml
+Dockerfile
