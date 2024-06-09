@@ -3,6 +3,7 @@ package service
 import (
 	"bytes"
 	"context"
+	"downloader_gochat/configs"
 	"downloader_gochat/internal/repository"
 	errorHandler "downloader_gochat/pkg/error"
 	"downloader_gochat/rabbitmq"
@@ -43,7 +44,7 @@ func NewBlurHashService(movieRepo repository.IMovieRepository, castRepo reposito
 	}
 
 	blurHashConfig := rabbitmq.NewConfigConsume(rabbitmq.BlurHashQueue, "")
-	for i := 0; i < blurHashConsumerCount; i++ {
+	for i := 0; i < configs.GetConfigs().BlurHashConsumerCount; i++ {
 		ctx, _ := context.WithCancel(context.Background())
 		go func() {
 			openConChan := make(chan struct{})

@@ -20,6 +20,7 @@ type ConfigStruct struct {
 	RefreshTokenExpireDay        int
 	ActiveSessionsLimit          int
 	WaitForRedisConnectionSec    int
+	BlurHashConsumerCount        int
 	RedisUrl                     string
 	RedisPassword                string
 	MongodbDatabaseUrl           string
@@ -77,6 +78,12 @@ func LoadEnvVariables() {
 		configs.ActiveSessionsLimit = 5
 	} else {
 		configs.ActiveSessionsLimit = sessionLimit
+	}
+	blurHashConsumerCount, err := strconv.Atoi(os.Getenv("BLURHASH_CONSUMER_COUNT"))
+	if err != nil || sessionLimit == 0 {
+		configs.BlurHashConsumerCount = 4
+	} else {
+		configs.BlurHashConsumerCount = blurHashConsumerCount
 	}
 	configs.WaitForRedisConnectionSec, err = strconv.Atoi(os.Getenv("WAIT_REDIS_CONNECTION_SEC"))
 	configs.CorsAllowedOrigins = strings.Split(os.Getenv("CORS_ALLOWED_ORIGINS"), "---")

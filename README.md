@@ -44,6 +44,7 @@ To run this project, you will need to add the following environment variables to
 | **`MIGRATE_ON_START`**                 |                                                                                          | `true`   |               |
 | **`PRINT_ERRORS`**                     |                                                                                          | `false`  | false         |
 | **`DOMAIN`**                           | base domain, used for cookies domain and subdomain                                       | `true`   |               |
+| **`BLURHASH_CONSUMER_COUNT`**          | number of parallel creation of blurHash                                                  | `false`  | 4             |
 
 >**NOTE: check [configs schema](https://github.com/ashkan-esz/downloader_api/blob/master/readme/CONFIGS.README.md) for other configs that read from db.**
 
