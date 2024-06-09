@@ -211,23 +211,35 @@ func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 	} else {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			errorMessage := fmt.Sprintf("Error on decoding downloaded image3: %v", err)
+			errorMessage := fmt.Sprintf("Error reading response body: %v", err)
 			errorHandler.SaveError(errorMessage, err)
 			return "", err
 		}
+		// Create a new reader from the body content
+		reader := bytes.NewReader(body)
 
-		img2, err := bimg.NewImage(body).Convert(bimg.PNG)
+		img, err = imaging.Decode(reader)
 		if err != nil {
-			fmt.Println(err)
-			errorMessage := fmt.Sprintf("Error on decoding downloaded image4: %v", err)
-			errorHandler.SaveError(errorMessage, err)
-			return "", err
-		}
-		img, err = imaging.Decode(bytes.NewReader(img2))
-		if err != nil {
-			errorMessage := fmt.Sprintf("Error on decoding downloaded image5: %v", err)
-			errorHandler.SaveError(errorMessage, err)
-			return "", err
+			if err.Error() == "unsupported JPEG feature: luma/chroma subsampling ratio" {
+				// https://static-cdn.sr.se/images/2519/4ed3bde6-46a3-469b-af8e-5c2bde6d1749.jpg?preset=256x256
+				//img2, err := bimg.NewImage(body).Convert(bimg.PNG)
+				img2, err := bimg.NewImage(body).Convert(bimg.JPEG)
+				if err != nil {
+					errorMessage := fmt.Sprintf("Error on coverting image to png: %v", err)
+					errorHandler.SaveError(errorMessage, err)
+					return "", err
+				}
+				img, err = imaging.Decode(bytes.NewReader(img2))
+				if err != nil {
+					errorMessage := fmt.Sprintf("Error on decoding coverted image: %v", err)
+					errorHandler.SaveError(errorMessage, err)
+					return "", err
+				}
+			} else {
+				errorMessage := fmt.Sprintf("Error on decoding downloaded image: %v", err)
+				errorHandler.SaveError(errorMessage, err)
+				return "", err
+			}
 		}
 	}
 

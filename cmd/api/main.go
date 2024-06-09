@@ -17,6 +17,7 @@ import (
 	"time"
 
 	"github.com/getsentry/sentry-go"
+	"github.com/h2non/bimg"
 )
 
 // @title						Go Chat Server
@@ -40,6 +41,8 @@ import (
 // @Produce					json
 func main() {
 	configs.LoadEnvVariables()
+	bimg.VipsCacheSetMax(0)
+	bimg.VipsCacheSetMaxMem(0)
 
 	err := sentry.Init(sentry.ClientOptions{
 		Dsn:     configs.GetConfigs().SentryDns,
