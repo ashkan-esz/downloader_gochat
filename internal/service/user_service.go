@@ -467,11 +467,12 @@ func (s *UserService) GetActiveSessions(userId int64, refreshToken string) (*mod
 	thisDeviceIndex := slices.IndexFunc(sessions, func(s model.ActiveSessionDataModel) bool {
 		return s.RefreshToken == refreshToken
 	})
+	thisDevice := sessions[thisDeviceIndex]
 	activeSessions := slices.DeleteFunc(sessions, func(s model.ActiveSessionDataModel) bool {
 		return s.RefreshToken == refreshToken
 	})
 	result := model.ActiveSessionRes{
-		ThisDevice:     &sessions[thisDeviceIndex],
+		ThisDevice:     &thisDevice,
 		ActiveSessions: &activeSessions,
 	}
 
