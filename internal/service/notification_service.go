@@ -7,11 +7,13 @@ import (
 	errorHandler "downloader_gochat/pkg/error"
 	"downloader_gochat/rabbitmq"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"slices"
 	"strconv"
 
 	amqp "github.com/rabbitmq/amqp091-go"
+	"gorm.io/gorm"
 )
 
 type INotificationService interface {
@@ -73,11 +75,12 @@ func NotificationConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	case model.FollowNotifAction, model.MovieNotifAction:
 		// need to save the notification, show notification in app, send push-notification to followed user
 		err = notifSvc.notifRepo.SaveUserNotification(channelMessage.NotificationData)
-		if err != nil {
+		if err != nil && !errors.Is(err, gorm.ErrDuplicatedKey) {
 			if err = d.Nack(false, true); err != nil {
 				errorMessage := fmt.Sprintf("error nacking [notification] message: %s", err)
 				errorHandler.SaveError(errorMessage, err)
 			}
+			return
 		} else {
 			notifSvc.handleNotification(channelMessage.NotificationData)
 

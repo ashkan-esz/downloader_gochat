@@ -126,6 +126,7 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
 				errorHandler.SaveError(errorMessage, err)
 			}
+			return
 		}
 	case moviePoster:
 		posters, err := blurSvc.movieRepo.GetPosters(channelMessage.Id)
@@ -149,6 +150,7 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 					errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
 					errorHandler.SaveError(errorMessage, err)
 				}
+				return
 			}
 		}
 	case movieS3Poster, movieWideS3Poster:
@@ -164,6 +166,7 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
 				errorHandler.SaveError(errorMessage, err)
 			}
+			return
 		}
 	}
 

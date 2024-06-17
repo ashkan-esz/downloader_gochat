@@ -218,6 +218,7 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 				errorMessage := fmt.Sprintf("error nacking message: %s", err)
 				errorHandler.SaveError(errorMessage, err)
 			}
+			return
 			//if sender, ok, _ := wsSvc.hub.getClient(channelMessage.ChatMessagesReq.UserId); ok {
 			//	errorData := model.CreateActionError(500, err.Error(), model.SingleChatMessagesAction, channelMessage.ChatMessagesReq)
 			//	sender.Message <- errorData
@@ -236,6 +237,7 @@ func UserMessageConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 					errorMessage := fmt.Sprintf("error nacking message: %s", err)
 					errorHandler.SaveError(errorMessage, err)
 				}
+				return
 				//if sender, ok, _ := wsSvc.hub.getClient(channelMessage.ChatsListReq.UserId); ok {
 				//	errorData := model.CreateActionError(500, err.Error(), model.SingleChatsListAction, channelMessage.ChatsListReq)
 				//	sender.Message <- errorData
@@ -283,6 +285,7 @@ func MessageStateConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 						errorMessage := fmt.Sprintf("error nacking message: %s", err)
 						errorHandler.SaveError(errorMessage, err)
 					}
+					return
 					//errorData := model.CreateActionError(500, err.Error(), model.MessageReadAction, channelMessage.MessageRead)
 					//messageReceiver.Message <- errorData
 				}
