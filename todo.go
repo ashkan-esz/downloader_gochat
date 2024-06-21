@@ -12,3 +12,5 @@ package main
 
 //todo : share lists, collections
 //todo : share movie
+
+//todo : handle deeplink for push-notification

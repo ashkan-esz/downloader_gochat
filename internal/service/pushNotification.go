@@ -136,6 +136,9 @@ func (p *PushNotificationService) AddPushNotificationToBuffer(deviceToken string
 		Token: deviceToken,
 		Android: &messaging.AndroidConfig{
 			CollapseKey: collapseKey,
+			//Data: map[string]string{
+			//	"deeplink": "",
+			//},
 			Notification: &messaging.AndroidNotification{
 				Title:    title,
 				Body:     body,

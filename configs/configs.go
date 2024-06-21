@@ -40,6 +40,7 @@ type ConfigStruct struct {
 	SentryRelease                string
 	PrintErrors                  bool
 	Domain                       string
+	AppDeepLink                  string
 }
 
 var configs = ConfigStruct{}
@@ -96,4 +97,5 @@ func LoadEnvVariables() {
 	configs.SentryRelease = os.Getenv("SENTRY_RELEASE")
 	configs.PrintErrors = os.Getenv("PRINT_ERRORS") == "true"
 	configs.Domain = os.Getenv("DOMAIN")
+	configs.AppDeepLink = os.Getenv("APP_DEEP_LINK")
 }
