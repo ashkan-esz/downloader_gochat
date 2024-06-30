@@ -36,7 +36,7 @@ build:
 	docker image build --network=host -t downloader_gochat .
 
 run:
-	docker run --rm --network=host --memory 300m --cpus 0.5 --name downloader_gochat --env-file ./.env downloader_gochat
+	docker run --rm --network=host --memory 250m --memory-swap 250m --cpus 0.2 --name downloader_gochat --env-file ./.env downloader_gochat
 
 push-image:
 	docker tag downloader_gochat ashkanaz2828/downloader_gochat

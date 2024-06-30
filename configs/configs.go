@@ -82,7 +82,7 @@ func LoadEnvVariables() {
 	}
 	blurHashConsumerCount, err := strconv.Atoi(os.Getenv("BLURHASH_CONSUMER_COUNT"))
 	if err != nil || sessionLimit == 0 {
-		configs.BlurHashConsumerCount = 4
+		configs.BlurHashConsumerCount = 1
 	} else {
 		configs.BlurHashConsumerCount = blurHashConsumerCount
 	}

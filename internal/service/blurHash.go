@@ -15,6 +15,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"runtime"
 	"runtime/debug"
 	"strconv"
 	"strings"
@@ -98,6 +99,13 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 		if err != nil {
 			if err = d.Nack(false, true); err != nil {
 				errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
+				errorHandler.SaveError(errorMessage, err)
+			}
+			return
+		}
+		if hashStr == "" {
+			if err = d.Ack(false); err != nil {
+				errorMessage := fmt.Sprintf("error acking [blurHash] message: %s", err)
 				errorHandler.SaveError(errorMessage, err)
 			}
 			return
@@ -188,6 +196,9 @@ func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 	if err != nil {
 		errorMessage := fmt.Sprintf("Error on downloading image: %s", err)
 		errorHandler.SaveError(errorMessage, err)
+		if err.Error() == "bad status: 400 Bad Request" {
+			return "", nil
+		}
 		return "", err
 	}
 	if resp.StatusCode == http.StatusGatewayTimeout || resp.StatusCode == http.StatusRequestTimeout {
@@ -217,33 +228,30 @@ func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 		if err != nil {
 			errorMessage := fmt.Sprintf("Error reading response body: %v", err)
 			errorHandler.SaveError(errorMessage, err)
+			if strings.HasPrefix(err.Error(), "stream error: stream ID") {
+				return "", nil
+			}
 			return "", err
 		}
-		// Create a new reader from the body content
-		reader := bytes.NewReader(body)
 
-		img, err = imaging.Decode(reader)
+		// https://static-cdn.sr.se/images/2519/4ed3bde6-46a3-469b-af8e-5c2bde6d1749.jpg?preset=256x256
+		//img2, err := bimg.NewImage(body).Convert(bimg.PNG)
+		runtime.GC()
+		img2, err := bimg.NewImage(body).Convert(bimg.JPEG)
 		if err != nil {
-			if err.Error() == "unsupported JPEG feature: luma/chroma subsampling ratio" {
-				// https://static-cdn.sr.se/images/2519/4ed3bde6-46a3-469b-af8e-5c2bde6d1749.jpg?preset=256x256
-				//img2, err := bimg.NewImage(body).Convert(bimg.PNG)
-				img2, err := bimg.NewImage(body).Convert(bimg.JPEG)
-				if err != nil {
-					errorMessage := fmt.Sprintf("Error on coverting image to png: %v", err)
-					errorHandler.SaveError(errorMessage, err)
-					return "", err
-				}
-				img, err = imaging.Decode(bytes.NewReader(img2))
-				if err != nil {
-					errorMessage := fmt.Sprintf("Error on decoding coverted image: %v", err)
-					errorHandler.SaveError(errorMessage, err)
-					return "", err
-				}
-			} else {
-				errorMessage := fmt.Sprintf("Error on decoding downloaded image: %v", err)
-				errorHandler.SaveError(errorMessage, err)
-				return "", err
-			}
+			errorMessage := fmt.Sprintf("Error on converting image to jpeg: %v", err)
+			errorHandler.SaveError(errorMessage, err)
+			return "", err
+		}
+		runtime.GC()
+		newReader := bytes.NewReader(img2)
+		runtime.GC()
+		img, err = imaging.Decode(newReader)
+		runtime.GC()
+		if err != nil {
+			errorMessage := fmt.Sprintf("Error on decoding converted image: %v", err)
+			errorHandler.SaveError(errorMessage, err)
+			return "", err
 		}
 	}
 
