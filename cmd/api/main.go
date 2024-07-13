@@ -29,14 +29,14 @@ import (
 // @contact.email				support@swagger.io
 // @license.name				Apache 2.0
 // @license.url				http://www.apache.org/licenses/LICENSE-2.0.html
-// @host						chat.movieTracker.mom
+// @host						chat.movieTracker.site
 // @BasePath					/
 // @schemes					https
 // @securityDefinitions.apikey	BearerAuth
 // @in							header
 // @name						Authorization
 // @description				Type "Bearer" followed by a space and JWT token.
-// @tokenUrl					chat.movieTracker.mom/v1/user/getToken
+// @tokenUrl					chat.movieTracker.site/v1/user/getToken
 // @Accept						json
 // @Produce					json
 func main() {
