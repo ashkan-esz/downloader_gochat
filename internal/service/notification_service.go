@@ -9,8 +9,13 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"net/http"
+	"net/url"
+	"os"
+	"regexp"
 	"slices"
 	"strconv"
+	"strings"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"gorm.io/gorm"
@@ -31,6 +36,7 @@ type NotificationService struct {
 
 const (
 	notificationConsumerCount = 4
+	seasonEpisodePattern      = `\(S(\d+)E(\d+)\)`
 )
 
 func NewNotificationService(notifRepo repository.INotificationRepository, userRep repository.IUserRepository, movieRep repository.IMovieRepository, rabbit rabbitmq.RabbitMQ, pushNotifSvc IPushNotificationService) *NotificationService {
@@ -258,6 +264,8 @@ func (n *NotificationService) handleNotification(notificationData *model.Notific
 				_ = setMovieDataCache(notificationData.EntityId, movieCacheData)
 			}
 		}
+
+		go n.handleMovieBotNotification(notificationData)
 	} else {
 		cacheData, _ := getCachedUserData(notificationData.CreatorId)
 		if cacheData != nil {
@@ -323,6 +331,70 @@ func (n *NotificationService) handleNotification(notificationData *model.Notific
 			}
 		}
 	}
+}
+
+func (n *NotificationService) handleMovieBotNotification(notificationData *model.NotificationDataModel) {
+	//todo : check bot notification disable in db config
+
+	//todo : cache bot data
+
+	userBots, err := n.userRep.GetUserBots(notificationData.ReceiverId)
+	if err != nil {
+		errorMessage := fmt.Sprintf("error on getting userBots: %v", err)
+		errorHandler.SaveError(errorMessage, err)
+		return
+	}
+	for _, b := range userBots {
+		if b.Notification {
+			botData, err := n.userRep.GetBotData(b.BotId)
+			if err == nil {
+				if botData.BotType == "telegram" && botData.PermissionToLogin && !botData.Disabled {
+					apiUrl := getTelegramApiUrl(notificationData, botData, &b)
+
+					resp, err := http.Get(apiUrl)
+
+					if errors.Is(err, os.ErrDeadlineExceeded) || os.IsTimeout(err) {
+						errorMessage := "Error on calling telegram api: timeout"
+						errorHandler.SaveError(errorMessage, err)
+					}
+					if err != nil {
+						errorMessage := fmt.Sprintf("Error on calling telegram api: %s", err)
+						errorHandler.SaveError(errorMessage, err)
+					}
+					if resp.StatusCode == http.StatusGatewayTimeout || resp.StatusCode == http.StatusRequestTimeout {
+						errorMessage := "Error on calling telegram api: timeout"
+						errorHandler.SaveError(errorMessage, err)
+					}
+					if resp.StatusCode != http.StatusOK {
+						errorMessage := fmt.Sprintf("Error on calling telegram api: %v", fmt.Errorf("bad status: %s", resp.Status))
+						errorHandler.SaveError(errorMessage, err)
+					}
+				}
+			} else {
+				errorMessage := fmt.Sprintf("error on getting bot data: %v", err)
+				errorHandler.SaveError(errorMessage, err)
+			}
+		}
+	}
+}
+
+func getTelegramApiUrl(notificationData *model.NotificationDataModel, botData *model.Bot, b *model.UserBotDataModel) string {
+	title := url.PathEscape(escapeMarkdownV2(notificationData.Message))
+	link := fmt.Sprintf("[Download](t.me/%v?start=download_%v_serial)", botData.BotName, notificationData.EntityId)
+
+	re := regexp.MustCompile(seasonEpisodePattern)
+	matches := re.FindStringSubmatch(notificationData.Message)
+	if len(matches) > 0 {
+		// matches[0] is the full match, matches[1] is the season number, matches[2] is the episode number
+		link = strings.Replace(link, ")", "_"+matches[1]+"_"+matches[2]+")", 1)
+	}
+
+	message := title + " " + link
+
+	apiUrl := fmt.Sprintf("https://api.telegram.org/bot%v/sendMessage?chat_id=%v&text=%v&parse_mode=MarkdownV2",
+		botData.BotToken, b.ChatId, message)
+
+	return apiUrl
 }
 
 func generateNotificationMessage(notificationData *model.NotificationDataModel, username string) string {
@@ -427,4 +499,18 @@ func checkMoviePushNotifDisabled2(notificationData *model.NotificationDataModel,
 		(notificationData.SubEntityTypeId == model.FutureList && !notificationSettings.FutureList) ||
 		(notificationData.SubEntityTypeId == model.FutureListSerialSeasonEnd && !notificationSettings.FutureListSerialSeasonEnd) ||
 		(notificationData.SubEntityTypeId == model.FutureListSubtitle && !notificationSettings.FutureListSubtitle)
+}
+
+//-----------------------------------
+
+func escapeMarkdownV2(text string) string {
+	// List of characters to escape
+	specialChars := []string{"_", "*", "[", "]", "(", ")", "~", "`", ">", "#", "+", "-", "=", "|", "{", "}", ".", "!"}
+
+	// Escape each special character with a backslash
+	for _, char := range specialChars {
+		text = strings.ReplaceAll(text, char, "\\"+char)
+	}
+
+	return text
 }

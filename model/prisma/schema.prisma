@@ -56,6 +56,7 @@ model User {
   userMessageRead                 UserMessageRead?
   createdNotifications            Notification[]
   receivedNotifications           Notification[]           @relation("receivedNotif")
+  bots                            UserBot[]
 }
 
 model Follow {
@@ -120,11 +121,11 @@ model NotificationSettings {
   newMessage                 Boolean @default(false)
   finishedList_spinOffSequel Boolean @default(true)
   followMovie                Boolean @default(true)
-  followMovie_betterQuality  Boolean @default(true)
-  followMovie_subtitle       Boolean @default(true)
-  futureList                 Boolean @default(true)
+  followMovie_betterQuality  Boolean @default(false)
+  followMovie_subtitle       Boolean @default(false)
+  futureList                 Boolean @default(false)
   futureList_serialSeasonEnd Boolean @default(true)
-  futureList_subtitle        Boolean @default(true)
+  futureList_subtitle        Boolean @default(false)
   userId                     Int     @id @unique
   user                       User    @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
 }
@@ -264,7 +265,7 @@ model CastImage {
   originalUrl  String
   size         Int
   thumbnail    String
-  blurHash    String
+  blurHash     String
   url          String     @unique
   vpnStatus    String
   staffId      Int?       @unique
@@ -477,16 +478,18 @@ model UserMessageRead {
 // ----------------------------------------------------------------
 
 model Notification {
-  id           Int                    @id @default(autoincrement())
-  creatorId    Int
-  receiverId   Int
-  entityId     Int
-  entityTypeId Int
-  date         DateTime               @default(now())
-  status       Int
-  creator      User                   @relation(fields: [creatorId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
-  receiver     User                   @relation(fields: [receiverId], references: [userId], onDelete: Cascade, onUpdate: Cascade, name: "receivedNotif")
-  entityType   NotificationEntityType @relation(fields: [entityTypeId], references: [entityTypeId], onDelete: Cascade, onUpdate: Cascade)
+  id              Int                    @id @default(autoincrement())
+  creatorId       Int
+  receiverId      Int
+  message         String
+  entityId        String
+  entityTypeId    Int
+  subEntityTypeId Int
+  date            DateTime               @default(now())
+  status          Int
+  creator         User                   @relation(fields: [creatorId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  receiver        User                   @relation(fields: [receiverId], references: [userId], onDelete: Cascade, onUpdate: Cascade, name: "receivedNotif")
+  entityType      NotificationEntityType @relation(fields: [entityTypeId], references: [entityTypeId], onDelete: Cascade, onUpdate: Cascade)
 
   @@index([receiverId, date])
 }
@@ -495,6 +498,35 @@ model NotificationEntityType {
   entityTypeId  Int            @id
   entityType    String         @unique
   notifications Notification[]
+}
+
+// ----------------------------------------------------------------
+// ----------------------------------------------------------------
+
+model Bot {
+  botId                    String    @id @unique
+  botToken                 String    @unique
+  botName                  String
+  botType                  String
+  disabled                 Boolean
+  isOfficial               Boolean
+  permissionToLogin        Boolean
+  permissionToCrawl        Boolean
+  permissionToTorrentLeech Boolean
+  users                    UserBot[]
+}
+
+model UserBot {
+  notification Boolean @default(true)
+  username     String
+  chatId       String
+  botId        String
+  bot          Bot     @relation(fields: [botId], references: [botId], onDelete: Cascade, onUpdate: Cascade)
+  userId       Int
+  user         User    @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, botId])
+  @@index([userId, botId])
 }
 
 // ----------------------------------------------------------------

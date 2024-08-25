@@ -97,6 +97,7 @@ func (d *Database) AutoMigrate() {
 		&model.WatchListGroup{}, &model.WatchListMovie{},
 		&model.UserCollection{}, &model.UserCollectionMovie{},
 		&model.Room{}, &model.Message{}, &model.UserMessageRead{}, &model.MediaFile{},
+		&model.Bot{}, &model.UserBot{},
 	)
 	if err != nil {
 		errorMessage := fmt.Sprintf("error on AutoMigrate: %v", err)

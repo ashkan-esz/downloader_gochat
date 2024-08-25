@@ -60,8 +60,9 @@ type User struct {
 	SendedMessages         []Message                `gorm:"foreignKey:CreatorId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ReceivedMessages       []Message                `gorm:"foreignKey:ReceiverId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UserMessageRead        UserMessageRead          `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	createdNotifications   []Notification           `gorm:"foreignKey:CreatorId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
-	receivedNotifications  []Notification           `gorm:"foreignKey:ReceiverId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	CreatedNotifications   []Notification           `gorm:"foreignKey:CreatorId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	ReceivedNotifications  []Notification           `gorm:"foreignKey:ReceiverId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	UserBots               []UserBot                `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (User) TableName() string {

@@ -54,6 +54,8 @@ type IUserRepository interface {
 	UpdateUserMovieSettings(userId int64, settings model.MovieSettings) error
 	UpdateUserFavoriteGenres(userId int64, genresArray []string) error
 	GetActiveSessions(userId int64) ([]model.ActiveSessionDataModel, error)
+	GetUserBots(userId int64) ([]model.UserBotDataModel, error)
+	GetBotData(botId string) (*model.Bot, error)
 }
 
 type UserRepository struct {
@@ -1088,6 +1090,29 @@ func (r *UserRepository) GetActiveSessions(userId int64) ([]model.ActiveSessionD
 		Find(&result).
 		Error
 	return result, err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (r *UserRepository) GetUserBots(userId int64) ([]model.UserBotDataModel, error) {
+	var result []model.UserBotDataModel
+	err := r.db.
+		Model(&model.UserBotDataModel{}).
+		Where("\"userId\" = ? AND notification = true", userId).
+		Find(&result).
+		Error
+	return result, err
+}
+
+func (r *UserRepository) GetBotData(botId string) (*model.Bot, error) {
+	var result model.Bot
+	err := r.db.
+		Model(&model.Bot{}).
+		Where("\"botId\" = ?", botId).
+		Find(&result).
+		Error
+	return &result, err
 }
 
 //------------------------------------------
