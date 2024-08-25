@@ -28,6 +28,7 @@ type ICacheService interface {
 const (
 	userDataCachePrefix  = "user:"
 	movieDataCachePrefix = "movie:"
+	botDataCachePrefix   = "bot:"
 )
 
 //------------------------------------------
@@ -233,6 +234,69 @@ func setMovieDataCache(movieId string, movieData *model.CachedMovieData) error {
 	err = redis.SetRedis(context.Background(), movieDataCachePrefix+movieId, jsonData, 1*time.Hour)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Redis Error on saving movieData: %v", err)
+		errorHandler.SaveError(errorMessage, err)
+	}
+	return err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func getCachedBotData(botId string) (*model.Bot, error) {
+	result, err := redis.GetRedis(context.Background(), botDataCachePrefix+botId)
+	if err != nil && err.Error() != "redis: nil" {
+		return nil, nil
+	}
+	if result != "" {
+		var jsonData model.Bot
+		err = json.Unmarshal([]byte(result), &jsonData)
+		if err != nil {
+			return nil, err
+		}
+		return &jsonData, nil
+	}
+	return nil, err
+}
+
+func getCachedMultiBotData(botIds []string) ([]model.Bot, error) {
+	keys := make([]string, len(botIds))
+	for i, id := range botIds {
+		keys[i] = botDataCachePrefix + id
+	}
+
+	result, err := redis.MGetRedis(context.Background(), keys)
+	if err != nil && err.Error() != "redis: nil" {
+		return nil, nil
+	}
+	if result != nil {
+		cachedData := []model.Bot{}
+		for i := range result {
+			if result[i] == nil {
+				//not found
+				continue
+			}
+			var jsonData model.Bot
+			err = json.Unmarshal([]byte(result[i].(string)), &jsonData)
+			if err != nil {
+				return nil, err
+			}
+			cachedData = append(cachedData, jsonData)
+		}
+		return cachedData, nil
+	}
+	return nil, err
+}
+
+func setBotDataCache(botId string, botData *model.Bot) error {
+	jsonData, err := json.Marshal(botData)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Redis Error on saving botData: %v", err)
+		errorHandler.SaveError(errorMessage, err)
+		return err
+	}
+	err = redis.SetRedis(context.Background(), botDataCachePrefix+botId, jsonData, 1*time.Hour)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Redis Error on saving botData: %v", err)
 		errorHandler.SaveError(errorMessage, err)
 	}
 	return err

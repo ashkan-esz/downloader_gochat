@@ -336,8 +336,6 @@ func (n *NotificationService) handleNotification(notificationData *model.Notific
 func (n *NotificationService) handleMovieBotNotification(notificationData *model.NotificationDataModel) {
 	//todo : check bot notification disable in db config
 
-	//todo : cache bot data
-
 	userBots, err := n.userRep.GetUserBots(notificationData.ReceiverId)
 	if err != nil {
 		errorMessage := fmt.Sprintf("error on getting userBots: %v", err)
@@ -346,7 +344,15 @@ func (n *NotificationService) handleMovieBotNotification(notificationData *model
 	}
 	for _, b := range userBots {
 		if b.Notification {
-			botData, err := n.userRep.GetBotData(b.BotId)
+
+			botData, _ := getCachedBotData(b.BotId)
+			if botData == nil {
+				botData, err = n.userRep.GetBotData(b.BotId)
+				if botData != nil {
+					_ = setBotDataCache(b.BotId, botData)
+				}
+			}
+
 			if err == nil {
 				if botData.BotType == "telegram" && botData.PermissionToLogin && !botData.Disabled {
 					apiUrl := getTelegramApiUrl(notificationData, botData, &b)

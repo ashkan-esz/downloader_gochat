@@ -9,7 +9,7 @@ type Bot struct {
 	PermissionToLogin        bool      `gorm:"column:permissionToLogin;type:boolean;not null;" json:"permissionToLogin"`
 	PermissionToCrawl        bool      `gorm:"column:permissionToCrawl;type:boolean;not null;" json:"permissionToCrawl"`
 	PermissionToTorrentLeech bool      `gorm:"column:permissionToTorrentLeech;type:boolean;not null;" json:"permissionToTorrentLeech"`
-	BotToken                 string    `gorm:"column:botToken;type:text;not null;uniqueIndex:Bot_botToken_key;" json:"-"`
+	BotToken                 string    `gorm:"column:botToken;type:text;not null;uniqueIndex:Bot_botToken_key;" json:"botToken"`
 	Users                    []UserBot `gorm:"foreignKey:BotId;references:BotId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
