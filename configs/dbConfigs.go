@@ -29,6 +29,8 @@ type DbConfigData struct {
 	ProfileImageCountLimit     int64              `bson:"profileImageCountLimit"`
 	MediaFileExtensionLimit    string             `bson:"mediaFileExtensionLimit"`
 	ProfileImageExtensionLimit string             `bson:"profileImageExtensionLimit"`
+	TorrentDownloadMaxFileSize int64              `bson:"torrentDownloadMaxFileSize"`
+	DisableBotsNotifications   bool               `bson:"disableBotsNotifications"`
 }
 
 var rwm sync.RWMutex
@@ -41,7 +43,7 @@ func GetDbConfigs() DbConfigData {
 }
 
 func LoadDbConfigs(mongodb *mongo.Database) {
-	tick := time.NewTicker(30 * time.Minute)
+	tick := time.NewTicker(15 * time.Minute)
 	load(mongodb)
 	defer rwm.Unlock()
 	for range tick.C {

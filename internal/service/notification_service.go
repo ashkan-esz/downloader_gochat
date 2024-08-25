@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+	"downloader_gochat/configs"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
 	errorHandler "downloader_gochat/pkg/error"
@@ -265,7 +266,10 @@ func (n *NotificationService) handleNotification(notificationData *model.Notific
 			}
 		}
 
-		go n.handleMovieBotNotification(notificationData)
+		dbconfig := configs.GetDbConfigs()
+		if !dbconfig.DisableBotsNotifications {
+			go n.handleMovieBotNotification(notificationData)
+		}
 	} else {
 		cacheData, _ := getCachedUserData(notificationData.CreatorId)
 		if cacheData != nil {
@@ -334,8 +338,6 @@ func (n *NotificationService) handleNotification(notificationData *model.Notific
 }
 
 func (n *NotificationService) handleMovieBotNotification(notificationData *model.NotificationDataModel) {
-	//todo : check bot notification disable in db config
-
 	userBots, err := n.userRep.GetUserBots(notificationData.ReceiverId)
 	if err != nil {
 		errorMessage := fmt.Sprintf("error on getting userBots: %v", err)
