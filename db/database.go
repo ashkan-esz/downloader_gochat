@@ -4,10 +4,12 @@ import (
 	"downloader_gochat/configs"
 	"downloader_gochat/model"
 	errorHandler "downloader_gochat/pkg/error"
+	"errors"
 	"fmt"
 	"log"
 	"strings"
 
+	"github.com/jackc/pgx/v5/pgconn"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 )
@@ -122,4 +124,12 @@ func (d *Database) Close() {
 
 func (d *Database) GetDB() *gorm.DB {
 	return d.db
+}
+
+func IsConnectionNotAcceptingError(err error) bool {
+	var pgErr *pgconn.PgError
+	if errors.As(err, &pgErr) {
+		return pgErr.Code == "57P03"
+	}
+	return false
 }

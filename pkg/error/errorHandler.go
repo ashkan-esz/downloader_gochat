@@ -2,6 +2,7 @@ package error
 
 import (
 	"downloader_gochat/configs"
+	"errors"
 	"log"
 
 	"github.com/getsentry/sentry-go"
@@ -18,3 +19,7 @@ func SaveError(message string, err error) {
 		sentry.CaptureException(err)
 	}
 }
+
+var (
+	ImageNotFoundError = errors.New("image not found")
+)

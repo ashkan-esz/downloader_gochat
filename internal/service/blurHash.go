@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"downloader_gochat/configs"
+	database "downloader_gochat/db"
 	"downloader_gochat/internal/repository"
 	errorHandler "downloader_gochat/pkg/error"
 	"downloader_gochat/rabbitmq"
@@ -96,7 +97,7 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 	hashStr := ""
 	if channelMessage.Type != moviePoster {
 		hashStr, err = blurSvc.CreateBlurHash(channelMessage.Url)
-		if err != nil {
+		if err != nil && !errors.Is(err, errorHandler.ImageNotFoundError) {
 			if err = d.Nack(false, true); err != nil {
 				errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
 				errorHandler.SaveError(errorMessage, err)
@@ -128,8 +129,10 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 			err = blurSvc.castRepo.SaveCharacterCastImageBlurHash(id, hashStr)
 		}
 		if err != nil {
-			errorMessage := fmt.Sprintf("error saving [%s] blurHash: %s", channelMessage.Type, err)
-			errorHandler.SaveError(errorMessage, err)
+			if !database.IsConnectionNotAcceptingError(err) {
+				errorMessage := fmt.Sprintf("error saving [%s] blurHash: %s", channelMessage.Type, err)
+				errorHandler.SaveError(errorMessage, err)
+			}
 			if err = d.Nack(false, true); err != nil {
 				errorMessage := fmt.Sprintf("error nacking [blurHash] message: %s", err)
 				errorHandler.SaveError(errorMessage, err)
@@ -205,7 +208,7 @@ func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 		return "", errors.New("image download timeout")
 	}
 	if resp.StatusCode == http.StatusNotFound {
-		return "", errors.New("image not found")
+		return "", errorHandler.ImageNotFoundError
 	}
 	if resp.StatusCode != http.StatusOK {
 		errorMessage := fmt.Sprintf("Error on downloading image: %v", fmt.Errorf("bad status: %s", resp.Status))
@@ -226,11 +229,11 @@ func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 	} else {
 		body, err := io.ReadAll(resp.Body)
 		if err != nil {
-			errorMessage := fmt.Sprintf("Error reading response body: %v", err)
-			errorHandler.SaveError(errorMessage, err)
 			if strings.HasPrefix(err.Error(), "stream error: stream ID") {
 				return "", nil
 			}
+			errorMessage := fmt.Sprintf("Error reading response body: %v", err)
+			errorHandler.SaveError(errorMessage, err)
 			return "", err
 		}
 
