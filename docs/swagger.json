@@ -18,7 +18,7 @@
         },
         "version": "2.0"
     },
-    "host": "chat.movieTracker.mom",
+    "host": "chat.movieTracker.site",
     "basePath": "/",
     "paths": {
         "/": {

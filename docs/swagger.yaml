@@ -779,7 +779,7 @@ definitions:
       errorMessage:
         type: string
     type: object
-host: chat.movieTracker.mom
+host: chat.movieTracker.site
 info:
   contact:
     email: support@swagger.io
