@@ -14,7 +14,7 @@ import (
 )
 
 type IUserRepository interface {
-	AddUser(user *model.User) (*model.User, error)
+	AddUser(user *model.User, roleId int64) (*model.User, error)
 	GetDetailUser(int64) (*model.UserWithImageDataModel, error)
 	GetUserByUsernameEmail(username string, email string) (*model.UserDataModel, error)
 	GetUserByUsernameEmailAndUserId(userId int64, username string, email string) (*model.UserDataModel, error)
@@ -56,6 +56,7 @@ type IUserRepository interface {
 	GetActiveSessions(userId int64) ([]model.ActiveSessionDataModel, error)
 	GetUserBots(userId int64) ([]model.UserBotDataModel, error)
 	GetBotData(botId string) (*model.Bot, error)
+	GetUserRoles(userId int64) ([]model.Role, error)
 }
 
 type UserRepository struct {
@@ -70,11 +71,11 @@ func NewUserRepository(db *gorm.DB, mongodb *mongo.Database) *UserRepository {
 //------------------------------------------
 //------------------------------------------
 
-func (r *UserRepository) AddUser(user *model.User) (*model.User, error) {
+func (r *UserRepository) AddUser(user *model.User, roleId int64) (*model.User, error) {
 	err := r.db.Transaction(func(tx *gorm.DB) error {
 		// do some database operations in the transaction (use 'tx' from this point, not 'db')
 		if err := tx.Create(&user).Error; err != nil {
-			// return any error will rollback
+			// return any error will roll back
 			return err
 		}
 
@@ -119,6 +120,14 @@ func (r *UserRepository) AddUser(user *model.User) (*model.User, error) {
 			UserId: user.UserId,
 		}
 		if err := tx.Create(&userMessageRead).Error; err != nil {
+			return err
+		}
+
+		userRole := model.UserToRole{
+			UserId: user.UserId,
+			RoleId: roleId,
+		}
+		if err := tx.Create(&userRole).Error; err != nil {
 			return err
 		}
 
@@ -418,7 +427,7 @@ func (r *UserRepository) DeleteUserAndRelatedData(userId int64) error {
 
 		// delete user data from User table
 		err = tx.
-			Where("\"userId\" = ? AND role != ?", userId, model.ADMIN).
+			Where("\"userId\" = ?", userId).
 			Delete(&model.User{}).
 			Error
 		if err != nil {
@@ -1113,6 +1122,23 @@ func (r *UserRepository) GetBotData(botId string) (*model.Bot, error) {
 		Find(&result).
 		Error
 	return &result, err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func (r *UserRepository) GetUserRoles(userId int64) ([]model.Role, error) {
+	var roles []model.Role
+
+	// Fetch the roles for this user
+	if err := r.db.Model(&model.Role{}).
+		Joins("JOIN \"UserToRole\" ON \"UserToRole\".\"roleId\" = \"Role\".id").
+		Where("\"UserToRole\".\"userId\" = ?", userId).
+		Find(&roles).Error; err != nil {
+		return nil, err
+	}
+
+	return roles, nil
 }
 
 //------------------------------------------

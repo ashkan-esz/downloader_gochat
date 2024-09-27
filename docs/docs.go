@@ -1734,9 +1734,6 @@ const docTemplate = `{
                 "publicName": {
                     "type": "string"
                 },
-                "role": {
-                    "type": "string"
-                },
                 "unreadMessagesCount": {
                     "type": "integer"
                 },
@@ -2610,9 +2607,6 @@ const docTemplate = `{
                 "registrationDate": {
                     "type": "string"
                 },
-                "role": {
-                    "$ref": "#/definitions/model.UserRole"
-                },
                 "thisDevice": {
                     "$ref": "#/definitions/model.ActiveSessionDataModel"
                 },
@@ -2623,21 +2617,6 @@ const docTemplate = `{
                     "type": "string"
                 }
             }
-        },
-        "model.UserRole": {
-            "type": "string",
-            "enum": [
-                "test_user",
-                "user",
-                "dev",
-                "admin"
-            ],
-            "x-enum-varnames": [
-                "TEST_USER",
-                "USER",
-                "DEV",
-                "ADMIN"
-            ]
         },
         "model.UserSettingsRes": {
             "type": "object",
@@ -2711,6 +2690,18 @@ const docTemplate = `{
                     "type": "array",
                     "items": {
                         "$ref": "#/definitions/model.ProfileImage"
+                    }
+                },
+                "roleIds": {
+                    "type": "array",
+                    "items": {
+                        "type": "integer"
+                    }
+                },
+                "roleNames": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
                     }
                 },
                 "token": {

@@ -119,7 +119,6 @@ type ChatsDataModel struct {
 	UserId       int64     `gorm:"column:userId;" json:"userId"`
 	Username     string    `gorm:"column:username;" json:"username"`
 	PublicName   string    `gorm:"column:publicName;" json:"publicName"`
-	Role         string    `gorm:"column:role;" json:"role"`
 	LastSeenDate time.Time `gorm:"column:lastSeenDate;" json:"lastSeenDate"`
 	Id           int64     `gorm:"column:id" json:"id"`
 	Content      string    `gorm:"column:content" json:"content"`
@@ -142,7 +141,6 @@ type ChatsCompressedDataModel struct {
 	UserId              int64                   `json:"userId"`
 	Username            string                  `json:"username"`
 	PublicName          string                  `json:"publicName"`
-	Role                string                  `json:"role"`
 	LastSeenDate        time.Time               `json:"lastSeenDate"`
 	ProfileImages       []ProfileImageDataModel `json:"profileImages"`
 	Messages            []MessageDataModel      `json:"messages"`

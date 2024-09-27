@@ -4,7 +4,6 @@ import (
 	"context"
 	"downloader_gochat/cloudStorage"
 	"downloader_gochat/configs"
-	"downloader_gochat/db/redis"
 	"downloader_gochat/internal/repository"
 	"downloader_gochat/model"
 	"downloader_gochat/pkg/email"
@@ -90,7 +89,6 @@ func (s *UserService) SignUp(registerVM *model.RegisterViewModel, ip string) (*m
 		Email:                  strings.ToLower(registerVM.Email),
 		EmailVerified:          false,
 		EmailVerifyTokenExpire: time.Now().Add(6 * time.Hour).UnixMilli(),
-		Role:                   model.USER,
 		MbtiType:               model.ENTJ,
 		DefaultProfile:         configs.GetConfigs().DefaultProfileImage,
 	}
@@ -104,12 +102,12 @@ func (s *UserService) SignUp(registerVM *model.RegisterViewModel, ip string) (*m
 		return nil, err
 	}
 
-	result, err := s.userRepo.AddUser(&user)
+	result, err := s.userRepo.AddUser(&user, int64(model.DefaultUser))
 	if err != nil {
 		return nil, err
 	}
 
-	token, err := util.CreateJwtToken(result.UserId, result.Username, "user")
+	token, err := util.CreateJwtToken(result.UserId, result.Username, []int64{int64(model.DefaultUser)})
 	if err != nil {
 		return nil, err
 	}
@@ -151,6 +149,8 @@ func (s *UserService) SignUp(registerVM *model.RegisterViewModel, ip string) (*m
 			AccessTokenExpire: token.ExpiresAt,
 			RefreshToken:      token.RefreshToken,
 		},
+		RoleIds:   []int64{int64(model.DefaultUser)},
+		RoleNames: []string{string(model.DefaultUserRole)},
 	}
 
 	return &userVM, nil
@@ -170,7 +170,19 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel, ip string) (*mode
 		return nil, err
 	}
 
-	token, err := util.CreateJwtToken(searchResult.UserId, searchResult.Username, "user")
+	roles, err := s.userRepo.GetUserRoles(searchResult.UserId)
+	if err != nil {
+		return nil, err
+	}
+
+	roleIds := []int64{}
+	roleNames := []string{}
+	for _, r := range roles {
+		roleIds = append(roleIds, r.Id)
+		roleNames = append(roleNames, r.Name)
+	}
+
+	token, err := util.CreateJwtToken(searchResult.UserId, searchResult.Username, roleIds)
 	if err != nil {
 		return nil, err
 	}
@@ -230,13 +242,27 @@ func (s *UserService) LoginUser(loginVM *model.LoginViewModel, ip string) (*mode
 			AccessTokenExpire: token.ExpiresAt,
 			RefreshToken:      token.RefreshToken,
 		},
+		RoleIds:   roleIds,
+		RoleNames: roleNames,
 	}
 
 	return &userVM, nil
 }
 
 func (s *UserService) GetToken(deviceVM *model.DeviceInfo, prevRefreshToken string, jwtUserData *util.MyJwtClaims, addProfileImages bool, ip string) (*model.UserViewModel, *util.TokenDetail, error) {
-	token, err := util.CreateJwtToken(jwtUserData.UserId, jwtUserData.Username, "user")
+	roles, err := s.userRepo.GetUserRoles(jwtUserData.UserId)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	roleIds := []int64{}
+	roleNames := []string{}
+	for _, r := range roles {
+		roleIds = append(roleIds, r.Id)
+		roleNames = append(roleNames, r.Name)
+	}
+
+	token, err := util.CreateJwtToken(jwtUserData.UserId, jwtUserData.Username, roleIds)
 	if err != nil {
 		return nil, nil, err
 	}
@@ -257,6 +283,8 @@ func (s *UserService) GetToken(deviceVM *model.DeviceInfo, prevRefreshToken stri
 			AccessTokenExpire: token.ExpiresAt,
 			RefreshToken:      token.RefreshToken,
 		},
+		RoleIds:   roleIds,
+		RoleNames: roleNames,
 	}
 
 	if addProfileImages {
@@ -281,7 +309,7 @@ func (s *UserService) LogOut(c *fiber.Ctx, jwtUserData *util.MyJwtClaims, prevRe
 	}
 
 	remainingTime := jwtUserData.ExpiresAt - time.Now().UnixMilli()
-	err = redis.SetRedis(c.Context(), "jwtKey:"+prevRefreshToken, "logout", time.Duration(remainingTime)*time.Millisecond)
+	err = setJwtDataCache(prevRefreshToken, "logout", time.Duration(remainingTime)*time.Millisecond)
 	if err != nil {
 		return err
 	}
@@ -296,10 +324,7 @@ func (s *UserService) ForceLogoutDevice(c *fiber.Ctx, jwtUserData *util.MyJwtCla
 	}
 
 	remainingTime := configs.GetConfigs().AccessTokenExpireHour
-	err = redis.SetRedis(c.Context(),
-		"jwtKey:"+result.RefreshToken,
-		"logout",
-		time.Duration(remainingTime)*time.Hour)
+	err = setJwtDataCache(result.RefreshToken, "logout", time.Duration(remainingTime)*time.Hour)
 	if err != nil {
 		return err
 	}
@@ -319,10 +344,7 @@ func (s *UserService) ForceLogoutAll(c *fiber.Ctx, jwtUserData *util.MyJwtClaims
 
 	remainingTime := configs.GetConfigs().AccessTokenExpireHour
 	for i := range result {
-		_ = redis.SetRedis(c.Context(),
-			"jwtKey:"+result[i].RefreshToken,
-			"logout",
-			time.Duration(remainingTime)*time.Hour)
+		_ = setJwtDataCache(result[i].RefreshToken, "logout", time.Duration(remainingTime)*time.Hour)
 		if result[i].NotifToken != "" {
 			_ = removeNotifTokenFromCachedUserData(jwtUserData.UserId, result[i].NotifToken)
 		}
@@ -671,6 +693,16 @@ func (s *UserService) DeleteUserAccount(userId int64, token string) error {
 		return err
 	}
 
+	roles, err := s.userRepo.GetUserRoles(userId)
+	if err != nil {
+		return err
+	}
+	for _, r := range roles {
+		if r.Id == int64(model.MainAdmin) || r.Name == string(model.MainAdminRole) {
+			return errors.New("forbidden, cannot remove user with main-admin-role")
+		}
+	}
+
 	profileImages, err := s.userRepo.RemoveAllProfileImageData(userId)
 	if err != nil {
 		return err
@@ -693,10 +725,7 @@ func (s *UserService) DeleteUserAccount(userId int64, token string) error {
 
 	accessTokenExpireHour := configs.GetConfigs().AccessTokenExpireHour
 	for i := range activeSessions {
-		_ = redis.SetRedis(context.Background(),
-			"jwtKey:"+activeSessions[i].RefreshToken,
-			"deleteAccount",
-			time.Duration(accessTokenExpireHour)*time.Hour)
+		_ = setJwtDataCache(activeSessions[i].RefreshToken, "deleteAccount", time.Duration(accessTokenExpireHour)*time.Hour)
 	}
 
 	return nil

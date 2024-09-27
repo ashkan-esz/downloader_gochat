@@ -55,13 +55,6 @@ func (d *Database) AutoMigrate() {
 		errorHandler.SaveError(errorMessage, err)
 	}
 
-	////err = d.db.Exec("DROP TYPE IF EXISTS \"userRole\"").Error
-	err = d.db.Exec("create type \"userRole\" as enum ('test_user', 'user', 'dev', 'admin');").Error
-	if err != nil && !strings.Contains(err.Error(), "already exists") {
-		errorMessage := fmt.Sprintf("error on AutoMigrate: %v", err)
-		errorHandler.SaveError(errorMessage, err)
-	}
-
 	////err = d.db.Exec("DROP TYPE IF EXISTS \"likeDislike\"").Error
 	//err = d.db.Exec("create type \"likeDislike\" as enum ('like', 'dislike');").Error
 	if err != nil && !strings.Contains(err.Error(), "already exists") {

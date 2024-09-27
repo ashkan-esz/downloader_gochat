@@ -10,11 +10,11 @@ import (
 )
 
 type MyJwtClaims struct {
-	UserId      int64  `json:"userId"`
-	Username    string `json:"username"`
-	Role        string `json:"role"`
-	GeneratedAt int64  `json:"generatedAt"`
-	ExpiresAt   int64  `json:"expiresAt"`
+	UserId      int64   `json:"userId"`
+	Username    string  `json:"username"`
+	RoleIds     []int64 `json:"roleIds"`
+	GeneratedAt int64   `json:"generatedAt"`
+	ExpiresAt   int64   `json:"expiresAt"`
 	jwt.RegisteredClaims
 }
 
@@ -24,13 +24,13 @@ type TokenDetail struct {
 	ExpiresAt    int64
 }
 
-func CreateJwtToken(id int64, username string, role string) (*TokenDetail, error) {
+func CreateJwtToken(id int64, username string, roleIds []int64) (*TokenDetail, error) {
 	myConfigs := configs.GetConfigs()
 	accessExpire := jwt.NewNumericDate(time.Now().Add(time.Duration(myConfigs.AccessTokenExpireHour) * time.Hour))
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, MyJwtClaims{
 		UserId:      id,
 		Username:    username,
-		Role:        role,
+		RoleIds:     roleIds,
 		GeneratedAt: time.Now().UnixMilli(),
 		ExpiresAt:   accessExpire.UnixMilli(),
 		RegisteredClaims: jwt.RegisteredClaims{
@@ -44,7 +44,7 @@ func CreateJwtToken(id int64, username string, role string) (*TokenDetail, error
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, MyJwtClaims{
 		UserId:      id,
 		Username:    username,
-		Role:        role,
+		RoleIds:     roleIds,
 		GeneratedAt: time.Now().UnixMilli(),
 		ExpiresAt:   refreshExpire.UnixMilli(),
 		RegisteredClaims: jwt.RegisteredClaims{

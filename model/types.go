@@ -5,7 +5,6 @@ import (
 )
 
 type TitleRelation string
-type UserRole string
 type LikeDislike string
 type MbtiType string
 
@@ -20,10 +19,6 @@ const (
 	OTHER               TitleRelation = "other"
 	ALTERNATIVE_SETTING TitleRelation = "alternative_setting"
 	ALTERNATIVE_VERSION TitleRelation = "alternative_version"
-	TEST_USER           UserRole      = "test_user"
-	USER                UserRole      = "user"
-	DEV                 UserRole      = "dev"
-	ADMIN               UserRole      = "admin"
 	LIKE                LikeDislike   = "like"
 	DISLIKE             LikeDislike   = "dislike"
 )
@@ -56,15 +51,6 @@ func (tl *TitleRelation) Scan(value interface{}) error {
 
 func (tl TitleRelation) Value() (driver.Value, error) {
 	return string(tl), nil
-}
-
-func (ur *UserRole) Scan(value interface{}) error {
-	*ur = UserRole(value.(string))
-	return nil
-}
-
-func (ur UserRole) Value() (driver.Value, error) {
-	return string(ur), nil
 }
 
 func (l *LikeDislike) Scan(value interface{}) error {

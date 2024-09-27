@@ -17,7 +17,6 @@ model User {
   rawUsername                     String
   registrationDate                DateTime                 @default(now())
   lastSeenDate                    DateTime                 @default(now())
-  role                            userRole                 @default(user)
   username                        String                   @unique
   bio                             String                   @default("")
   email                           String                   @unique
@@ -57,6 +56,7 @@ model User {
   createdNotifications            Notification[]
   receivedNotifications           Notification[]           @relation("receivedNotif")
   bots                            UserBot[]
+  roles                           UserToRole[]
 }
 
 model Follow {
@@ -100,11 +100,45 @@ model ActiveSession {
   @@index([userId, refreshToken])
 }
 
-enum userRole {
-  test_user
-  user
-  dev
-  admin
+model UserToRole {
+  userId Int
+  roleId Int
+  user   User @relation(fields: [userId], references: [userId], onDelete: Cascade, onUpdate: Cascade)
+  role   Role @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([userId, roleId])
+}
+
+model Role {
+  id                  Int      @id @default(autoincrement())
+  name                String   @unique
+  description         String   @default("")
+  torrentLeachLimitGb Int
+  torrentSearchLimit  Int
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+
+  users       UserToRole[]
+  permissions RoleToPermission[]
+}
+
+model RoleToPermission {
+  roleId       Int
+  permissionId Int
+  role         Role       @relation(fields: [roleId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+  permission   Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade, onUpdate: Cascade)
+
+  @@id([roleId, permissionId])
+}
+
+model Permission {
+  id          Int      @id @default(autoincrement())
+  name        String   @unique
+  description String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  roles RoleToPermission[]
 }
 
 // ----------------------------------------------------------------
@@ -504,16 +538,17 @@ model NotificationEntityType {
 // ----------------------------------------------------------------
 
 model Bot {
-  botId                    String    @id @unique
-  botToken                 String    @unique
-  botName                  String
-  botType                  String
-  disabled                 Boolean
-  isOfficial               Boolean
-  permissionToLogin        Boolean
-  permissionToCrawl        Boolean
-  permissionToTorrentLeech Boolean
-  users                    UserBot[]
+  botId                     String    @id @unique
+  botToken                  String    @unique
+  botName                   String
+  botType                   String
+  disabled                  Boolean
+  isOfficial                Boolean
+  permissionToLogin         Boolean
+  permissionToCrawl         Boolean
+  permissionToTorrentLeech  Boolean
+  permissionToTorrentSearch Boolean
+  users                     UserBot[]
 }
 
 model UserBot {

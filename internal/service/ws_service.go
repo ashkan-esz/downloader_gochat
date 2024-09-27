@@ -791,7 +791,6 @@ func (w *WsService) GetSingleChatList(params *model.GetSingleChatListReq) (*[]mo
 				UserId:        chatUserId,
 				Username:      chat.Username,
 				PublicName:    chat.PublicName,
-				Role:          chat.Role,
 				LastSeenDate:  chat.LastSeenDate,
 				ProfileImages: filterProfileImages(profileImages, chat.UserId),
 				Messages:      []model.MessageDataModel{m},

@@ -212,7 +212,7 @@ func (w *WsRepository) GetSingleChatMessages(params *model.GetSingleMessagesReq)
 func (w *WsRepository) GetSingleChatList(params *model.GetSingleChatListReq) ([]model.ChatsDataModel, []model.ProfileImageDataModel, error) {
 	var chats []model.ChatsDataModel
 
-	//SELECT t_limited.*, "User"."publicName", "User".username, "User"."userId", "User".role, "User"."lastSeenDate", "MediaFile".*
+	//SELECT t_limited.*, "User"."publicName", "User".username, "User"."userId", "User"."lastSeenDate", "MediaFile".*
 	//FROM (
 	//    (
 	//         SELECT DISTINCT "creatorId"
@@ -230,7 +230,7 @@ func (w *WsRepository) GetSingleChatList(params *model.GetSingleChatListReq) ([]
 	//    ) as t_limited ON t_limited.state = 1 and t_limited."roomId" IS NULL
 	//) join "User" on t_limited."creatorId" = "User"."userId" left join "MediaFile" on t_limited.id = "MediaFile"."messageId";
 
-	queryStr := "SELECT t_limited.*, \"User\".\"publicName\", \"User\".username, \"User\".\"userId\", \"User\".role, \"User\".\"lastSeenDate\", \"MediaFile\".* " +
+	queryStr := "SELECT t_limited.*, \"User\".\"publicName\", \"User\".username, \"User\".\"userId\", \"User\".\"lastSeenDate\", \"MediaFile\".* " +
 		"FROM ( ( SELECT DISTINCT \"creatorId\" FROM \"Message\" offset @chatskip limit @chatlimit) as t_groups " +
 		"JOIN LATERAL (SELECT * FROM \"Message\" t_all WHERE t_all.\"creatorId\" = t_groups.\"creatorId\" and " +
 		" (t_all.\"receiverId\" = @receiverid OR t_groups.\"creatorId\" = @receiverid) " +

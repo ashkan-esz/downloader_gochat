@@ -22,7 +22,6 @@ type User struct {
 	RawUsername                    string         `gorm:"column:rawUsername;type:text;not null;"`
 	RegistrationDate               time.Time      `gorm:"column:registrationDate;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
 	LastSeenDate                   time.Time      `gorm:"column:lastSeenDate;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
-	Role                           UserRole       `gorm:"column:role;type:\"userRole\";not null;default:\"user\";"`
 	MbtiType                       MbtiType       `gorm:"column:mbtiType;type:\"MbtiType\";"`
 	ComputedStatsLastUpdate        int64          `gorm:"column:ComputedStatsLastUpdate;type:bigint;not null;default:0;"`
 	EmailVerifyToken               string         `gorm:"column:emailVerifyToken;type:text;not null;default:\"\";"`
@@ -63,6 +62,7 @@ type User struct {
 	CreatedNotifications   []Notification           `gorm:"foreignKey:CreatorId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	ReceivedNotifications  []Notification           `gorm:"foreignKey:ReceiverId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	UserBots               []UserBot                `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	Roles                  []UserToRole             `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 }
 
 func (User) TableName() string {
@@ -78,6 +78,8 @@ type UserViewModel struct {
 	Email         string         `json:"email,omitempty"`
 	Token         TokenViewModel `json:"token"`
 	ProfileImages []ProfileImage `json:"profileImages,omitempty"`
+	RoleIds       []int64        `json:"roleIds"`
+	RoleNames     []string       `json:"roleNames"`
 }
 
 type TokenViewModel struct {
@@ -242,7 +244,6 @@ type UserProfileRes struct {
 	DefaultProfile          string                            `gorm:"column:defaultProfile" json:"defaultProfile"`
 	ComputedStatsLastUpdate int64                             `gorm:"column:ComputedStatsLastUpdate;" json:"computedStatsLastUpdate"`
 	FavoriteGenres          pq.StringArray                    `gorm:"column:favoriteGenres;type:text[];" json:"favoriteGenres" swaggertype:"array,string"`
-	Role                    UserRole                          `gorm:"column:role;" json:"role"`
 	MbtiType                MbtiType                          `gorm:"column:mbtiType" json:"mbtiType"`
 	ProfileImages           []FollowListProfileImageDataModel `gorm:"foreignKey:UserId;references:UserId;" json:"profileImages"`
 	ComputedFavoriteGenres  []ComputedFavoriteGenres          `gorm:"foreignKey:UserId;references:UserId;" json:"computedFavoriteGenres"`

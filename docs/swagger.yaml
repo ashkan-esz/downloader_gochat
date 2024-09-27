@@ -91,8 +91,6 @@ definitions:
         type: array
       publicName:
         type: string
-      role:
-        type: string
       unreadMessagesCount:
         type: integer
       userId:
@@ -688,8 +686,6 @@ definitions:
         type: string
       registrationDate:
         type: string
-      role:
-        $ref: '#/definitions/model.UserRole'
       thisDevice:
         $ref: '#/definitions/model.ActiveSessionDataModel'
       userId:
@@ -697,18 +693,6 @@ definitions:
       username:
         type: string
     type: object
-  model.UserRole:
-    enum:
-    - test_user
-    - user
-    - dev
-    - admin
-    type: string
-    x-enum-varnames:
-    - TEST_USER
-    - USER
-    - DEV
-    - ADMIN
   model.UserSettingsRes:
     properties:
       downloadLinksSettings:
@@ -758,6 +742,14 @@ definitions:
       profileImages:
         items:
           $ref: '#/definitions/model.ProfileImage'
+        type: array
+      roleIds:
+        items:
+          type: integer
+        type: array
+      roleNames:
+        items:
+          type: string
         type: array
       token:
         $ref: '#/definitions/model.TokenViewModel'
