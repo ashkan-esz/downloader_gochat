@@ -47,7 +47,7 @@ To run this project, you will need to add the following environment variables to
 | **`BLURHASH_CONSUMER_COUNT`**          | number of parallel creation of blurHash                                                  | `false`  | 1             |
 | **`APP_DEEP_LINK`**                    | deeplink of the mobile app, used in push notification                                    | `false`  |               |
 
->**NOTE: check [configs schema](https://github.com/ashkan-esz/downloader_api/blob/master/readme/CONFIGS.README.md) for other configs that read from db.**
+>**NOTE: check [configs schema](https://github.com/ashkan-esz/downloader_api/blob/master/docs/CONFIGS.README.md) for other configs that read from db.**
 
 ## Future updates
 

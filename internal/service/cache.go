@@ -9,10 +9,15 @@ import (
 	"fmt"
 	"slices"
 	"strconv"
+	"strings"
 	"time"
 )
 
 type ICacheService interface {
+	GetJwtDataCache(key string) (string, error)
+	setJwtDataCache(key string, value string, duration time.Duration) error
+	getRolePermissionsCache(roleIds []int64) ([]string, error)
+	setRolePermissionsCache(roleIds []int64, permissions []string, duration time.Duration) error
 	removeNotifTokenFromcachedUserData(userId int64, notifToken string) error
 	addNotifTokenToCachedUserData(userId int64, notifToken string) error
 	updateProfileImageOfCachedUserData(userId int64, profileImages *[]model.ProfileImageDataModel) error
@@ -26,10 +31,66 @@ type ICacheService interface {
 }
 
 const (
-	userDataCachePrefix  = "user:"
-	movieDataCachePrefix = "movie:"
-	botDataCachePrefix   = "bot:"
+	jwtDataCachePrefix         = "jwtKey:"
+	userDataCachePrefix        = "user:"
+	movieDataCachePrefix       = "movie:"
+	botDataCachePrefix         = "bot:"
+	rolePermissionsCachePrefix = "roleIds:"
 )
+
+//------------------------------------------
+//------------------------------------------
+
+func GetJwtDataCache(key string) (string, error) {
+	result, err := redis.GetRedis(context.Background(), jwtDataCachePrefix+key)
+	return result, err
+}
+
+func setJwtDataCache(key string, value string, duration time.Duration) error {
+	err := redis.SetRedis(context.Background(), jwtDataCachePrefix+key, value, duration)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Redis Error on saving jwt: %v", err)
+		errorHandler.SaveError(errorMessage, err)
+	}
+	return err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func getRolePermissionsCache(roleIds []int64) ([]string, error) {
+	key := int64SliceToString(roleIds, ",")
+	result, err := redis.GetRedis(context.Background(), rolePermissionsCachePrefix+key)
+	if err != nil && err.Error() != "redis: nil" {
+		return nil, nil
+	}
+	if result != "" {
+		var jsonData []string
+		err = json.Unmarshal([]byte(result), &jsonData)
+		if err != nil {
+			return nil, err
+		}
+		return jsonData, nil
+	}
+	return nil, err
+}
+
+func setRolePermissionsCache(roleIds []int64, permissions []string, duration time.Duration) error {
+	jsonData, err := json.Marshal(permissions)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Redis Error on saving permissions: %v", err)
+		errorHandler.SaveError(errorMessage, err)
+		return err
+	}
+
+	key := int64SliceToString(roleIds, ",")
+	err = redis.SetRedis(context.Background(), rolePermissionsCachePrefix+key, jsonData, duration)
+	if err != nil {
+		errorMessage := fmt.Sprintf("Redis Error on saving permissions: %v", err)
+		errorHandler.SaveError(errorMessage, err)
+	}
+	return err
+}
 
 //------------------------------------------
 //------------------------------------------
@@ -300,4 +361,20 @@ func setBotDataCache(botId string, botData *model.Bot) error {
 		errorHandler.SaveError(errorMessage, err)
 	}
 	return err
+}
+
+//------------------------------------------
+//------------------------------------------
+
+func int64SliceToString(nums []int64, delimiter string) string {
+	// Create a string slice to hold the converted numbers
+	strNums := make([]string, len(nums))
+
+	// Convert each int64 to string
+	for i, num := range nums {
+		strNums[i] = strconv.FormatInt(num, 10)
+	}
+
+	// Join the strings with the specified delimiter
+	return strings.Join(strNums, delimiter)
 }

@@ -1,4 +1,4 @@
-FROM golang:1.21-alpine as builder
+FROM golang:1.23.1-alpine as builder
 WORKDIR /app
 
 RUN apk add libwebp-dev build-base vips-dev --no-cache
