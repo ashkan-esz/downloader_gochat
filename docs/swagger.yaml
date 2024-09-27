@@ -466,6 +466,19 @@ definitions:
         default: false
         type: boolean
     type: object
+  model.Permission:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      updatedAt:
+        type: string
+    type: object
   model.ProfileImage:
     properties:
       addDate:
@@ -540,6 +553,59 @@ definitions:
       username:
         description: 'min:6, max: 50'
         format: (?i)^[a-z|\d_-]+$
+        type: string
+    type: object
+  model.Role:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/model.RoleToPermission'
+        type: array
+      torrentLeachLimitGb:
+        type: integer
+      torrentSearchLimit:
+        type: integer
+      updatedAt:
+        type: string
+      users:
+        items:
+          $ref: '#/definitions/model.UserToRole'
+        type: array
+    type: object
+  model.RoleToPermission:
+    properties:
+      permissionId:
+        type: integer
+      roleId:
+        type: integer
+    type: object
+  model.RoleWithPermissions:
+    properties:
+      createdAt:
+        type: string
+      description:
+        type: string
+      id:
+        type: integer
+      name:
+        type: string
+      permissions:
+        items:
+          $ref: '#/definitions/model.Permission'
+        type: array
+      torrentLeachLimitGb:
+        type: integer
+      torrentSearchLimit:
+        type: integer
+      updatedAt:
         type: string
     type: object
   model.ServerResultMessage:
@@ -646,6 +712,10 @@ definitions:
     properties:
       MovieSettings:
         $ref: '#/definitions/model.MovieSettings'
+      RolesWithPermissions:
+        items:
+          $ref: '#/definitions/model.RoleWithPermissions'
+        type: array
       bio:
         type: string
       computedFavoriteGenres:
@@ -686,12 +756,27 @@ definitions:
         type: string
       registrationDate:
         type: string
+      roles:
+        items:
+          $ref: '#/definitions/model.Role'
+        type: array
       thisDevice:
         $ref: '#/definitions/model.ActiveSessionDataModel'
       userId:
         type: integer
       username:
         type: string
+    type: object
+  model.UserRolePermissionRes:
+    properties:
+      roles:
+        items:
+          $ref: '#/definitions/model.Role'
+        type: array
+      rolesWithPermissions:
+        items:
+          $ref: '#/definitions/model.RoleWithPermissions'
+        type: array
     type: object
   model.UserSettingsRes:
     properties:
@@ -735,6 +820,13 @@ definitions:
     - UserStatusOnlineUsers
     - UserStatusIsTyping
     - UserStatusStopTyping
+  model.UserToRole:
+    properties:
+      roleId:
+        type: integer
+      userId:
+        type: integer
+    type: object
   model.UserViewModel:
     properties:
       email:
@@ -1372,6 +1464,14 @@ paths:
         in: query
         name: loadComputedFavoriteGenres
         type: boolean
+      - description: loadRoles
+        in: query
+        name: loadRoles
+        type: boolean
+      - description: loadRolesWithPermissions
+        in: query
+        name: loadRolesWithPermissions
+        type: boolean
       responses:
         "200":
           description: OK
@@ -1419,6 +1519,44 @@ paths:
           schema:
             $ref: '#/definitions/response.ResponseErrorModel'
       summary: Remove Profile Image
+      tags:
+      - User
+  /v1/user/roles_and_permissions:
+    get:
+      description: Return role and permission of user
+      parameters:
+      - description: userId
+        in: query
+        name: userId
+        type: integer
+      - description: loadDevice
+        in: query
+        name: loadDevice
+        type: boolean
+      - description: loadRoles
+        in: query
+        name: loadRoles
+        type: boolean
+      - description: loadRolesWithPermissions
+        in: query
+        name: loadRolesWithPermissions
+        type: boolean
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.UserRolePermissionRes'
+        "404":
+          description: Not Found
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+        "500":
+          description: Internal Server Error
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      security:
+      - BearerAuth: []
+      summary: Role Data
       tags:
       - User
   /v1/user/sendVerifyEmail:

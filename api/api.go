@@ -91,6 +91,7 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 		userRoutes.Put("/updateFavoriteGenres/:genres", middleware.AuthMiddleware, userHandler.UpdateUserFavoriteGenres)
 		userRoutes.Get("/activeSessions", middleware.AuthMiddleware, userHandler.GetActiveSessions)
 		userRoutes.Get("/profile", middleware.AuthMiddleware, userHandler.GetUserProfile)
+		userRoutes.Get("/roles_and_permissions", middleware.AuthMiddleware, userHandler.GetUserRolePermission)
 		userRoutes.Post("/editProfile", middleware.AuthMiddleware, userHandler.EditUserProfile)
 		userRoutes.Put("/updatePassword", middleware.AuthMiddleware, userHandler.UpdateUserPassword)
 		userRoutes.Get("/sendVerifyEmail", limiterMiddleware, middleware.AuthMiddleware, userHandler.SendVerifyEmail)

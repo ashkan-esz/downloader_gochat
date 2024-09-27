@@ -40,6 +40,7 @@ type IUserService interface {
 	UpdateUserFavoriteGenres(userId int64, genresArray []string) error
 	GetActiveSessions(userId int64, refreshToken string) (*model.ActiveSessionRes, error)
 	GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error)
+	GetUserRolePermission(requestParams *model.UserProfileReq) (*model.UserRolePermissionRes, error)
 	EditUserProfile(userId int64, editFields *model.EditProfileReq) (*model.UserDataModel, error)
 	UpdateUserPassword(userId int64, passwords *model.UpdatePasswordReq) error
 	SendVerifyEmail(userId int64) error
@@ -507,6 +508,29 @@ func (s *UserService) GetActiveSessions(userId int64, refreshToken string) (*mod
 func (s *UserService) GetUserProfile(requestParams *model.UserProfileReq) (*model.UserProfileRes, error) {
 	result, err := s.userRepo.GetUserProfile(requestParams)
 	return result, err
+}
+
+func (s *UserService) GetUserRolePermission(requestParams *model.UserProfileReq) (*model.UserRolePermissionRes, error) {
+	res := &model.UserRolePermissionRes{
+		RolesWithPermissions: nil,
+		Roles:                nil,
+	}
+
+	if requestParams.LoadRolesWithPermissions {
+		rolesWithPermissions, err := s.userRepo.GetUserRolesWithPermissions(requestParams.UserId)
+		if err != nil {
+			return nil, err
+		}
+		res.RolesWithPermissions = rolesWithPermissions
+	} else {
+		roles, err := s.userRepo.GetUserRoles(requestParams.UserId)
+		if err != nil {
+			return nil, err
+		}
+		res.Roles = roles
+	}
+
+	return res, nil
 }
 
 func (s *UserService) EditUserProfile(userId int64, editFields *model.EditProfileReq) (*model.UserDataModel, error) {

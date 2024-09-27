@@ -57,6 +57,7 @@ type IUserRepository interface {
 	GetUserBots(userId int64) ([]model.UserBotDataModel, error)
 	GetBotData(botId string) (*model.Bot, error)
 	GetUserRoles(userId int64) ([]model.Role, error)
+	GetUserRolesWithPermissions(userId int64) ([]model.RoleWithPermissions, error)
 }
 
 type UserRepository struct {
@@ -227,6 +228,18 @@ func (r *UserRepository) GetUserProfile(requestParams *model.UserProfileReq) (*m
 	}
 	if result.UserId == 0 {
 		return nil, nil
+	}
+
+	if requestParams.LoadRolesWithPermissions {
+		result.RolesWithPermissions, err = r.GetUserRolesWithPermissions(requestParams.UserId)
+		if err != nil {
+			return nil, err
+		}
+	} else if requestParams.LoadRoles {
+		result.Roles, err = r.GetUserRoles(requestParams.UserId)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	if requestParams.LoadFollowersCount {
@@ -1136,6 +1149,65 @@ func (r *UserRepository) GetUserRoles(userId int64) ([]model.Role, error) {
 		Where("\"UserToRole\".\"userId\" = ?", userId).
 		Find(&roles).Error; err != nil {
 		return nil, err
+	}
+
+	return roles, nil
+}
+
+func (r *UserRepository) GetUserRolesWithPermissions(userId int64) ([]model.RoleWithPermissions, error) {
+	roles := []model.RoleWithPermissions{}
+
+	type resType struct {
+		model.Role
+		model.Permission
+	}
+	var res []resType
+
+	queryStr := `
+		SELECT *
+		FROM "UserToRole" ur
+        	JOIN "Role" r ON ur."roleId" = r.id
+        	JOIN "RoleToPermission" rp ON r.id = rp."roleId"
+        	JOIN "Permission" p ON rp."permissionId" = p.id
+		WHERE
+			ur."userId" = @uid;`
+
+	err := r.db.Raw(queryStr,
+		map[string]interface{}{
+			"uid": userId,
+		}).
+		Scan(&res).Error
+
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			t := make([]model.RoleWithPermissions, 0)
+			return t, nil
+		}
+		return nil, err
+	}
+
+	for _, item := range res {
+		exist := false
+		for i2 := range roles {
+			if roles[i2].Id == item.Role.Id {
+				roles[i2].Permissions = append(roles[i2].Permissions, item.Permission)
+				exist = true
+			}
+		}
+		if exist {
+			continue
+		}
+		newRole := model.RoleWithPermissions{
+			Id:                  item.Role.Id,
+			Name:                item.Role.Name,
+			Description:         item.Role.Description,
+			TorrentLeachLimitGb: item.Role.TorrentLeachLimitGb,
+			TorrentSearchLimit:  item.Role.TorrentSearchLimit,
+			CreatedAt:           item.Role.CreatedAt,
+			UpdatedAt:           item.Role.UpdatedAt,
+			Permissions:         []model.Permission{item.Permission},
+		}
+		roles = append(roles, newRole)
 	}
 
 	return roles, nil

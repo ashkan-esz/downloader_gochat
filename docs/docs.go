@@ -924,6 +924,18 @@ const docTemplate = `{
                         "description": "loadComputedFavoriteGenres",
                         "name": "loadComputedFavoriteGenres",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadRoles",
+                        "name": "loadRoles",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadRolesWithPermissions",
+                        "name": "loadRolesWithPermissions",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -978,6 +990,66 @@ const docTemplate = `{
                         "description": "Bad Request",
                         "schema": {
                             "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "404": {
+                        "description": "Not Found",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    },
+                    "500": {
+                        "description": "Internal Server Error",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
+        "/v1/user/roles_and_permissions": {
+            "get": {
+                "security": [
+                    {
+                        "BearerAuth": []
+                    }
+                ],
+                "description": "Return role and permission of user",
+                "tags": [
+                    "User"
+                ],
+                "summary": "Role Data",
+                "parameters": [
+                    {
+                        "type": "integer",
+                        "description": "userId",
+                        "name": "userId",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadDevice",
+                        "name": "loadDevice",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadRoles",
+                        "name": "loadRoles",
+                        "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadRolesWithPermissions",
+                        "name": "loadRolesWithPermissions",
+                        "in": "query"
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.UserRolePermissionRes"
                         }
                     },
                     "404": {
@@ -2273,6 +2345,26 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Permission": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "updatedAt": {
+                    "type": "string"
+                }
+            }
+        },
         "model.ProfileImage": {
             "type": "object",
             "properties": {
@@ -2383,6 +2475,87 @@ const docTemplate = `{
                     "description": "min:6, max: 50",
                     "type": "string",
                     "format": "(?i)^[a-z|\\d_-]+$"
+                }
+            }
+        },
+        "model.Role": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.RoleToPermission"
+                    }
+                },
+                "torrentLeachLimitGb": {
+                    "type": "integer"
+                },
+                "torrentSearchLimit": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
+                },
+                "users": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.UserToRole"
+                    }
+                }
+            }
+        },
+        "model.RoleToPermission": {
+            "type": "object",
+            "properties": {
+                "permissionId": {
+                    "type": "integer"
+                },
+                "roleId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.RoleWithPermissions": {
+            "type": "object",
+            "properties": {
+                "createdAt": {
+                    "type": "string"
+                },
+                "description": {
+                    "type": "string"
+                },
+                "id": {
+                    "type": "integer"
+                },
+                "name": {
+                    "type": "string"
+                },
+                "permissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Permission"
+                    }
+                },
+                "torrentLeachLimitGb": {
+                    "type": "integer"
+                },
+                "torrentSearchLimit": {
+                    "type": "integer"
+                },
+                "updatedAt": {
+                    "type": "string"
                 }
             }
         },
@@ -2547,6 +2720,12 @@ const docTemplate = `{
                 "MovieSettings": {
                     "$ref": "#/definitions/model.MovieSettings"
                 },
+                "RolesWithPermissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.RoleWithPermissions"
+                    }
+                },
                 "bio": {
                     "type": "string"
                 },
@@ -2607,6 +2786,12 @@ const docTemplate = `{
                 "registrationDate": {
                     "type": "string"
                 },
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Role"
+                    }
+                },
                 "thisDevice": {
                     "$ref": "#/definitions/model.ActiveSessionDataModel"
                 },
@@ -2615,6 +2800,23 @@ const docTemplate = `{
                 },
                 "username": {
                     "type": "string"
+                }
+            }
+        },
+        "model.UserRolePermissionRes": {
+            "type": "object",
+            "properties": {
+                "roles": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.Role"
+                    }
+                },
+                "rolesWithPermissions": {
+                    "type": "array",
+                    "items": {
+                        "$ref": "#/definitions/model.RoleWithPermissions"
+                    }
                 }
             }
         },
@@ -2679,6 +2881,17 @@ const docTemplate = `{
                 "UserStatusIsTyping",
                 "UserStatusStopTyping"
             ]
+        },
+        "model.UserToRole": {
+            "type": "object",
+            "properties": {
+                "roleId": {
+                    "type": "integer"
+                },
+                "userId": {
+                    "type": "integer"
+                }
+            }
         },
         "model.UserViewModel": {
             "type": "object",

@@ -202,6 +202,8 @@ type UserProfileReq struct {
 	LoadFollowersCount         bool   `json:"loadFollowersCount"`
 	LoadProfileImages          bool   `json:"loadProfileImages"`
 	LoadComputedFavoriteGenres bool   `json:"loadComputedFavoriteGenres"`
+	LoadRoles                  bool   `json:"loadRoles"`
+	LoadRolesWithPermissions   bool   `json:"loadRolesWithPermissions"`
 	RefreshToken               string `json:"refreshToken"`
 }
 
@@ -251,6 +253,8 @@ type UserProfileRes struct {
 	DownloadLinksSettings   *DownloadLinksSettings            `gorm:"foreignKey:UserId;references:UserId;" json:"downloadLinksSettings"`
 	MovieSettings           *MovieSettings                    `gorm:"foreignKey:UserId;references:UserId;" json:"MovieSettings"`
 	ThisDevice              *ActiveSessionDataModel           `gorm:"foreignKey:UserId;references:UserId;" json:"thisDevice"`
+	Roles                   []Role                            `gorm:"-" json:"roles"`
+	RolesWithPermissions    []RoleWithPermissions             `gorm:"-" json:"RolesWithPermissions"`
 	FollowersCount          int64                             `gorm:"-" json:"followersCount"`
 	FollowingsCount         int64                             `gorm:"-" json:"followingsCount"`
 }

@@ -707,6 +707,8 @@ func (h *UserHandler) GetActiveSessions(c *fiber.Ctx) error {
 //	@Param			loadDevice					query		bool	false	"loadDevice"
 //	@Param			loadProfileImages			query		bool	false	"loadProfileImages"
 //	@Param			loadComputedFavoriteGenres	query		bool	false	"loadComputedFavoriteGenres"
+//	@Param			loadRoles					query		bool	false	"loadRoles"
+//	@Param			loadRolesWithPermissions	query		bool	false	"loadRolesWithPermissions"
 //	@Success		200							{object}	model.UserProfileRes
 //	@Failure		404,500						{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
@@ -718,6 +720,8 @@ func (h *UserHandler) GetUserProfile(c *fiber.Ctx) error {
 	loadDevice := c.QueryBool("loadDevice", false)
 	loadProfileImages := c.QueryBool("loadProfileImages", false)
 	loadComputedFavoriteGenres := c.QueryBool("loadComputedFavoriteGenres", false)
+	loadRoles := c.QueryBool("loadRoles", false)
+	loadRolesWithPermissions := c.QueryBool("loadRolesWithPermissions", false)
 
 	isSelfProfile := false
 	refreshToken := ""
@@ -737,9 +741,60 @@ func (h *UserHandler) GetUserProfile(c *fiber.Ctx) error {
 		LoadFollowersCount:         loadFollowersCount,
 		LoadProfileImages:          loadProfileImages,
 		LoadComputedFavoriteGenres: loadComputedFavoriteGenres,
+		LoadRoles:                  loadRoles,
+		LoadRolesWithPermissions:   loadRolesWithPermissions,
 		RefreshToken:               refreshToken,
 	}
 	result, err := h.userService.GetUserProfile(&requestParams)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return response.ResponseError(c, response.SessionNotFound, fiber.StatusNotFound)
+		}
+		return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+	}
+	return response.ResponseOKWithData(c, result)
+}
+
+// GetUserRolePermission godoc
+//
+//	@Summary		Role Data
+//	@Description	Return role and permission of user
+//	@Tags			User
+//	@Param			userId						query		integer	false	"userId"
+//	@Param			loadDevice					query		bool	false	"loadDevice"
+//	@Param			loadRoles					query		bool	false	"loadRoles"
+//	@Param			loadRolesWithPermissions	query		bool	false	"loadRolesWithPermissions"
+//	@Success		200							{object}	model.UserRolePermissionRes
+//	@Failure		404,500						{object}	response.ResponseErrorModel
+//	@Security		BearerAuth
+//	@Router			/v1/user/roles_and_permissions [get]
+func (h *UserHandler) GetUserRolePermission(c *fiber.Ctx) error {
+	userId := int64(c.QueryInt("userId", 0))
+	loadDevice := c.QueryBool("loadDevice", false)
+	loadRolesWithPermissions := c.QueryBool("loadRolesWithPermissions", false)
+
+	isSelfProfile := false
+	refreshToken := ""
+	if userId <= 0 {
+		jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+		userId = jwtUserData.UserId
+		isSelfProfile = true
+		if loadDevice {
+			refreshToken = c.Locals("refreshToken").(string)
+		}
+	}
+
+	if !isSelfProfile {
+		loadRolesWithPermissions = false
+	}
+
+	requestParams := model.UserProfileReq{
+		UserId:                   userId,
+		IsSelfProfile:            isSelfProfile,
+		LoadRolesWithPermissions: loadRolesWithPermissions,
+		RefreshToken:             refreshToken,
+	}
+	result, err := h.userService.GetUserRolePermission(&requestParams)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return response.ResponseError(c, response.SessionNotFound, fiber.StatusNotFound)
