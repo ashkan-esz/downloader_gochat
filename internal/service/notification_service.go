@@ -10,9 +10,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"net/http"
 	"net/url"
-	"os"
 	"regexp"
 	"slices"
 	"strconv"
@@ -28,11 +26,12 @@ type INotificationService interface {
 }
 
 type NotificationService struct {
-	notifRepo    repository.INotificationRepository
-	userRep      repository.IUserRepository
-	movieRep     repository.IMovieRepository
-	rabbitmq     rabbitmq.RabbitMQ
-	pushNotifSvc IPushNotificationService
+	notifRepo          repository.INotificationRepository
+	userRep            repository.IUserRepository
+	movieRep           repository.IMovieRepository
+	rabbitmq           rabbitmq.RabbitMQ
+	pushNotifSvc       IPushNotificationService
+	telegramMessageSvc ITelegramMessageService
 }
 
 const (
@@ -40,13 +39,14 @@ const (
 	seasonEpisodePattern      = `\(S(\d+)E(\d+)\)`
 )
 
-func NewNotificationService(notifRepo repository.INotificationRepository, userRep repository.IUserRepository, movieRep repository.IMovieRepository, rabbit rabbitmq.RabbitMQ, pushNotifSvc IPushNotificationService) *NotificationService {
+func NewNotificationService(notifRepo repository.INotificationRepository, userRep repository.IUserRepository, movieRep repository.IMovieRepository, rabbit rabbitmq.RabbitMQ, pushNotifSvc IPushNotificationService, telegramMessageSvc ITelegramMessageService) *NotificationService {
 	notifSvc := NotificationService{
-		notifRepo:    notifRepo,
-		userRep:      userRep,
-		movieRep:     movieRep,
-		rabbitmq:     rabbit,
-		pushNotifSvc: pushNotifSvc,
+		notifRepo:          notifRepo,
+		userRep:            userRep,
+		movieRep:           movieRep,
+		rabbitmq:           rabbit,
+		pushNotifSvc:       pushNotifSvc,
+		telegramMessageSvc: telegramMessageSvc,
 	}
 
 	notificationConfig := rabbitmq.NewConfigConsume(rabbitmq.NotificationQueue, "")
@@ -357,26 +357,8 @@ func (n *NotificationService) handleMovieBotNotification(notificationData *model
 
 			if err == nil {
 				if botData.BotType == "telegram" && botData.PermissionToLogin && !botData.Disabled {
-					apiUrl := getTelegramApiUrl(notificationData, botData, &b)
-
-					resp, err := http.Get(apiUrl)
-
-					if errors.Is(err, os.ErrDeadlineExceeded) || os.IsTimeout(err) {
-						errorMessage := "Error on calling telegram api: timeout"
-						errorHandler.SaveError(errorMessage, err)
-					}
-					if err != nil {
-						errorMessage := fmt.Sprintf("Error on calling telegram api: %s", err)
-						errorHandler.SaveError(errorMessage, err)
-					}
-					if resp.StatusCode == http.StatusGatewayTimeout || resp.StatusCode == http.StatusRequestTimeout {
-						errorMessage := "Error on calling telegram api: timeout"
-						errorHandler.SaveError(errorMessage, err)
-					}
-					if resp.StatusCode != http.StatusOK {
-						errorMessage := fmt.Sprintf("Error on calling telegram api: %v", fmt.Errorf("bad status: %s", resp.Status))
-						errorHandler.SaveError(errorMessage, err)
-					}
+					telegramMessage := getTelegramMessage(notificationData, botData)
+					n.telegramMessageSvc.AddTelegramMessageToQueue(botData.BotToken, b.ChatId, telegramMessage)
 				}
 			} else {
 				errorMessage := fmt.Sprintf("error on getting bot data: %v", err)
@@ -386,7 +368,7 @@ func (n *NotificationService) handleMovieBotNotification(notificationData *model
 	}
 }
 
-func getTelegramApiUrl(notificationData *model.NotificationDataModel, botData *model.Bot, b *model.UserBotDataModel) string {
+func getTelegramMessage(notificationData *model.NotificationDataModel, botData *model.Bot) string {
 	title := url.PathEscape(escapeMarkdownV2(notificationData.Message))
 	link := fmt.Sprintf("[Download](t.me/%v?start=download_%v_serial)", botData.BotName, notificationData.EntityId)
 
@@ -399,10 +381,7 @@ func getTelegramApiUrl(notificationData *model.NotificationDataModel, botData *m
 
 	message := title + " " + link
 
-	apiUrl := fmt.Sprintf("https://api.telegram.org/bot%v/sendMessage?chat_id=%v&text=%v&parse_mode=MarkdownV2",
-		botData.BotToken, b.ChatId, message)
-
-	return apiUrl
+	return message
 }
 
 func generateNotificationMessage(notificationData *model.NotificationDataModel, username string) string {

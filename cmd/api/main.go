@@ -91,6 +91,7 @@ func main() {
 	defer cancel()
 
 	pushNotifSvc := service.NewPushNotificationService()
+	telegramMessageSvc := service.NewTelegramMessageService()
 	cloudStorageSvc := cloudStorage.StartS3StorageService()
 
 	userRep := repository.NewUserRepository(dbConn.GetDB(), mongoDB.GetDB())
@@ -104,7 +105,7 @@ func main() {
 	movieRep := repository.NewMovieRepository(dbConn.GetDB(), mongoDB.GetDB())
 
 	notifRep := repository.NewNotificationRepository(dbConn.GetDB(), mongoDB.GetDB())
-	notifSvc := service.NewNotificationService(notifRep, userRep, movieRep, rabbit, pushNotifSvc)
+	notifSvc := service.NewNotificationService(notifRep, userRep, movieRep, rabbit, pushNotifSvc, telegramMessageSvc)
 	notifHandler := handler.NewNotificationHandler(notifSvc)
 
 	mediaRep := repository.NewMediaRepository(dbConn.GetDB(), mongoDB.GetDB())
