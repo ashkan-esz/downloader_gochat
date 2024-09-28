@@ -338,6 +338,18 @@ func (n *NotificationService) handleNotification(notificationData *model.Notific
 }
 
 func (n *NotificationService) handleMovieBotNotification(notificationData *model.NotificationDataModel) {
+	roles, err := n.userRep.GetUserRoles(notificationData.ReceiverId)
+	hasPermission := false
+	for _, r := range roles {
+		if r.BotsNotification {
+			hasPermission = true
+			break
+		}
+	}
+	if !hasPermission {
+		return
+	}
+
 	userBots, err := n.userRep.GetUserBots(notificationData.ReceiverId)
 	if err != nil {
 		errorMessage := fmt.Sprintf("error on getting userBots: %v", err)

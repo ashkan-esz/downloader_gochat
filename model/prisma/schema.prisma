@@ -115,6 +115,7 @@ model Role {
   description         String   @default("")
   torrentLeachLimitGb Int
   torrentSearchLimit  Int
+  botsNotification    Boolean  @default(false)
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
 

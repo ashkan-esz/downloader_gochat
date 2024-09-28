@@ -557,6 +557,8 @@ definitions:
     type: object
   model.Role:
     properties:
+      botsNotification:
+        type: boolean
       createdAt:
         type: string
       description:
@@ -589,6 +591,8 @@ definitions:
     type: object
   model.RoleWithPermissions:
     properties:
+      botsNotification:
+        type: boolean
       createdAt:
         type: string
       description:
@@ -1529,10 +1533,6 @@ paths:
         in: query
         name: userId
         type: integer
-      - description: loadDevice
-        in: query
-        name: loadDevice
-        type: boolean
       - description: loadRoles
         in: query
         name: loadRoles

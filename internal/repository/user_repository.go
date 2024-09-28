@@ -1203,6 +1203,7 @@ func (r *UserRepository) GetUserRolesWithPermissions(userId int64) ([]model.Role
 			Description:         item.Role.Description,
 			TorrentLeachLimitGb: item.Role.TorrentLeachLimitGb,
 			TorrentSearchLimit:  item.Role.TorrentSearchLimit,
+			BotsNotification:    item.Role.BotsNotification,
 			CreatedAt:           item.Role.CreatedAt,
 			UpdatedAt:           item.Role.UpdatedAt,
 			Permissions:         []model.Permission{item.Permission},

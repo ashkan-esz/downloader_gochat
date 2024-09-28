@@ -761,7 +761,6 @@ func (h *UserHandler) GetUserProfile(c *fiber.Ctx) error {
 //	@Description	Return role and permission of user
 //	@Tags			User
 //	@Param			userId						query		integer	false	"userId"
-//	@Param			loadDevice					query		bool	false	"loadDevice"
 //	@Param			loadRoles					query		bool	false	"loadRoles"
 //	@Param			loadRolesWithPermissions	query		bool	false	"loadRolesWithPermissions"
 //	@Success		200							{object}	model.UserRolePermissionRes
@@ -770,18 +769,13 @@ func (h *UserHandler) GetUserProfile(c *fiber.Ctx) error {
 //	@Router			/v1/user/roles_and_permissions [get]
 func (h *UserHandler) GetUserRolePermission(c *fiber.Ctx) error {
 	userId := int64(c.QueryInt("userId", 0))
-	loadDevice := c.QueryBool("loadDevice", false)
 	loadRolesWithPermissions := c.QueryBool("loadRolesWithPermissions", false)
 
 	isSelfProfile := false
-	refreshToken := ""
 	if userId <= 0 {
 		jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
 		userId = jwtUserData.UserId
 		isSelfProfile = true
-		if loadDevice {
-			refreshToken = c.Locals("refreshToken").(string)
-		}
 	}
 
 	if !isSelfProfile {
@@ -792,7 +786,6 @@ func (h *UserHandler) GetUserRolePermission(c *fiber.Ctx) error {
 		UserId:                   userId,
 		IsSelfProfile:            isSelfProfile,
 		LoadRolesWithPermissions: loadRolesWithPermissions,
-		RefreshToken:             refreshToken,
 	}
 	result, err := h.userService.GetUserRolePermission(&requestParams)
 	if err != nil {

@@ -1025,12 +1025,6 @@
                     },
                     {
                         "type": "boolean",
-                        "description": "loadDevice",
-                        "name": "loadDevice",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
                         "description": "loadRoles",
                         "name": "loadRoles",
                         "in": "query"
@@ -2478,6 +2472,9 @@
         "model.Role": {
             "type": "object",
             "properties": {
+                "botsNotification": {
+                    "type": "boolean"
+                },
                 "createdAt": {
                     "type": "string"
                 },
@@ -2527,6 +2524,9 @@
         "model.RoleWithPermissions": {
             "type": "object",
             "properties": {
+                "botsNotification": {
+                    "type": "boolean"
+                },
                 "createdAt": {
                     "type": "string"
                 },

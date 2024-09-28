@@ -1028,12 +1028,6 @@ const docTemplate = `{
                     },
                     {
                         "type": "boolean",
-                        "description": "loadDevice",
-                        "name": "loadDevice",
-                        "in": "query"
-                    },
-                    {
-                        "type": "boolean",
                         "description": "loadRoles",
                         "name": "loadRoles",
                         "in": "query"
@@ -2481,6 +2475,9 @@ const docTemplate = `{
         "model.Role": {
             "type": "object",
             "properties": {
+                "botsNotification": {
+                    "type": "boolean"
+                },
                 "createdAt": {
                     "type": "string"
                 },
@@ -2530,6 +2527,9 @@ const docTemplate = `{
         "model.RoleWithPermissions": {
             "type": "object",
             "properties": {
+                "botsNotification": {
+                    "type": "boolean"
+                },
                 "createdAt": {
                     "type": "string"
                 },

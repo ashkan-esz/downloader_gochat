@@ -22,6 +22,7 @@ type Role struct {
 	Description         string    `gorm:"column:description;type:text;default:\"\";not null;"`
 	TorrentLeachLimitGb int       `gorm:"column:torrentLeachLimitGb;type:integer;not null;"`
 	TorrentSearchLimit  int       `gorm:"column:torrentSearchLimit;type:integer;not null;"`
+	BotsNotification    bool      `gorm:"column:botsNotification;type:boolean;not null;default:false;"`
 	CreatedAt           time.Time `gorm:"column:createdAt;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
 	UpdatedAt           time.Time `gorm:"column:updatedAt;type:timestamp(3);not null;"`
 
@@ -71,6 +72,7 @@ type RoleWithPermissions struct {
 	Description         string    `gorm:"column:description;type:text;default:\"\";not null;"`
 	TorrentLeachLimitGb int       `gorm:"column:torrentLeachLimitGb;type:integer;not null;"`
 	TorrentSearchLimit  int       `gorm:"column:torrentSearchLimit;type:integer;not null;"`
+	BotsNotification    bool      `gorm:"column:botsNotification;type:boolean;not null;default:false;"`
 	CreatedAt           time.Time `gorm:"column:createdAt;type:timestamp(3);not null;default:CURRENT_TIMESTAMP;"`
 	UpdatedAt           time.Time `gorm:"column:updatedAt;type:timestamp(3);not null;"`
 	Permissions         []Permission
