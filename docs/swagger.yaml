@@ -660,6 +660,11 @@ definitions:
         - $ref: '#/definitions/model.UserStatusRes'
         description: action is UserStatusAction
     type: object
+  model.Status:
+    properties:
+      tasks:
+        $ref: '#/definitions/model.Tasks'
+    type: object
   model.SubEntityTypeId:
     enum:
     - 1
@@ -678,6 +683,30 @@ definitions:
     - FutureList
     - FutureListSerialSeasonEnd
     - FutureListSubtitle
+  model.TaskInfo:
+    properties:
+      consumerCount:
+        type: integer
+      links:
+        items:
+          type: string
+        type: array
+      runningCount:
+        type: integer
+    type: object
+  model.Tasks:
+    properties:
+      blurHash:
+        $ref: '#/definitions/model.TaskInfo'
+      mediaService:
+        $ref: '#/definitions/model.TaskInfo'
+      notification:
+        $ref: '#/definitions/model.TaskInfo'
+      pushNotification:
+        $ref: '#/definitions/model.TaskInfo'
+      telegramMessage:
+        $ref: '#/definitions/model.TaskInfo'
+    type: object
   model.TokenViewModel:
     properties:
       accessToken:
@@ -893,6 +922,21 @@ paths:
       summary: Show the status of server.
       tags:
       - System
+  /v1/admin/status:
+    get:
+      description: Return status of server resources and services
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/model.Status'
+        "400":
+          description: Bad Request
+          schema:
+            $ref: '#/definitions/response.ResponseErrorModel'
+      summary: Server Status
+      tags:
+      - Admin-Status
   /v1/user/UpdateUserFavoriteGenres/:genres:
     put:
       description: maximum number of genres is 6, (error code 409).

@@ -69,6 +69,7 @@ func NewUserService(userRepo repository.IUserRepository, rabbit rabbitmq.RabbitM
 }
 
 //------------------------------------------
+//------------------------------------------
 
 func (s *UserService) SignUp(registerVM *model.RegisterViewModel, ip string) (*model.UserViewModel, error) {
 	searchResult, err := s.userRepo.GetUserByUsernameEmail(registerVM.Username, registerVM.Email)

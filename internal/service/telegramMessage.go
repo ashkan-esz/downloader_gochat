@@ -1,6 +1,7 @@
 package service
 
 import (
+	"downloader_gochat/model"
 	errorHandler "downloader_gochat/pkg/error"
 	"errors"
 	"fmt"
@@ -27,6 +28,7 @@ type TelegramMessageService struct {
 	size             int
 	perChatLimit     int
 	wg               sync.WaitGroup
+	taskInfo         *model.TaskInfo
 }
 
 type QueueItem struct {
@@ -52,6 +54,14 @@ func NewTelegramMessageService() *TelegramMessageService {
 	for i := 0; i < telegramMessageConsumerCount; i++ {
 		svc.RunTelegramMessageQueue()
 	}
+
+	taskInfo := &model.TaskInfo{
+		ConsumerCount: telegramMessageConsumerCount,
+		Links:         make([]string, 0),
+		Mux:           &sync.Mutex{},
+	}
+	svc.taskInfo = taskInfo
+	AdminSvc.status.Tasks.TelegramMessage = taskInfo
 
 	return svc
 }
@@ -81,6 +91,7 @@ func (t *TelegramMessageService) TelegramMessageQueueHandler() {
 
 		queueItem := t.queue[0]
 		t.queue = t.queue[1:]
+		t.taskInfo.RunningCount = len(t.queue)
 		t.queueMux.Unlock()
 
 		findMessage := url.PathEscape(strings.ReplaceAll("---------------------------------- UPDATES/NEWS ----------------------------------", "-", "\\-"))

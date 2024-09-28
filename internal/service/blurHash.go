@@ -6,6 +6,7 @@ import (
 	"downloader_gochat/configs"
 	database "downloader_gochat/db"
 	"downloader_gochat/internal/repository"
+	"downloader_gochat/model"
 	errorHandler "downloader_gochat/pkg/error"
 	"downloader_gochat/rabbitmq"
 	"encoding/json"
@@ -18,8 +19,10 @@ import (
 	"os"
 	"runtime"
 	"runtime/debug"
+	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	"github.com/buckket/go-blurhash"
 	"github.com/disintegration/imaging"
@@ -36,6 +39,7 @@ type BlurHashService struct {
 	movieRepo repository.IMovieRepository
 	castRepo  repository.ICastRepository
 	rabbitmq  rabbitmq.RabbitMQ
+	taskInfo  *model.TaskInfo
 }
 
 func NewBlurHashService(movieRepo repository.IMovieRepository, castRepo repository.ICastRepository, rabbit rabbitmq.RabbitMQ) *BlurHashService {
@@ -58,6 +62,14 @@ func NewBlurHashService(movieRepo repository.IMovieRepository, castRepo reposito
 			}
 		}()
 	}
+
+	taskInfo := &model.TaskInfo{
+		ConsumerCount: configs.GetConfigs().BlurHashConsumerCount,
+		Links:         make([]string, 0),
+		Mux:           &sync.Mutex{},
+	}
+	blurHashSvc.taskInfo = taskInfo
+	AdminSvc.status.Tasks.BlurHash = taskInfo
 
 	return &blurHashSvc
 }
@@ -192,6 +204,17 @@ func BlurHashConsumer(d *amqp.Delivery, extraConsumerData interface{}) {
 
 func (b *BlurHashService) CreateBlurHash(url string) (string, error) {
 	// download
+	b.taskInfo.Mux.Lock()
+	b.taskInfo.Links = append(b.taskInfo.Links, url)
+	b.taskInfo.Mux.Unlock()
+	defer func() {
+		b.taskInfo.Mux.Lock()
+		b.taskInfo.Links = slices.DeleteFunc(b.taskInfo.Links, func(l string) bool {
+			return l == url
+		})
+		b.taskInfo.Mux.Unlock()
+	}()
+
 	resp, err := http.Get(url)
 	if errors.Is(err, os.ErrDeadlineExceeded) || os.IsTimeout(err) {
 		return "", errors.New("image download timeout")

@@ -58,6 +58,7 @@ type IUserRepository interface {
 	GetBotData(botId string) (*model.Bot, error)
 	GetUserRoles(userId int64) ([]model.Role, error)
 	GetUserRolesWithPermissions(userId int64) ([]model.RoleWithPermissions, error)
+	GetUserPermissionsByRoleIds(roleIds []int64) ([]model.Permission, error)
 }
 
 type UserRepository struct {
@@ -1212,6 +1213,19 @@ func (r *UserRepository) GetUserRolesWithPermissions(userId int64) ([]model.Role
 	}
 
 	return roles, nil
+}
+
+func (r *UserRepository) GetUserPermissionsByRoleIds(roleIds []int64) ([]model.Permission, error) {
+	var permissions []model.Permission
+
+	if err := r.db.Model(&model.Permission{}).
+		Joins("JOIN \"RoleToPermission\" ON \"RoleToPermission\".\"permissionId\" = \"Permission\".id").
+		Where("\"RoleToPermission\".\"roleId\" in ?", roleIds).
+		Find(&permissions).Error; err != nil {
+		return nil, err
+	}
+
+	return permissions, nil
 }
 
 //------------------------------------------

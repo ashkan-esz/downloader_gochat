@@ -16,8 +16,8 @@ import (
 type ICacheService interface {
 	GetJwtDataCache(key string) (string, error)
 	setJwtDataCache(key string, value string, duration time.Duration) error
-	getRolePermissionsCache(roleIds []int64) ([]string, error)
-	setRolePermissionsCache(roleIds []int64, permissions []string, duration time.Duration) error
+	GetRolePermissionsCache(roleIds []int64) ([]string, error)
+	SetRolePermissionsCache(roleIds []int64, permissions []string, duration time.Duration) error
 	removeNotifTokenFromcachedUserData(userId int64, notifToken string) error
 	addNotifTokenToCachedUserData(userId int64, notifToken string) error
 	updateProfileImageOfCachedUserData(userId int64, profileImages *[]model.ProfileImageDataModel) error
@@ -58,7 +58,7 @@ func setJwtDataCache(key string, value string, duration time.Duration) error {
 //------------------------------------------
 //------------------------------------------
 
-func getRolePermissionsCache(roleIds []int64) ([]string, error) {
+func GetRolePermissionsCache(roleIds []int64) ([]string, error) {
 	key := int64SliceToString(roleIds, ",")
 	result, err := redis.GetRedis(context.Background(), rolePermissionsCachePrefix+key)
 	if err != nil && err.Error() != "redis: nil" {
@@ -75,7 +75,7 @@ func getRolePermissionsCache(roleIds []int64) ([]string, error) {
 	return nil, err
 }
 
-func setRolePermissionsCache(roleIds []int64, permissions []string, duration time.Duration) error {
+func SetRolePermissionsCache(roleIds []int64, permissions []string, duration time.Duration) error {
 	jsonData, err := json.Marshal(permissions)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Redis Error on saving permissions: %v", err)

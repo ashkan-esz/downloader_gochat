@@ -90,13 +90,18 @@ func main() {
 	rabbit := rabbitmq.Start(ctx)
 	defer cancel()
 
-	pushNotifSvc := service.NewPushNotificationService()
-	telegramMessageSvc := service.NewTelegramMessageService()
 	cloudStorageSvc := cloudStorage.StartS3StorageService()
 
 	userRep := repository.NewUserRepository(dbConn.GetDB(), mongoDB.GetDB())
 	userSvc := service.NewUserService(userRep, rabbit, cloudStorageSvc)
 	userHandler := handler.NewUserHandler(userSvc)
+
+	adminRep := repository.NewAdminRepository(dbConn.GetDB(), mongoDB.GetDB())
+	adminSvc := service.NewAdminService(userRep, adminRep, rabbit, cloudStorageSvc)
+	adminHandler := handler.NewAdminHandler(adminSvc)
+
+	pushNotifSvc := service.NewPushNotificationService()
+	telegramMessageSvc := service.NewTelegramMessageService()
 
 	wsRep := repository.NewWsRepository(dbConn.GetDB(), mongoDB.GetDB())
 	wsSvc := service.NewWsService(wsRep, userRep, rabbit)
@@ -115,6 +120,15 @@ func main() {
 	castRep := repository.NewCastRepository(dbConn.GetDB(), mongoDB.GetDB())
 	_ = service.NewBlurHashService(movieRep, castRep, rabbit)
 
-	api.InitRouter(userHandler, wsHandler, notifHandler, mediaHandler)
+	handlers := &api.Handlers{
+		UserHandler:  userHandler,
+		WsHandler:    wsHandler,
+		NotifHandler: notifHandler,
+		MediaHandler: mediaHandler,
+		AdminHandler: adminHandler,
+		UserRepo:     userRep,
+	}
+
+	api.InitRouter(handlers)
 	api.Start("0.0.0.0:" + configs.GetConfigs().Port)
 }

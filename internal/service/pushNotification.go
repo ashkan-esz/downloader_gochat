@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"downloader_gochat/configs"
+	"downloader_gochat/model"
 	errorHandler "downloader_gochat/pkg/error"
 	"encoding/base64"
 	"fmt"
@@ -30,6 +31,7 @@ type PushNotificationService struct {
 	dispatchInterval time.Duration
 	batchCh          chan *messaging.Message
 	wg               sync.WaitGroup
+	taskInfo         *model.TaskInfo
 }
 
 func NewPushNotificationService() *PushNotificationService {
@@ -61,6 +63,15 @@ func NewPushNotificationService() *PushNotificationService {
 		wg:               sync.WaitGroup{},
 	}
 	svc.RunPushNotificationBuffer()
+
+	taskInfo := &model.TaskInfo{
+		ConsumerCount: 500,
+		Links:         make([]string, 0),
+		Mux:           &sync.Mutex{},
+	}
+	svc.taskInfo = taskInfo
+	AdminSvc.status.Tasks.PushNotification = taskInfo
+
 	return svc
 }
 
@@ -127,6 +138,15 @@ func (p *PushNotificationService) SendBufferedPushNotifications(messages []*mess
 }
 
 func (p *PushNotificationService) AddPushNotificationToBuffer(deviceToken string, title string, body string, imageUrl string, collapseKey string) {
+	p.taskInfo.Mux.Lock()
+	p.taskInfo.RunningCount++
+	p.taskInfo.Mux.Unlock()
+	defer func() {
+		p.taskInfo.Mux.Lock()
+		p.taskInfo.RunningCount--
+		p.taskInfo.Mux.Unlock()
+	}()
+
 	message := &messaging.Message{
 		Notification: &messaging.Notification{
 			Title: title,

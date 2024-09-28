@@ -13,6 +13,7 @@ import (
 	"mime/multipart"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/buckket/go-blurhash"
@@ -37,6 +38,12 @@ type MediaService struct {
 }
 
 func NewMediaService(mediaRepo repository.IMediaRepository, userRep repository.IUserRepository, wsRep repository.IWsRepository, rabbit rabbitmq.RabbitMQ, cloudStorage cloudStorage.IS3Storage) *MediaService {
+	AdminSvc.status.Tasks.MediaService = &model.TaskInfo{
+		ConsumerCount: 0,
+		Links:         make([]string, 0),
+		Mux:           &sync.Mutex{},
+	}
+
 	return &MediaService{
 		mediaRepo:    mediaRepo,
 		userRep:      userRep,
@@ -141,6 +148,15 @@ func (m *MediaService) UploadFile(userId int64, messageData *model.UploadMediaRe
 //------------------------------------------
 
 func createThumbnailAndBlurHash(contentType string, fileBuffer multipart.File) (string, string) {
+	AdminSvc.status.Tasks.MediaService.Mux.Lock()
+	AdminSvc.status.Tasks.MediaService.RunningCount++
+	AdminSvc.status.Tasks.MediaService.Mux.Unlock()
+	defer func() {
+		AdminSvc.status.Tasks.MediaService.Mux.Lock()
+		AdminSvc.status.Tasks.MediaService.RunningCount--
+		AdminSvc.status.Tasks.MediaService.Mux.Unlock()
+	}()
+
 	img, err := imaging.Decode(fileBuffer)
 	if err != nil {
 		errorMessage := fmt.Sprintf("Error on decoding uploaded image: %v", err)

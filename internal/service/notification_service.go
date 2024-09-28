@@ -15,6 +15,7 @@ import (
 	"slices"
 	"strconv"
 	"strings"
+	"sync"
 
 	amqp "github.com/rabbitmq/amqp091-go"
 	"gorm.io/gorm"
@@ -32,6 +33,7 @@ type NotificationService struct {
 	rabbitmq           rabbitmq.RabbitMQ
 	pushNotifSvc       IPushNotificationService
 	telegramMessageSvc ITelegramMessageService
+	taskInfo           *model.TaskInfo
 }
 
 const (
@@ -62,6 +64,14 @@ func NewNotificationService(notifRepo repository.INotificationRepository, userRe
 			}
 		}()
 	}
+
+	taskInfo := &model.TaskInfo{
+		ConsumerCount: notificationConsumerCount,
+		Links:         make([]string, 0),
+		Mux:           &sync.Mutex{},
+	}
+	notifSvc.taskInfo = taskInfo
+	AdminSvc.status.Tasks.Notification = taskInfo
 
 	return &notifSvc
 }
@@ -245,6 +255,15 @@ func (n *NotificationService) BatchUpdateUserNotificationStatus(userId int64, id
 //------------------------------------------
 
 func (n *NotificationService) handleNotification(notificationData *model.NotificationDataModel) {
+	n.taskInfo.Mux.Lock()
+	n.taskInfo.RunningCount++
+	n.taskInfo.Mux.Unlock()
+	defer func() {
+		n.taskInfo.Mux.Lock()
+		n.taskInfo.RunningCount--
+		n.taskInfo.Mux.Unlock()
+	}()
+
 	if notificationData.EntityTypeId == model.MoviesNotificationTypeId {
 		cacheData, _ := getCachedMovieData(notificationData.EntityId)
 		if cacheData != nil {

@@ -6,6 +6,7 @@ import (
 	"downloader_gochat/configs"
 	_ "downloader_gochat/docs"
 	"downloader_gochat/internal/handler"
+	"downloader_gochat/internal/repository"
 	"downloader_gochat/pkg/response"
 	"errors"
 	"slices"
@@ -24,7 +25,16 @@ import (
 
 var router *fiber.App
 
-func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, notifHandler *handler.NotificationHandler, mediaHandler *handler.MediaHandler) {
+type Handlers struct {
+	UserHandler  *handler.UserHandler
+	WsHandler    *handler.WsHandler
+	NotifHandler *handler.NotificationHandler
+	MediaHandler *handler.MediaHandler
+	AdminHandler *handler.AdminHandler
+	UserRepo     *repository.UserRepository
+}
+
+func InitRouter(handlers *Handlers) {
 	var defaultErrorHandler = func(c *fiber.Ctx, err error) error {
 		// Status code defaults to 500
 		code := fiber.StatusInternalServerError
@@ -77,42 +87,47 @@ func InitRouter(userHandler *handler.UserHandler, wsHandler *handler.WsHandler, 
 
 	userRoutes := router.Group("v1/user")
 	{
-		userRoutes.Post("/signup", userHandler.RegisterUser)
-		userRoutes.Post("/login", userHandler.Login)
-		userRoutes.Put("/getToken", middleware.IsAuthRefreshToken, userHandler.GetToken)
-		userRoutes.Put("/logout", middleware.AuthMiddleware, userHandler.LogOut)
-		userRoutes.Put("/setNotifToken/:notifToken", middleware.AuthMiddleware, userHandler.SetNotifToken)
-		userRoutes.Post("/follow/:followId", middleware.AuthMiddleware, userHandler.FollowUser)
-		userRoutes.Delete("/unfollow/:followId", middleware.AuthMiddleware, userHandler.UnFollowUser)
-		userRoutes.Get("/followers/:userId/:skip/:limit", middleware.AuthMiddleware, userHandler.GetUserFollowers)
-		userRoutes.Get("/followings/:userId/:skip/:limit", middleware.AuthMiddleware, userHandler.GetUserFollowings)
-		userRoutes.Get("/userSettings/:settingName", middleware.AuthMiddleware, userHandler.GetUserSettings)
-		userRoutes.Put("/updateUserSettings/:settingName", middleware.AuthMiddleware, userHandler.UpdateUserSettings)
-		userRoutes.Put("/updateFavoriteGenres/:genres", middleware.AuthMiddleware, userHandler.UpdateUserFavoriteGenres)
-		userRoutes.Get("/activeSessions", middleware.AuthMiddleware, userHandler.GetActiveSessions)
-		userRoutes.Get("/profile", middleware.AuthMiddleware, userHandler.GetUserProfile)
-		userRoutes.Get("/roles_and_permissions", middleware.AuthMiddleware, userHandler.GetUserRolePermission)
-		userRoutes.Post("/editProfile", middleware.AuthMiddleware, userHandler.EditUserProfile)
-		userRoutes.Put("/updatePassword", middleware.AuthMiddleware, userHandler.UpdateUserPassword)
-		userRoutes.Get("/sendVerifyEmail", limiterMiddleware, middleware.AuthMiddleware, userHandler.SendVerifyEmail)
-		userRoutes.Get("/verifyEmail/:userId/:token", limiterMiddleware, userHandler.VerifyEmail)
-		userRoutes.Delete("/deleteAccount", limiterMiddleware, middleware.AuthMiddleware, userHandler.SendDeleteAccount)
-		userRoutes.Get("/deleteAccount/:userId/:token", limiterMiddleware, userHandler.DeleteUserAccount)
-		userRoutes.Post("/uploadProfileImage", middleware.AuthMiddleware, userHandler.UploadProfileImage)
-		userRoutes.Delete("/removeProfileImage/:fileName", middleware.AuthMiddleware, userHandler.RemoveProfileImage)
-		userRoutes.Put("/forceLogout/:deviceId", middleware.AuthMiddleware, userHandler.ForceLogoutDevice)
-		userRoutes.Put("/forceLogoutAll", middleware.AuthMiddleware, userHandler.ForceLogoutAll)
-		userRoutes.Get("/notifications/:skip/:limit", middleware.AuthMiddleware, notifHandler.GetUserNotifications)
-		userRoutes.Put("/notifications/batchUpdateStatus/:id/:entityTypeId/:status", middleware.AuthMiddleware, notifHandler.BatchUpdateUserNotificationStatus)
-		userRoutes.Post("/media/upload", middleware.AuthMiddleware, mediaHandler.UploadFile)
+		userRoutes.Post("/signup", handlers.UserHandler.RegisterUser)
+		userRoutes.Post("/login", handlers.UserHandler.Login)
+		userRoutes.Put("/getToken", middleware.IsAuthRefreshToken, handlers.UserHandler.GetToken)
+		userRoutes.Put("/logout", middleware.AuthMiddleware, handlers.UserHandler.LogOut)
+		userRoutes.Put("/setNotifToken/:notifToken", middleware.AuthMiddleware, handlers.UserHandler.SetNotifToken)
+		userRoutes.Post("/follow/:followId", middleware.AuthMiddleware, handlers.UserHandler.FollowUser)
+		userRoutes.Delete("/unfollow/:followId", middleware.AuthMiddleware, handlers.UserHandler.UnFollowUser)
+		userRoutes.Get("/followers/:userId/:skip/:limit", middleware.AuthMiddleware, handlers.UserHandler.GetUserFollowers)
+		userRoutes.Get("/followings/:userId/:skip/:limit", middleware.AuthMiddleware, handlers.UserHandler.GetUserFollowings)
+		userRoutes.Get("/userSettings/:settingName", middleware.AuthMiddleware, handlers.UserHandler.GetUserSettings)
+		userRoutes.Put("/updateUserSettings/:settingName", middleware.AuthMiddleware, handlers.UserHandler.UpdateUserSettings)
+		userRoutes.Put("/updateFavoriteGenres/:genres", middleware.AuthMiddleware, handlers.UserHandler.UpdateUserFavoriteGenres)
+		userRoutes.Get("/activeSessions", middleware.AuthMiddleware, handlers.UserHandler.GetActiveSessions)
+		userRoutes.Get("/profile", middleware.AuthMiddleware, handlers.UserHandler.GetUserProfile)
+		userRoutes.Get("/roles_and_permissions", middleware.AuthMiddleware, handlers.UserHandler.GetUserRolePermission)
+		userRoutes.Post("/editProfile", middleware.AuthMiddleware, handlers.UserHandler.EditUserProfile)
+		userRoutes.Put("/updatePassword", middleware.AuthMiddleware, handlers.UserHandler.UpdateUserPassword)
+		userRoutes.Get("/sendVerifyEmail", limiterMiddleware, middleware.AuthMiddleware, handlers.UserHandler.SendVerifyEmail)
+		userRoutes.Get("/verifyEmail/:userId/:token", limiterMiddleware, handlers.UserHandler.VerifyEmail)
+		userRoutes.Delete("/deleteAccount", limiterMiddleware, middleware.AuthMiddleware, handlers.UserHandler.SendDeleteAccount)
+		userRoutes.Get("/deleteAccount/:userId/:token", limiterMiddleware, handlers.UserHandler.DeleteUserAccount)
+		userRoutes.Post("/uploadProfileImage", middleware.AuthMiddleware, handlers.UserHandler.UploadProfileImage)
+		userRoutes.Delete("/removeProfileImage/:fileName", middleware.AuthMiddleware, handlers.UserHandler.RemoveProfileImage)
+		userRoutes.Put("/forceLogout/:deviceId", middleware.AuthMiddleware, handlers.UserHandler.ForceLogoutDevice)
+		userRoutes.Put("/forceLogoutAll", middleware.AuthMiddleware, handlers.UserHandler.ForceLogoutAll)
+		userRoutes.Get("/notifications/:skip/:limit", middleware.AuthMiddleware, handlers.NotifHandler.GetUserNotifications)
+		userRoutes.Put("/notifications/batchUpdateStatus/:id/:entityTypeId/:status", middleware.AuthMiddleware, handlers.NotifHandler.BatchUpdateUserNotificationStatus)
+		userRoutes.Post("/media/upload", middleware.AuthMiddleware, handlers.MediaHandler.UploadFile)
 	}
 
-	router.Get("/ws/addClient/:deviceId", middleware.AuthMiddleware, wsHandler.AddClient)
-	router.Get("/ws/singleChat/messages", middleware.AuthMiddleware, wsHandler.GetSingleChatMessages)
-	router.Get("/ws/singleChat/list", middleware.AuthMiddleware, wsHandler.GetSingleChatList)
+	router.Get("/ws/addClient/:deviceId", middleware.AuthMiddleware, handlers.WsHandler.AddClient)
+	router.Get("/ws/singleChat/messages", middleware.AuthMiddleware, handlers.WsHandler.GetSingleChatMessages)
+	router.Get("/ws/singleChat/list", middleware.AuthMiddleware, handlers.WsHandler.GetSingleChatList)
 
-	router.Get("/", HealthCheck)
-	router.Get("/metrics", monitor.New())
+	adminRoutes := router.Group("v1/admin")
+	{
+		adminRoutes.Get("/status", middleware.AuthMiddleware, middleware.CheckUserPermission(handlers.UserRepo, "admin_get_server_status"), handlers.AdminHandler.GetServerStatus)
+	}
+
+	router.Get("/", middleware.CheckUserPermission(handlers.UserRepo, "admin_get_server_status"), HealthCheck)
+	router.Get("/metrics", middleware.AuthMiddleware, middleware.CheckUserPermission(handlers.UserRepo, "admin_get_server_status"), monitor.New())
 
 	router.Get("/swagger/*", swagger.HandlerDefault) // default
 }

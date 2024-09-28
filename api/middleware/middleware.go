@@ -1,11 +1,15 @@
 package middleware
 
 import (
+	"downloader_gochat/internal/repository"
 	services "downloader_gochat/internal/service"
 	"downloader_gochat/pkg/response"
 	"downloader_gochat/util"
+	"fmt"
 	"regexp"
+	"slices"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 )
@@ -90,6 +94,35 @@ func IsAuthRefreshToken(c *fiber.Ctx) error {
 	c.Locals("refreshToken", refreshToken)
 	c.Locals("jwtUserData", claims)
 	return c.Next()
+}
+
+func CheckUserPermission(userRepo *repository.UserRepository, needPermission string) fiber.Handler {
+	return func(c *fiber.Ctx) error {
+		jwtUserData := c.Locals("jwtUserData").(*util.MyJwtClaims)
+
+		permissions, _ := services.GetRolePermissionsCache(jwtUserData.RoleIds)
+		if permissions == nil || len(permissions) == 0 {
+			permissionsModel, err := userRepo.GetUserPermissionsByRoleIds(jwtUserData.RoleIds)
+			if err != nil {
+				return response.ResponseError(c, err.Error(), fiber.StatusInternalServerError)
+			}
+
+			permissions = []string{}
+			for _, p := range permissionsModel {
+				permissions = append(permissions, p.Name)
+			}
+
+			_ = services.SetRolePermissionsCache(jwtUserData.RoleIds, permissions, 1*time.Minute)
+		}
+
+		if !slices.Contains(permissions, needPermission) {
+			message := fmt.Sprintf("Forbidden, need ([%v]) permissions", needPermission)
+			return response.ResponseError(c, message, fiber.StatusForbidden)
+		}
+
+		c.Locals("permissions", permissions)
+		return c.Next()
+	}
 }
 
 var (

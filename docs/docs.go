@@ -42,6 +42,29 @@ const docTemplate = `{
                 }
             }
         },
+        "/v1/admin/status": {
+            "get": {
+                "description": "Return status of server resources and services",
+                "tags": [
+                    "Admin-Status"
+                ],
+                "summary": "Server Status",
+                "responses": {
+                    "200": {
+                        "description": "OK",
+                        "schema": {
+                            "$ref": "#/definitions/model.Status"
+                        }
+                    },
+                    "400": {
+                        "description": "Bad Request",
+                        "schema": {
+                            "$ref": "#/definitions/response.ResponseErrorModel"
+                        }
+                    }
+                }
+            }
+        },
         "/v1/user/UpdateUserFavoriteGenres/:genres": {
             "put": {
                 "security": [
@@ -2644,6 +2667,14 @@ const docTemplate = `{
                 }
             }
         },
+        "model.Status": {
+            "type": "object",
+            "properties": {
+                "tasks": {
+                    "$ref": "#/definitions/model.Tasks"
+                }
+            }
+        },
         "model.SubEntityTypeId": {
             "type": "integer",
             "enum": [
@@ -2664,6 +2695,43 @@ const docTemplate = `{
                 "FutureListSerialSeasonEnd",
                 "FutureListSubtitle"
             ]
+        },
+        "model.TaskInfo": {
+            "type": "object",
+            "properties": {
+                "consumerCount": {
+                    "type": "integer"
+                },
+                "links": {
+                    "type": "array",
+                    "items": {
+                        "type": "string"
+                    }
+                },
+                "runningCount": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.Tasks": {
+            "type": "object",
+            "properties": {
+                "blurHash": {
+                    "$ref": "#/definitions/model.TaskInfo"
+                },
+                "mediaService": {
+                    "$ref": "#/definitions/model.TaskInfo"
+                },
+                "notification": {
+                    "$ref": "#/definitions/model.TaskInfo"
+                },
+                "pushNotification": {
+                    "$ref": "#/definitions/model.TaskInfo"
+                },
+                "telegramMessage": {
+                    "$ref": "#/definitions/model.TaskInfo"
+                }
+            }
         },
         "model.TokenViewModel": {
             "type": "object",
