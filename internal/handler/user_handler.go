@@ -709,6 +709,7 @@ func (h *UserHandler) GetActiveSessions(c *fiber.Ctx) error {
 //	@Param			loadComputedFavoriteGenres	query		bool	false	"loadComputedFavoriteGenres"
 //	@Param			loadRoles					query		bool	false	"loadRoles"
 //	@Param			loadRolesWithPermissions	query		bool	false	"loadRolesWithPermissions"
+//	@Param			loadTorrentUsage			query		bool	false	"loadTorrentUsage"
 //	@Success		200							{object}	model.UserProfileRes
 //	@Failure		404,500						{object}	response.ResponseErrorModel
 //	@Security		BearerAuth
@@ -722,6 +723,7 @@ func (h *UserHandler) GetUserProfile(c *fiber.Ctx) error {
 	loadComputedFavoriteGenres := c.QueryBool("loadComputedFavoriteGenres", false)
 	loadRoles := c.QueryBool("loadRoles", false)
 	loadRolesWithPermissions := c.QueryBool("loadRolesWithPermissions", false)
+	loadTorrentUsage := c.QueryBool("loadTorrentUsage", false)
 
 	isSelfProfile := false
 	refreshToken := ""
@@ -743,6 +745,7 @@ func (h *UserHandler) GetUserProfile(c *fiber.Ctx) error {
 		LoadComputedFavoriteGenres: loadComputedFavoriteGenres,
 		LoadRoles:                  loadRoles,
 		LoadRolesWithPermissions:   loadRolesWithPermissions,
+		LoadTorrentUsage:           loadTorrentUsage,
 		RefreshToken:               refreshToken,
 	}
 	result, err := h.userService.GetUserProfile(&requestParams)

@@ -959,6 +959,12 @@ const docTemplate = `{
                         "description": "loadRolesWithPermissions",
                         "name": "loadRolesWithPermissions",
                         "in": "query"
+                    },
+                    {
+                        "type": "boolean",
+                        "description": "loadTorrentUsage",
+                        "name": "loadTorrentUsage",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -2866,6 +2872,9 @@ const docTemplate = `{
                 "userId": {
                     "type": "integer"
                 },
+                "userTorrent": {
+                    "$ref": "#/definitions/model.UserTorrent"
+                },
                 "username": {
                     "type": "string"
                 }
@@ -2957,6 +2966,20 @@ const docTemplate = `{
                     "type": "integer"
                 },
                 "userId": {
+                    "type": "integer"
+                }
+            }
+        },
+        "model.UserTorrent": {
+            "type": "object",
+            "properties": {
+                "firstUseAt": {
+                    "type": "string"
+                },
+                "torrentLeachGb": {
+                    "type": "integer"
+                },
+                "torrentSearch": {
                     "type": "integer"
                 }
             }

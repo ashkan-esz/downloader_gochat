@@ -43,6 +43,7 @@ type User struct {
 	DownloadLinksSettings  DownloadLinksSettings    `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	NotificationSettings   NotificationSettings     `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	MovieSettings          MovieSettings            `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
+	UserTorrent            UserTorrent              `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	FavoriteCharacters     []FavoriteCharacter      `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	LikeDislikeCharacter   []LikeDislikeCharacter   `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
 	FollowStaff            []FollowStaff            `gorm:"foreignKey:UserId;references:UserId;constraint:OnUpdate:CASCADE,OnDelete:CASCADE;"`
@@ -204,6 +205,7 @@ type UserProfileReq struct {
 	LoadComputedFavoriteGenres bool   `json:"loadComputedFavoriteGenres"`
 	LoadRoles                  bool   `json:"loadRoles"`
 	LoadRolesWithPermissions   bool   `json:"loadRolesWithPermissions"`
+	LoadTorrentUsage           bool   `json:"loadTorrentUsage"`
 	RefreshToken               string `json:"refreshToken"`
 }
 
@@ -252,6 +254,7 @@ type UserProfileRes struct {
 	NotificationSettings    *NotificationSettings             `gorm:"foreignKey:UserId;references:UserId;" json:"notificationSettings"`
 	DownloadLinksSettings   *DownloadLinksSettings            `gorm:"foreignKey:UserId;references:UserId;" json:"downloadLinksSettings"`
 	MovieSettings           *MovieSettings                    `gorm:"foreignKey:UserId;references:UserId;" json:"MovieSettings"`
+	UserTorrent             *UserTorrent                      `gorm:"foreignKey:UserId;references:UserId;" json:"userTorrent"`
 	ThisDevice              *ActiveSessionDataModel           `gorm:"foreignKey:UserId;references:UserId;" json:"thisDevice"`
 	Roles                   []Role                            `gorm:"-" json:"roles"`
 	RolesWithPermissions    []RoleWithPermissions             `gorm:"-" json:"RolesWithPermissions"`

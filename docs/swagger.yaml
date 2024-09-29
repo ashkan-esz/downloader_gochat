@@ -797,6 +797,8 @@ definitions:
         $ref: '#/definitions/model.ActiveSessionDataModel'
       userId:
         type: integer
+      userTorrent:
+        $ref: '#/definitions/model.UserTorrent'
       username:
         type: string
     type: object
@@ -858,6 +860,15 @@ definitions:
       roleId:
         type: integer
       userId:
+        type: integer
+    type: object
+  model.UserTorrent:
+    properties:
+      firstUseAt:
+        type: string
+      torrentLeachGb:
+        type: integer
+      torrentSearch:
         type: integer
     type: object
   model.UserViewModel:
@@ -1519,6 +1530,10 @@ paths:
       - description: loadRolesWithPermissions
         in: query
         name: loadRolesWithPermissions
+        type: boolean
+      - description: loadTorrentUsage
+        in: query
+        name: loadTorrentUsage
         type: boolean
       responses:
         "200":

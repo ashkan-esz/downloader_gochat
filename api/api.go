@@ -126,7 +126,7 @@ func InitRouter(handlers *Handlers) {
 		adminRoutes.Get("/status", middleware.AuthMiddleware, middleware.CheckUserPermission(handlers.UserRepo, "admin_get_server_status"), handlers.AdminHandler.GetServerStatus)
 	}
 
-	router.Get("/", middleware.CheckUserPermission(handlers.UserRepo, "admin_get_server_status"), HealthCheck)
+	router.Get("/", middleware.AuthMiddleware, middleware.CheckUserPermission(handlers.UserRepo, "admin_get_server_status"), HealthCheck)
 	router.Get("/metrics", middleware.AuthMiddleware, middleware.CheckUserPermission(handlers.UserRepo, "admin_get_server_status"), monitor.New())
 
 	router.Get("/swagger/*", swagger.HandlerDefault) // default

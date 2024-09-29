@@ -133,6 +133,16 @@ func (r *UserRepository) AddUser(user *model.User, roleId int64) (*model.User, e
 			return err
 		}
 
+		userTorrent := model.UserTorrent{
+			UserId:         user.UserId,
+			TorrentLeachGb: 0,
+			TorrentSearch:  0,
+			FirstUseAt:     time.Now(),
+		}
+		if err := tx.Create(&userTorrent).Error; err != nil {
+			return err
+		}
+
 		// return nil will commit the whole transaction
 		return nil
 	})
@@ -218,6 +228,10 @@ func (r *UserRepository) GetUserProfile(requestParams *model.UserProfileReq) (*m
 		if requestParams.RefreshToken != "" {
 			query = query.Preload("ThisDevice", "\"refreshToken\" = ?", requestParams.RefreshToken)
 		}
+	}
+
+	if requestParams.LoadTorrentUsage {
+		query = query.Preload("UserTorrent")
 	}
 
 	err := query.Find(&result).Error
