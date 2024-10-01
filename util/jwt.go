@@ -10,11 +10,15 @@ import (
 )
 
 type MyJwtClaims struct {
-	UserId      int64   `json:"userId"`
-	Username    string  `json:"username"`
-	RoleIds     []int64 `json:"roleIds"`
-	GeneratedAt int64   `json:"generatedAt"`
-	ExpiresAt   int64   `json:"expiresAt"`
+	UserId       int64   `json:"userId"`
+	Username     string  `json:"username"`
+	RoleIds      []int64 `json:"roleIds"`
+	GeneratedAt  int64   `json:"generatedAt"`
+	ExpiresAt    int64   `json:"expiresAt"`
+	IsBotRequest bool    `json:"isBotRequest"`
+	//BotId        string  `json:"botId"`
+	//ChatId       string  `json:"chatId"`
+	//BotUsername  string  `json:"botUsername"`
 	jwt.RegisteredClaims
 }
 
