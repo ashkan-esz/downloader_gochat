@@ -55,6 +55,8 @@ var upgrader = websocket.FastHTTPUpgrader{
 		origin := string(r.Request.Header.Peek("Origin"))
 		host := string(r.Request.Header.Peek("Host"))
 		corsAllowedOrigins := configs.GetConfigs().CorsAllowedOrigins
+		dbCorsAllowedOrigins := configs.GetDbConfigs().CorsAllowedOrigins
+		corsAllowedOrigins = append(corsAllowedOrigins, dbCorsAllowedOrigins...)
 
 		return localhostRegex.MatchString(host) ||
 			localhostRegex.MatchString(origin) ||

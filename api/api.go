@@ -63,7 +63,8 @@ func InitRouter(handlers *Handlers) {
 	router.Use(cors.New(cors.Config{
 		AllowOriginsFunc: func(origin string) bool {
 			return middleware.LocalhostRegex.MatchString(origin) ||
-				slices.Index(configs.GetConfigs().CorsAllowedOrigins, origin) != -1
+				slices.Index(configs.GetConfigs().CorsAllowedOrigins, origin) != -1 ||
+				slices.Index(configs.GetDbConfigs().CorsAllowedOrigins, origin) != -1
 		},
 		AllowCredentials: true,
 	}))

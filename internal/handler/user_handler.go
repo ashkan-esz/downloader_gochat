@@ -105,7 +105,7 @@ func (h *UserHandler) RegisterUser(c *fiber.Ctx) error {
 	if !noCookie {
 		cookieDomain := "." + configs.GetConfigs().Domain
 		if cookieDomain == ".localhost" {
-			cookieDomain = "localhost"
+			cookieDomain = ""
 		}
 		c.Cookie(&fiber.Cookie{
 			Name:        "refreshToken",
@@ -165,7 +165,7 @@ func (h *UserHandler) Login(c *fiber.Ctx) error {
 	if !noCookie {
 		cookieDomain := "." + configs.GetConfigs().Domain
 		if cookieDomain == ".localhost" {
-			cookieDomain = "localhost"
+			cookieDomain = ""
 		}
 		c.Cookie(&fiber.Cookie{
 			Name:        "refreshToken",
@@ -224,7 +224,7 @@ func (h *UserHandler) GetToken(c *fiber.Ctx) error {
 	if !noCookie && token != nil {
 		cookieDomain := "." + configs.GetConfigs().Domain
 		if cookieDomain == ".localhost" {
-			cookieDomain = "localhost"
+			cookieDomain = ""
 		}
 		c.Cookie(&fiber.Cookie{
 			Name:        "refreshToken",
@@ -276,7 +276,7 @@ func (h *UserHandler) LogOut(c *fiber.Ctx) error {
 
 	cookieDomain := "." + configs.GetConfigs().Domain
 	if cookieDomain == ".localhost" {
-		cookieDomain = "localhost"
+		cookieDomain = ""
 	}
 	c.Cookie(&fiber.Cookie{
 		Name:        "refreshToken",
@@ -993,7 +993,7 @@ func (h *UserHandler) DeleteUserAccount(c *fiber.Ctx) error {
 
 	cookieDomain := "." + configs.GetConfigs().Domain
 	if cookieDomain == ".localhost" {
-		cookieDomain = "localhost"
+		cookieDomain = ""
 	}
 	c.Cookie(&fiber.Cookie{
 		Name:        "refreshToken",
